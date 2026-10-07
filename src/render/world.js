@@ -111,6 +111,12 @@ function drawTelegraph() {
   else if (b.act === 'quake') {
     ctx.strokeStyle = `rgba(200,80,255,${0.5 + pulse * 0.5})`; ctx.lineWidth = 6;
     ctx.beginPath(); ctx.arc(b.x, b.y, 50 + 30 * p, 0, 7); ctx.stroke();
+  } else if (b.act === 'volley') { // a short spoke along each shot's path, growing as the wind-up runs out
+    ctx.lineWidth = 6; ctx.lineCap = 'round';
+    for (const a of b.angs) {
+      ctx.beginPath(); ctx.moveTo(b.x + Math.cos(a) * b.r, b.y + Math.sin(a) * b.r);
+      ctx.lineTo(b.x + Math.cos(a) * (b.r + 30 + 90 * p), b.y + Math.sin(a) * (b.r + 30 + 90 * p)); ctx.stroke();
+    }
   } else if (b.act === 'wave') {
     ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = 'rgba(200,90,255,.8)'; ctx.lineWidth = 24;
     ctx.shadowColor = '#c060ff'; ctx.shadowBlur = 20;

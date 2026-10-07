@@ -24,7 +24,7 @@ export function makeMob(x: number, y: number, summoned = false, M = G.F!.mob): M
 
 export function loadFloor(i: number) {
   G.floorIdx = i; const F = G.F = floorData(i);
-  G.WALLS = [...GATE, ...F.trees.map(([x, y, k]) => { const h = TREE_TYPES[k].hit; return { x: x + h[0], y: y + h[1], w: h[2], h: h[3] }; })];
+  G.WALLS = [...GATE, ...F.trees.map(([x, y, k]) => { const h = TREE_TYPES[k].hit; return { x: x + h[0], y: y + h[1], w: h[2], h: h[3] }; }), ...(F.ponds ?? [])];
   G.mobs = [...F.spawns.map(([x, y]) => makeMob(x, y)), ...F.rangedSpawns.map(([x, y]) => makeMob(x, y, false, F.ranged))];
   G.boss = { x: 1760, y: 600, z: 0, r: F.boss.r, hp: F.boss.hp, lag: F.boss.hp, maxHp: F.boss.hp, awake: false, cd: BOSS_RULES.firstMoveDelay,
              act: null, t: 0, tMax: 1, ang: 0, hurt: 0, hitP: false, summoned: false };

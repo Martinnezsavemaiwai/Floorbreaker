@@ -3,7 +3,7 @@
 import { settings } from '../core/save.ts';
 import { on } from '../core/events.ts';
 
-const MUSIC = { 0: 'theme_plain', 1: 'theme_swamp', 2: 'theme_dream', boss: 'theme_lost_village', clear: 'theme_dream' };
+const MUSIC = { 0: 'theme_plain', 1: 'theme_swamp', 2: 'theme_dream', 3: 'theme_swamp', boss: 'theme_lost_village', clear: 'theme_dream' };
 const tracks = {};
 let AC, master, music = null, muted = false;
 

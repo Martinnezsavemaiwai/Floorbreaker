@@ -113,7 +113,7 @@ function endRun({ cleared }) {
   $('result').className = 'screen ' + (cleared ? 'clear' : 'dead');
   $('result-head').textContent = cleared ? 'System · Clear' : 'System · Game Over';
   $('result-title').textContent = cleared ? 'CONGRATULATIONS' : 'YOU ARE DEAD';
-  $('result-msg').textContent = cleared ? `ล้ม ${F.boss.name} ได้ · ชั้นที่ 4 ยังไม่เปิด (to be continued)`
+  $('result-msg').textContent = cleared ? `ล้ม ${F.boss.name} ได้ · ชั้นที่ ${FLOORS.length + 1} ยังไม่เปิด (to be continued)`
                                         : `ตัวละคร Lv.${P.lv} ตายที่ ${F.name} และหายไปตลอดกาล`;
   // Only celebrate a real improvement: a first-ever death on floor 1 is not a "new record"
   $('newrec').hidden = !(better && (best || cleared || run.floor > 1));

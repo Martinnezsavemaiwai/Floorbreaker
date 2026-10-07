@@ -1,5 +1,5 @@
 // Floor layouts and looks. `mob` / `boss` are ids into mobs.ts / bosses.ts — a typo is a compile error.
-// trees: [x, y, type] top-left of the drawn sprite; spawns: [x, y] mob spawn points; rangedSpawns: where the `ranged` mob stands.
+// trees: [x, y, type] top-left of the drawn sprite; ponds: water rects that block like trees; spawns: [x, y] mob spawn points; rangedSpawns: where the `ranged` mob stands.
 import type { MobId } from './mobs.ts';
 import type { BossId } from './bosses.ts';
 
@@ -16,6 +16,7 @@ export interface FloorDef {
   roomTint: string | null; fieldTint?: string; fog?: boolean; torch: string;
   mob: MobId; boss: BossId; ranged: MobId;
   trees: [number, number, TreeType][];
+  ponds?: { x: number; y: number; w: number; h: number }[];
   spawns: [number, number][];
   rangedSpawns: [number, number][];
 }
@@ -44,5 +45,13 @@ export const FLOORS: FloorDef[] = [
             [1340, 820, 'small'], [560, 980, 'small'], [820, 1020, 'big'], [1240, 1040, 'small']],
     spawns: [[640, 120], [1020, 120], [800, 300], [1180, 320], [650, 470], [1150, 480], [620, 880], [1000, 900], [1300, 700], [1000, 1100]],
     rangedSpawns: [[820, 560], [1400, 560], [600, 1100], [1400, 1120]],
+  },
+  {
+    name: 'Floor 4', town: 'Rovia', grass: 11, roomTint: 'rgba(0,60,120,.3)', fieldTint: 'rgba(20,60,110,.18)', torch: '90,200,255',
+    mob: 'tidalBoar', boss: 'wythege', ranged: 'waterWraith',
+    trees: [[440, 380, 'small'], [880, 360, 'big'], [1300, 420, 'small'], [520, 760, 'small'], [1360, 980, 'small'], [960, 100, 'small']],
+    ponds: [{ x: 560, y: 140, w: 220, h: 150 }, { x: 1040, y: 760, w: 260, h: 170 }, { x: 760, y: 880, w: 160, h: 130 }, { x: 1180, y: 180, w: 170, h: 140 }],
+    spawns: [[650, 400], [1000, 300], [1250, 350], [700, 700], [950, 680], [1300, 700], [600, 1050], [1100, 1100], [1400, 800]],
+    rangedSpawns: [[830, 600], [1200, 600], [480, 600], [1420, 300]],
   },
 ];

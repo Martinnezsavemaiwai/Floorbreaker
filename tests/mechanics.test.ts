@@ -258,3 +258,27 @@ describe('col and shop', () => {
     expect(nearMerchant()).toBe(true);
   });
 });
+
+describe('floor 4 boss volley', () => {
+  beforeEach(() => {
+    quietField(); loadFloor(3);
+    for (const m of G.mobs) { m.hp = 0; m.dead = 1e9; }
+    G.P!.x = ROOM_X + 100; G.P!.y = 600; frame();
+  });
+
+  it('fires one shot per telegraphed spoke, more in rage', () => {
+    G.boss!.cd = 99;
+    startBossMove('volley');
+    expect(G.boss!.angs).toHaveLength(MOVES.volley.count[0]);
+    frames(Math.ceil(MOVES.volley.wind[0] * 60) + 2);
+    expect(G.shots.length).toBe(MOVES.volley.count[0]);
+    G.boss!.hp = G.boss!.maxHp * 0.4; startBossMove('volley');
+    expect(G.boss!.angs).toHaveLength(MOVES.volley.count[1]);
+  });
+
+  it('ponds block movement like trees', async () => {
+    const { hitWall } = await import('../src/world/physics.ts');
+    const p = G.F!.ponds![0];
+    expect(hitWall({ x: p.x + p.w / 2, y: p.y + p.h / 2, r: 14 })).toBe(true);
+  });
+});

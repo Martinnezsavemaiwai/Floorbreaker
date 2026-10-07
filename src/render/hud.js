@@ -123,11 +123,12 @@ function drawSkillSlots() {
 const mm = document.createElement('canvas'), MM = 0.1; mm.width = WORLD.w * MM; mm.height = WORLD.h * MM;
 function paintMinimap() {
   const g = mm.getContext('2d');
-  g.fillStyle = ['#7fa846', '#4f8f3d', '#3c5b47'][G.floorIdx] ?? '#5a7a4a'; g.fillRect(0, 0, mm.width, mm.height);
+  g.fillStyle = ['#7fa846', '#4f8f3d', '#3c5b47', '#3f7f9a'][G.floorIdx] ?? '#5a7a4a'; g.fillRect(0, 0, mm.width, mm.height);
   g.fillStyle = '#a07a4c'; g.fillRect(TOWN_X * MM, 560 * MM, (ROOM_X - TOWN_X) * MM, 80 * MM);
   g.fillStyle = '#c9a56e'; g.fillRect(0, 0, TOWN_X * MM, mm.height);
   g.fillStyle = '#4a3a44'; g.fillRect(ROOM_X * MM, 0, (WORLD.w - ROOM_X) * MM, mm.height);
   g.fillStyle = '#1f2a22'; for (const w of G.WALLS) g.fillRect(w.x * MM, w.y * MM, Math.max(2, w.w * MM), Math.max(2, w.h * MM));
+  g.fillStyle = '#3d8fd0'; for (const p of G.F.ponds ?? []) g.fillRect(p.x * MM, p.y * MM, p.w * MM, p.h * MM);
 }
 on('floorLoaded', paintMinimap);
 function drawMinimap() {

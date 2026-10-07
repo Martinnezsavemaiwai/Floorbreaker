@@ -74,6 +74,13 @@ function paintFloor() {
     g.fillStyle = 'rgba(255,255,255,.15)'; g.fillRect(w.x, w.y, 4, w.h);
     g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(w.x + w.w, w.y, 8, w.h);
   }
+  for (const p of F.ponds ?? []) { // stone rim, then water that darkens toward the middle
+    g.fillStyle = '#7d8798'; g.beginPath(); g.roundRect(p.x - 6, p.y - 6, p.w + 12, p.h + 12, 26); g.fill();
+    const wg = g.createLinearGradient(0, p.y, 0, p.y + p.h); wg.addColorStop(0, '#5fb2e6'); wg.addColorStop(1, '#215f9e');
+    g.fillStyle = wg; g.beginPath(); g.roundRect(p.x, p.y, p.w, p.h, 20); g.fill();
+    g.strokeStyle = 'rgba(255,255,255,.35)'; g.lineWidth = 2;
+    for (let i = 0; i < 4; i++) { const y = p.y + p.h * (0.25 + i * 0.17), x = p.x + 20 + (i % 2) * 40; g.beginPath(); g.moveTo(x, y); g.lineTo(x + p.w * 0.3, y); g.stroke(); }
+  }
   for (const [x, y, k] of F.trees) {
     const t = TREE_TYPES[k], [sx, sy, sw, sh] = t.src;
     g.fillStyle = 'rgba(0,0,0,.3)'; g.beginPath();

@@ -26,6 +26,9 @@ export function startBossMove(mv) {
   } else if (mv === 'roots') { // spikes under the player plus random spots around the room
     boss.spots = [{ x: P.x, y: P.y }];
     for (let i = 0; i < MOVES.roots.extraSpots[fast ? 1 : 0]; i++) boss.spots.push({ x: rand(ROOM.x0 + 40, WORLD.w - 40), y: rand(40, WORLD.h - 40) });
+  } else if (mv === 'volley') { // fixed at the start so the telegraph shows exactly where the shots will fly
+    const n = MOVES.volley.count[fast ? 1 : 0], a0 = rand(0, Math.PI * 2);
+    boss.angs = Array.from({ length: n }, (_, i) => a0 + i * Math.PI * 2 / n);
   }
   setAct(mv, wind(mv));
 }
@@ -71,6 +74,11 @@ const RESOLVE = {
   },
   quake(b) { kick(0.05, 16); emit('bossImpact'); b.act = 'wave'; b.waveR = MOVES.quake.startR; b.hitP = false; },
   charge() { setAct('dash', MOVES.charge.dashTime); emit('bossCharge'); },
+  volley(b) {
+    const V = MOVES.volley, dmg = bossDmg('volley');
+    for (const a of b.angs) G.shots.push({ x: b.x, y: b.y, vx: Math.cos(a) * V.speed, vy: Math.sin(a) * V.speed, r: V.shotR, dmg, col: '#6fd8ff', life: V.range / V.speed });
+    ring(b.x, b.y, 20, 90, 0.3, '111,216,255'); kick(0.03, 8); emit('mobShot'); endAct();
+  },
 };
 
 export function updateBoss(dt) {

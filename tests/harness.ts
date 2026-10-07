@@ -83,6 +83,7 @@ export function createBot(levelGoals: number[]) {
     if (spot) away(spot);
     else if (act === 'slam' && dist(P, boss) < 170) away(boss);
     else if (act === 'leap' && dist(P, boss.to!) < 140) away(boss.to!);
+    else if (act === 'volley' && dist(P, boss) < 260) away(boss);
     else if (act === 'charge') walkTo(P.x, P.y + (Math.sin(boss.ang) > 0 ? -200 : 200));
     else if (act === 'wave' && Math.abs(dist(boss, P) - boss.waveR!) < 70 && dist(boss, P) > boss.waveR! && P.skillCd <= 0) skill();
     else if (adds && dist(P, adds) < 120) { aim(adds); walkTo(adds.x, adds.y); attack(); }
@@ -91,7 +92,7 @@ export function createBot(levelGoals: number[]) {
 }
 
 // Play a whole run with the bot. Returns the outcome plus any invariant violations seen along the way.
-export function playRun(seed: number, levelGoals = [5, 10, 15], maxSeconds = 1500) {
+export function playRun(seed: number, levelGoals = [5, 10, 15, 20], maxSeconds = 2400) {
   startRun(seed);
   const think = createBot(levelGoals), seen = new Set<string>();
   let frames = 0;

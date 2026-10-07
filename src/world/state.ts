@@ -24,7 +24,7 @@ export interface Boss extends Point {
   z: number; r: number; hp: number; maxHp: number; lag: number; awake: boolean; cd: number;
   act: MoveName | 'dash' | 'wave' | null; t: number; tMax: number; ang: number; hurt: number;
   hitP: boolean; summoned: boolean;
-  from?: Point; to?: Point; spots?: Point[]; waveR?: number;
+  from?: Point; to?: Point; spots?: Point[]; waveR?: number; angs?: number[];
 }
 export type Floor = Omit<FloorDef, 'mob' | 'boss' | 'ranged'> & { mob: MobStats; ranged: MobStats; boss: ResolvedBoss };
 export interface Run { floor: number; kills: number; time: number; assisted?: boolean; over?: 'dead' | 'win' }

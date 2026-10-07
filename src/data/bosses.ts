@@ -1,5 +1,5 @@
 // Floor bosses and their attack moves. Floors reference bosses by id (see floors.ts).
-export type MoveName = 'slam' | 'charge' | 'leap' | 'roots' | 'quake';
+export type MoveName = 'slam' | 'charge' | 'leap' | 'roots' | 'quake' | 'volley';
 type Pair = [normal: number, rage: number];
 
 export const BOSS_RULES = {
@@ -19,6 +19,7 @@ export const MOVES = {
   leap: { wind: [1, 0.8], radius: 110, height: 160 },
   roots: { wind: [0.95, 0.75], radius: 60, extraSpots: [4, 8] }, // one spike under the player + extra random ones
   quake: { wind: [0.9, 0.9], startR: 40, speed: 380, maxR: 520, width: 22 },
+  volley: { wind: [0.8, 0.6], count: [12, 16], speed: 260, shotR: 10, range: 650 }, // a ring of shots with gaps to slip through
 } satisfies Record<MoveName, { wind: Pair; [k: string]: unknown }>;
 
 export interface BossStats {
@@ -42,6 +43,12 @@ export const BOSSES = {
   nerius: {
     name: 'Nerius the Evil Treant', tree: true, img: 'village', rageImg: 'treeRage', hp: 3200, bars: 5, r: 70, speed: [35, 50], cd: [1.5, 0.9], summon: 3,
     moves: ['slam', 'roots', 'quake'], rageMoves: ['roots', 'roots', 'quake', 'slam'], dmg: { slam: 55, roots: 45, quake: 40 },
+  },
+  // Floor 4: a water beast that fills the room with rings of water shots
+  wythege: {
+    name: 'Wythege the Hippocampus', img: 'boss4', rageImg: 'boss4Rage', hp: 5600, bars: 5, scale: 8.5, cd: [1.5, 0.9], summon: 2,
+    moves: ['charge', 'volley', 'slam'], rageMoves: ['volley', 'charge', 'leap', 'quake', 'volley'],
+    dmg: { slam: 66, charge: 56, leap: 66, quake: 50, volley: 40 },
   },
 } satisfies Record<string, BossStats>;
 
