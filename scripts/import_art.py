@@ -1,12 +1,15 @@
 """Turn ChatGPT pixel-art images (on a flat #FF00FF background) into game-ready sprites.
 
     python scripts/import_art.py character art-src/2.2.png public/assets/player.png --no-attack
+    python scripts/import_art.py item art-src/sword.png public/assets/sword.png 42
 
 character: a 4-column x N-row grid of poses (columns = down, up, left, right; rows 1-4 = walk).
 Each pose is cut out, scaled so the tallest standing pose is POSE_H px, reduced to COLORS colours for the whole sheet,
 and packed into the sheet layout the game reads: 4 x 7 cells of CELL px (rows 1-4 walk, row 5 attack,
 rows 6-7 empty). --no-attack fills row 5 with the standing pose instead (for the player, whose sword the
-game draws separately). Needs Pillow (pip install pillow).
+game draws separately).
+item: one drawing, cropped to its outline and scaled to the given height in px (the game draws it 1:1).
+Needs Pillow (pip install pillow).
 """
 import sys
 from PIL import Image
@@ -90,6 +93,15 @@ def character(src, dst, attack_row=True):
     print(f'{dst}: {len(rows)} rows from {src}, scale {scale:.3f}')
 
 
+def item(src, dst, height):
+    img = cut_out(Image.open(src))
+    img = img.crop(img.getchannel('A').getbbox())
+    h = int(height); w = max(1, round(img.width * h / img.height))
+    snap(img.resize((w, h), Image.Resampling.BOX)).save(dst)
+    print(f'{dst}: {w}x{h} from {src}')
+
+
 if __name__ == '__main__':
-    kind, src, dst, *flags = sys.argv[1:]
-    {'character': character}[kind](src, dst, attack_row='--no-attack' not in flags)
+    kind, src, dst, *rest = sys.argv[1:]
+    if kind == 'item': item(src, dst, rest[0])
+    else: character(src, dst, attack_row='--no-attack' not in rest)

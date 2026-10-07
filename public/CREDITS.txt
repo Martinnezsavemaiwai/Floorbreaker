@@ -1,6 +1,6 @@
 Sword Art On You — credits
 
-Player character sprite: original art for this game (generated with ChatGPT, processed with scripts/import_art.py)
+Player character and sword sprites: original art for this game (generated with ChatGPT, processed with scripts/import_art.py)
 
 Other sprites, tiles and music: Ninja Adventure Asset Pack by Pixel-boy and AAA — CC0 1.0 (public domain)
   https://pixel-boy.itch.io/ninja-adventure-asset-pack

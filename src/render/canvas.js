@@ -13,6 +13,12 @@ export function frame(img, col, row, x, y, scale) {
   const c = img.width / 4, s = 16 * scale;
   ctx.drawImage(img, col * c, row * c, c, c, Math.round(x - s / 2), Math.round(y - s * 0.6), s, s);
 }
+// The sword sprite (hilt at the top, blade pointing down) at `h` px tall, keeping the image's proportions;
+// the origin is the hand, a little below the pommel
+export function sword(h) {
+  const img = IMG.sword, w = h * img.width / img.height;
+  ctx.drawImage(img, -w / 2, -h * 0.15, w, h);
+}
 export function shadow(x, y, r, k = 1) {
   ctx.globalAlpha = k; ctx.drawImage(IMG.shadow, x - r * 1.1 * k, y + r * 0.45, r * 2.2 * k, r * 1.2 * k); ctx.globalAlpha = 1;
 }

@@ -11,7 +11,7 @@ import { IMG } from '../core/assets.ts';
 import { settings } from '../core/save.ts';
 import { clamp } from '../core/math.ts';
 import { burst } from '../systems/fx.js';
-import { ctx, frame, shadow, dirCol, FT } from './canvas.js';
+import { ctx, frame, shadow, dirCol, FT, sword as drawSword } from './canvas.js';
 import { bg, vig } from './terrain.js';
 import { drawHud } from './hud.js';
 
@@ -190,7 +190,7 @@ function drawPlayer() {
   const sword = () => {
     ctx.save(); ctx.translate(hx, hy); ctx.rotate(sa - Math.PI / 2); // sprite has the grip on top, blade pointing down
     if (skillFx || P.swing > 0) { ctx.shadowColor = '#7fd4ff'; ctx.shadowBlur = skillFx ? 18 : 8; }
-    ctx.drawImage(IMG.sword, -12, -6, 24.5, 42); ctx.restore();
+    drawSword(42); ctx.restore();
   };
   // Swing arc that follows the blade tip
   if (P.swing > 0) {

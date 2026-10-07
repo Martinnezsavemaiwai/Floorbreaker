@@ -3,11 +3,10 @@ import { G, rage } from '../world/state.ts';
 import { W, H, WORLD, TOWN_X, ROOM_X, DOOR } from '../world/constants.ts';
 import { PLAYER } from '../data/player.ts';
 import { SKILLS } from '../data/skills.ts';
-import { IMG } from '../core/assets.ts';
 import { on } from '../core/events.ts';
 import { keyLabel } from '../core/input.ts';
 import { clamp } from '../core/math.ts';
-import { ctx, FN, FT } from './canvas.js';
+import { ctx, FN, FT, sword } from './canvas.js';
 
 const A = PLAYER.attack;
 // slot icon per skill: blade angle and glow colour
@@ -108,7 +107,7 @@ function drawSkillSlots() {
       const [rot, glow] = ICON[sl.icon];
       ctx.save(); ctx.translate(cx, cy + 2); ctx.rotate(rot);
       if (glow) { ctx.shadowColor = glow; ctx.shadowBlur = 10; }
-      ctx.drawImage(IMG.sword, -7, -16, 14, 28); ctx.restore();
+      ctx.translate(0, -12); sword(30); ctx.restore();
     }
     if (sl.cd > 0) { // radial cooldown sweep
       ctx.save(); ctx.beginPath(); ctx.roundRect(x, y, s, s, 12); ctx.clip();
