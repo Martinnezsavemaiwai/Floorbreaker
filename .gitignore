@@ -2,6 +2,10 @@
 node_modules/
 dist/
 
+# Test output
+test-results/
+playwright-report/
+
 # Upstream asset repo clone (has its own .git); the files the game uses are copied into assets/ / public/
 assets/NinjaAdventure/
 

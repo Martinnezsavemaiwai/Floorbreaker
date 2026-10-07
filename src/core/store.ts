@@ -5,6 +5,6 @@ export const store = {
 };
 
 export interface Settings { music: number; sfx: number; shake: boolean; flash: boolean }
-const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const reduced = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false; // undefined in Node tests
 export const settings: Settings = Object.assign({ music: 60, sfx: 80, shake: !reduced, flash: !reduced }, store.get<Partial<Settings>>('settings', {}));
 export const saveSettings = () => store.set('settings', settings);

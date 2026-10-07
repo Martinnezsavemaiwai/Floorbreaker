@@ -4,4 +4,6 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   base: './',
   server: { port: 5173 },
+  // Headless sims run in Node: the game logic must not touch the DOM
+  test: { include: ['tests/**/*.test.ts'], environment: 'node' },
 });
