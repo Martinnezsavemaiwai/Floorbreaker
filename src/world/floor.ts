@@ -38,7 +38,8 @@ export function loadFloor(i: number) {
 function newPlayer() {
   // position/HP/transient fields are (re)set by loadFloor
   G.P = { r: PLAYER.radius, maxHp: PLAYER.hp, hp: PLAYER.hp, lag: PLAYER.hp, atk: PLAYER.atk, lv: 1, xp: 0, ang: 0, atkCd: 0, skillCd: 0,
-          hurt: 0, swing: 0, swingDir: 1, hitSet: null, x: 0, y: 0, dash: 0, delay: 0, trail: [], kx: 0, ky: 0, inv: 0, buf: null };
+          hurt: 0, swing: 0, swingDir: 1, hitSet: null, x: 0, y: 0, dash: 0, delay: 0, trail: [], kx: 0, ky: 0, inv: 0, buf: null,
+          up: {}, pendingUpgrades: 0 };
 }
 export const assistOn = () => settings.assistDamage < 1 || settings.assistSpeed < 1;
 
@@ -52,11 +53,11 @@ export function newRun() {
 // since mid-fight state (mob positions, boss phase) isn't stored.
 export function snapshotRun(): Suspend {
   const { P, run } = G;
-  return { floorIdx: G.floorIdx, player: { lv: P!.lv, xp: P!.xp, maxHp: P!.maxHp, atk: P!.atk },
+  return { floorIdx: G.floorIdx, player: { lv: P!.lv, xp: P!.xp, maxHp: P!.maxHp, atk: P!.atk, up: { ...P!.up }, pendingUpgrades: P!.pendingUpgrades },
            run: { floor: run!.floor, kills: run!.kills, time: run!.time, assisted: !!run!.assisted } };
 }
 export function resumeRun(s: Suspend) {
-  newPlayer(); Object.assign(G.P!, s.player);
+  newPlayer(); Object.assign(G.P!, s.player, { up: { ...s.player.up } });
   G.run = { ...s.run };
   loadFloor(s.floorIdx);
 }

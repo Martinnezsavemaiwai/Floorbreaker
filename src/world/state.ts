@@ -11,6 +11,7 @@ export interface Player extends Point {
   swing: number; swingDir: number; dash: number; delay: number; moving?: boolean;
   kx: number; ky: number; hitSet: Set<Mob | Boss> | null; trail: (Point & { t: number })[];
   buf: { kind: 'attack' | 'skill'; t: number } | null;
+  up: Record<string, number>; pendingUpgrades: number; // upgrade counts by id; picks waiting to be chosen
 }
 export interface Mob extends Point {
   sx: number; sy: number; wx: number; wy: number; r: number; hp: number; maxHp: number;

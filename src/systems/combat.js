@@ -9,6 +9,7 @@ import { clamp } from '../core/math.ts';
 import { emit } from '../core/events.ts';
 import { settings } from '../core/save.ts';
 import { text, burst, ring, kick } from './fx.js';
+import { mods } from './upgrades.js';
 
 export const targets = () => [...G.mobs, G.boss].filter(e => e.hp > 0 && (e !== G.boss || G.boss.awake));
 
@@ -16,16 +17,18 @@ export function gainXp(n) {
   const P = G.P;
   P.xp += n; text(P.x, P.y - 30, '+' + n + ' XP', '#7fd4ff');
   while (P.xp >= PLAYER.xpToNext(P.lv)) {
-    P.xp -= PLAYER.xpToNext(P.lv); P.lv++; P.maxHp += PLAYER.perLevel.hp; P.atk += PLAYER.perLevel.atk; P.hp = P.maxHp;
+    P.xp -= PLAYER.xpToNext(P.lv); P.lv++; P.pendingUpgrades++; P.maxHp += PLAYER.perLevel.hp; P.atk += PLAYER.perLevel.atk; P.hp = P.maxHp;
     text(P.x, P.y - 50, 'LEVEL UP!', '#ffd54a', true); emit('levelUp');
     burst(P.x, P.y, 30, '#ffd54a', 220, 0.8, 5, true); ring(P.x, P.y, 10, 90, 0.5, '255,213,74');
   }
 }
 
-export function hurtEnemy(e, d, big) {
+export function hurtEnemy(e, d, big, crit = false) {
   if (e.hp <= 0) return;
   const { P, F, boss, run } = G;
-  e.hp -= d; e.hurt = 0.1; text(e.x, e.y - e.r - (e.z || 0), d, big ? '#ffb347' : '#fff', big); emit('hit', { big });
+  e.hp -= d; e.hurt = 0.1; text(e.x, e.y - e.r - (e.z || 0), crit ? d + '!' : d, crit ? '#ffe14d' : big ? '#ffb347' : '#fff', big || crit); emit('hit', { big });
+  const steal = mods().lifesteal; // every enemy hit comes from the player
+  if (steal) P.hp = Math.min(P.maxHp, P.hp + steal);
   burst(e.x, e.y - (e.z || 0), big ? 14 : 7, '#fff3c4', 320, 0.25, 3, false);
   kick(big ? 0.09 : 0.045, big ? 6 : 2);
   if (e !== boss) { knock(e, P, F.mob.knockback[big ? 'heavy' : 'light']); if (big) e.wind = 0; } // Sword Skill staggers a winding-up mob
@@ -60,7 +63,7 @@ export function hurtPlayer(d, from) {
   if (P.inv > 0) return; // brief invulnerability after a hit, so a mob crowd can't chain-stun you
   d = Math.max(1, Math.round(d * settings.assistDamage)); // assist mode: take less damage
   const heavy = d >= PLAYER.knockback.heavyFrom;
-  P.hp -= d; P.hurt = 0.25; P.inv = PLAYER.invTime; text(P.x, P.y - 20, '-' + d, '#ff5252', heavy); emit('playerHurt');
+  P.hp -= d; P.hurt = 0.25; P.inv = PLAYER.invTime + mods().invBonus; text(P.x, P.y - 20, '-' + d, '#ff5252', heavy); emit('playerHurt');
   if (from) knock(P, from, PLAYER.knockback[heavy ? 'heavy' : 'light']);
   burst(P.x, P.y, 10, '#ff5252', 220, 0.35, 4, false); kick(0.05, d >= 20 ? 10 : 5);
   if (P.hp <= 0) {
