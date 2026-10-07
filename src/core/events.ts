@@ -6,7 +6,7 @@ import type { MoveName } from '../data/bosses.ts';
 export interface GameEvents {
   swing: void; skill: void; hit: { big: boolean }; dodge: void; levelUp: void;
   playerHurt: void; playerDeath: void; runOver: { cleared: boolean };
-  mobWindup: void; mobDeath: void;
+  mobWindup: void; mobShot: void; mobDeath: void;
   bossWake: void; bossSummon: void; bossWind: MoveName; bossImpact: void; bossCharge: void; bossDeath: void;
   portalOpen: void; floorLoaded: number;
   hint: { title: string; sub: string };

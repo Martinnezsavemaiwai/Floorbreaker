@@ -59,6 +59,7 @@ export const SFX = {
   hurt: () => { tone(220, 0.22, 'square', 0.16, 80); noise(0.12, 0.25, 500); },
   dodge: () => tone(900, 0.12, 'sine', 0.12, 2200),
   windup: () => tone(660, 0.06, 'square', 0.05),
+  shot: () => { noise(0.18, 0.18, 2500, 2, 600); tone(520, 0.15, 'triangle', 0.06, 260); },
   slam: () => { tone(90, 0.5, 'sine', 0.6, 35); noise(0.45, 0.45, 300, 0.7, 80); },
   charge: () => noise(0.4, 0.3, 200, 0.8, 900),
   roar: () => { tone(80, 0.9, 'sawtooth', 0.25, 45); noise(0.9, 0.3, 400, 0.5, 120); },
@@ -83,6 +84,7 @@ on('playerDeath', () => { stopMusic(); SFX.death(); });
 on('levelUp', SFX.levelUp);
 on('upgradePicked', SFX.ui);
 on('mobWindup', SFX.windup);
+on('mobShot', SFX.shot);
 on('bossWake', () => { SFX.roar(); playMusic('boss'); });
 on('bossSummon', SFX.roar);
 on('bossWind', mv => { if (mv !== 'charge') SFX.bossWind(); }); // charge has its own whoosh (bossCharge)

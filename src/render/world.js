@@ -14,17 +14,17 @@ import { drawHud } from './hud.js';
 const SWING = PLAYER.attack.swing;
 
 function drawMob(m) {
-  const { F, time } = G;
+  const { time } = G, M = m.def;
   shadow(m.x, m.y, m.r);
   // wind-up: shake + red flash; lunge: hop toward the target
-  const jit = m.wind > 0 ? Math.sin(time * 70) * 2 : 0, hop = m.lunge > 0 ? Math.sin((m.lunge / F.mob.lunge) * Math.PI) * 12 : 0;
+  const jit = m.wind > 0 ? Math.sin(time * 70) * 2 : 0, hop = m.lunge > 0 ? Math.sin((m.lunge / M.lunge) * Math.PI) * 12 : 0;
   const x = Math.round(m.x + jit + Math.cos(m.face) * hop), y = Math.round(m.y + Math.sin(m.face) * hop);
   // reduced-flash mode: no white/blink frames, the steady red glow + "!" carry the wind-up
   const flash = settings.flash && (m.hurt > 0 || (m.wind > 0 && Math.floor(time * 16) % 2 === 0));
-  const img = flash ? IMG[F.mob.white] : IMG[F.mob.img];
+  const img = flash ? IMG[M.white] : IMG[M.img];
   ctx.save();
   if (m.wind > 0 && m.hurt <= 0) { ctx.shadowColor = '#ff2020'; ctx.shadowBlur = 14; }
-  if (F.mob.kind === 'beast') {
+  if (M.kind === 'beast') {
     const f = Math.floor(time * 6 + m.sx) % 2, s = 48; // sheet faces left
     ctx.translate(x, y); if (Math.cos(m.face) > 0) ctx.scale(-1, 1);
     ctx.drawImage(img, f * 16, 0, 16, 16, -s / 2, -s * 0.6, s, s);
@@ -33,6 +33,11 @@ function drawMob(m) {
     frame(img, dirCol(m.face), row, x, y, 3);
   }
   ctx.restore();
+  if (m.wind > 0 && M.ranged) { // aim line toward the player, brighter as the shot gets close
+    const P = G.P, k = 1 - m.wind / M.wind;
+    ctx.save(); ctx.strokeStyle = `rgba(255,70,70,${0.3 + 0.6 * k})`; ctx.lineWidth = 3; ctx.setLineDash([8, 6]);
+    ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(m.x + (P.x - m.x) * k, m.y + (P.y - m.y) * k); ctx.stroke(); ctx.restore();
+  }
   if (m.wind > 0) { ctx.fillStyle = '#ff4040'; ctx.font = '900 18px system-ui'; ctx.textAlign = 'center'; ctx.fillText('!', x, y - 36); }
   if (m.hp < m.maxHp) {
     ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(m.x - 18, m.y - 44, 36, 5);
@@ -61,6 +66,16 @@ function drawBoss() {
   ctx.save(); if (rage()) { ctx.shadowColor = '#ffb300'; ctx.shadowBlur = 25; }
   const img = b.hurt > 0 && settings.flash ? IMG.bossWhite : IMG[rage() ? F.boss.rageImg : F.boss.img];
   frame(img, dirCol(b.ang), attacking ? 4 : Math.floor(time * 5) % 4, b.x + jit, b.y - b.z, F.boss.scale);
+  ctx.restore();
+}
+
+function drawShots() {
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (const s of G.shots) {
+    ctx.shadowColor = s.col; ctx.shadowBlur = 14; ctx.fillStyle = s.col;
+    ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 7); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(s.x, s.y, s.r * 0.45, 0, 7); ctx.fill();
+  }
   ctx.restore();
 }
 
@@ -225,6 +240,7 @@ export function drawWorld() {
   actors.push({ y: P.y, draw: drawPlayer });
   if (G.boss.hp > 0) actors.push({ y: G.boss.y, draw: drawBoss });
   for (const a of actors.sort((a, b) => a.y - b.y)) a.draw();
+  drawShots();
   drawFx();
   if (G.F.fog) drawFog();
   ctx.restore();

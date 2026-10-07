@@ -31,7 +31,7 @@ export function hurtEnemy(e, d, big, crit = false) {
   if (steal) P.hp = Math.min(P.maxHp, P.hp + steal);
   burst(e.x, e.y - (e.z || 0), big ? 14 : 7, '#fff3c4', 320, 0.25, 3, false);
   kick(big ? 0.09 : 0.045, big ? 6 : 2);
-  if (e !== boss) { knock(e, P, F.mob.knockback[big ? 'heavy' : 'light']); if (big) e.wind = 0; } // Sword Skill staggers a winding-up mob
+  if (e !== boss) { knock(e, P, e.def.knockback[big ? 'heavy' : 'light']); if (big) e.wind = 0; } // Sword Skill staggers a winding-up mob
   else if (F.boss.summon && !boss.summoned && rage()) {
     boss.summoned = true; emit('bossSummon');
     text(boss.x, boss.y - 130, `${F.boss.name.split(' ')[0]} เรียกลูกน้อง!`, '#ff7043', true);
@@ -51,7 +51,7 @@ export function hurtEnemy(e, d, big, crit = false) {
     if (!isLastFloor()) { G.portal = { x: boss.x, y: boss.y }; emit('portalOpen'); }
     else { run.over = 'win'; emit('runOver', { cleared: true }); }
   } else {
-    e.dead = e.summoned ? Infinity : F.mob.respawn; gainXp(F.mob.xp); emit('mobDeath'); run.kills++;
+    e.dead = e.summoned ? Infinity : e.def.respawn; gainXp(e.def.xp); emit('mobDeath'); run.kills++;
     burst(e.x, e.y, 26, '#8fe3ff', 260, 0.9, 9, true); ring(e.x, e.y, 5, 50, 0.3, '143,227,255');
   }
 }

@@ -182,3 +182,36 @@ describe('upgrades', () => {
     expect(G.P!.pendingUpgrades).toBe(1);
   });
 });
+
+describe('ranged mobs', () => {
+  beforeEach(quietField);
+  const slinger = async () => {
+    const { makeMob } = await import('../src/world/floor.ts');
+    const m = makeMob(G.P!.x + 250, G.P!.y, false, G.F!.ranged); G.mobs.push(m); return m;
+  };
+
+  it('winds up at range, then fires a shot that hits a player who stands still', async () => {
+    const m = await slinger();
+    frame();
+    expect(m.wind).toBeGreaterThan(0);         // in range: no walking in to melee
+    frames(Math.ceil(m.def.wind * 60) + 2);
+    expect(G.shots).toHaveLength(1);
+    frames(60);
+    expect(G.P!.hp).toBe(G.P!.maxHp - m.def.dmg);
+    expect(G.shots).toHaveLength(0);
+  });
+
+  it('the shot can be sidestepped', async () => {
+    const m = await slinger();
+    frames(Math.ceil(m.def.wind * 60) + 3);
+    G.P!.y += 80; // step out of the line after it fired
+    frames(60);
+    expect(G.P!.hp).toBe(G.P!.maxHp);
+  });
+
+  it('backs away when the player gets close', async () => {
+    const m = await slinger(); m.x = G.P!.x + 60; m.cd = 99;
+    frames(30);
+    expect(m.x).toBeGreaterThan(G.P!.x + 60);
+  });
+});

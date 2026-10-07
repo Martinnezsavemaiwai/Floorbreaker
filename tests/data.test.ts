@@ -13,6 +13,8 @@ describe.each(FLOORS.map((f, i) => [f.name, i] as const))('%s', (_name, i) => {
 
   it('mob and boss ids resolve to stats', () => {
     expect(G.F!.mob.hp).toBeGreaterThan(0);
+    expect(G.F!.ranged.ranged, 'the ranged slot holds a ranged mob').toBeDefined();
+    expect(G.mobs.filter(m => m.def === G.F!.ranged)).toHaveLength(FLOORS[i].rangedSpawns.length);
     expect(G.F!.boss.hp).toBeGreaterThan(0);
   });
 
