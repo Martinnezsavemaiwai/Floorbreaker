@@ -140,3 +140,45 @@ describe('assist mode and suspend', () => {
     expect(G.run!.kills).toBe(12);
   });
 });
+
+describe('upgrades', () => {
+  beforeEach(quietField);
+
+  it('each level-up earns one pick, offered as 3 different non-maxed upgrades', async () => {
+    const { rollOffer, hasPendingUpgrade } = await import('../src/systems/upgrades.js');
+    gainXp(PLAYER.xpToNext(1));
+    expect(G.P!.pendingUpgrades).toBe(1);
+    expect(hasPendingUpgrade()).toBe(true);
+    G.P!.up = { keenEdge: 5, vitality: 5 }; // maxed: never offered
+    for (let i = 0; i < 20; i++) {
+      const offer = rollOffer();
+      expect(new Set(offer).size).toBe(3);
+      expect(offer).not.toContain('keenEdge');
+      expect(offer).not.toContain('vitality');
+    }
+  });
+
+  it('a pick applies its effect and spends the pending level', async () => {
+    const { applyUpgrade, mods } = await import('../src/systems/upgrades.js');
+    gainXp(PLAYER.xpToNext(1));
+    const hp = G.P!.maxHp;
+    applyUpgrade('vitality');
+    expect(G.P!.maxHp).toBe(hp + 15);
+    expect(G.P!.hp).toBe(G.P!.maxHp);
+    expect(G.P!.pendingUpgrades).toBe(0);
+    applyUpgrade('quickSlash');
+    attack();
+    expect(G.P!.atkCd).toBeCloseTo(PLAYER.attack.cd * 0.9);
+    expect(mods().attackCd).toBeCloseTo(0.9);
+  });
+
+  it('upgrades and an unspent pick survive suspend and resume', async () => {
+    const { snapshotRun, resumeRun } = await import('../src/world/floor.ts');
+    G.P!.up = { swift: 2 }; G.P!.pendingUpgrades = 1; // quit with the picker open
+    const snap = snapshotRun();
+    startRun(2);
+    resumeRun(snap);
+    expect(G.P!.up).toEqual({ swift: 2 });
+    expect(G.P!.pendingUpgrades).toBe(1);
+  });
+});

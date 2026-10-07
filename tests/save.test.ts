@@ -60,7 +60,7 @@ describe('loading', () => {
 });
 
 describe('suspend + export/import', () => {
-  const suspend = { floorIdx: 1, player: { lv: 7, xp: 40, maxHp: 220, atk: 28 }, run: { floor: 2, kills: 41, time: 300, assisted: false } };
+  const suspend = { floorIdx: 1, player: { lv: 7, xp: 40, maxHp: 220, atk: 28, up: { keenEdge: 2 }, pendingUpgrades: 1 }, run: { floor: 2, kills: 41, time: 300, assisted: false } };
 
   it('round-trips a suspended run and clears it', async () => {
     const s = await boot();
@@ -68,6 +68,12 @@ describe('suspend + export/import', () => {
     expect(s.loadSuspend()).toEqual(suspend);
     s.clearSuspend();
     expect(s.loadSuspend()).toBeNull();
+  });
+
+  it('loads a suspend written before upgrades existed (no up field)', async () => {
+    const { up, pendingUpgrades, ...oldPlayer } = suspend.player;
+    const s = await boot({ 'saoy.suspend': JSON.stringify({ v: 1, savedAt: '', data: { ...suspend, player: oldPlayer } }) });
+    expect(s.loadSuspend()?.player.up).toEqual({});
   });
 
   it('rejects a suspend for a floor that does not exist', async () => {

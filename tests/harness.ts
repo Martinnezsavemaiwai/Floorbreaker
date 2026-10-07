@@ -1,6 +1,6 @@
 // Headless game driver for tests: the real systems + fixed-step clock, no DOM, canvas or audio.
 // It mirrors the play scene (gameplay until the run ends, effects always) so hit-stop, i-frames and timings
-// behave exactly as in the browser.
+// behave exactly as in the browser. Level-up picks are taken instantly: the first card of each offer.
 import { G } from '../src/world/state.ts';
 import { newRun } from '../src/world/floor.ts';
 import { hitWall } from '../src/world/physics.ts';
@@ -11,10 +11,15 @@ import { seedRng } from '../src/core/rng.ts';
 import { keys, mouse, releaseAll } from '../src/core/input.ts';
 import { dist, clamp, type Point } from '../src/core/math.ts';
 import { updateGame, updateFx, attack, skill } from '../src/systems/index.js';
+import { rollOffer, applyUpgrade, hasPendingUpgrade } from '../src/systems/upgrades.js';
 
 export { G, STEP };
 
-const playScene = { name: 'play', update(dt: number) { if (!G.run!.over) updateGame(dt); updateFx(dt); } };
+const playScene = { name: 'play', update(dt: number) {
+  if (!G.run!.over) updateGame(dt);
+  updateFx(dt);
+  while (!G.run!.over && hasPendingUpgrade()) applyUpgrade(rollOffer()[0]);
+} };
 
 export function startRun(seed = 1) {
   seedRng(seed); releaseAll(); clock.acc = 0; clock.hitStop = 0; clock.scale = 1;
@@ -36,7 +41,7 @@ export function violations() {
 
 // Snapshot used to compare two runs for determinism
 export const snapshot = () => JSON.stringify({
-  P: [G.P!.x, G.P!.y, G.P!.hp, G.P!.lv, G.P!.xp], floor: G.floorIdx, over: G.run!.over ?? null,
+  P: [G.P!.x, G.P!.y, G.P!.hp, G.P!.lv, G.P!.xp, G.P!.up], floor: G.floorIdx, over: G.run!.over ?? null,
   mobs: G.mobs.map(m => [m.x, m.y, m.hp]), boss: [G.boss!.x, G.boss!.y, G.boss!.hp, G.boss!.act],
 });
 
