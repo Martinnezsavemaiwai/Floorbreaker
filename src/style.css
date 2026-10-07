@@ -160,3 +160,6 @@ dialog.dialog p{margin:0;font-size:15px;line-height:1.55}
 .pips i.next{background:var(--accent);opacity:.4;animation:pulse 1s ease-in-out infinite alternate}
 @keyframes pulse{to{opacity:.9}}
 @media (prefers-reduced-motion: reduce){.card{transition:none}.card:hover{transform:none}.pips i.next{animation:none}}
+.card[aria-disabled=true]{opacity:.55;cursor:not-allowed}
+.card[aria-disabled=true]:hover{transform:none;border-color:var(--rule)}
+.card .price{font:800 15px var(--font-num);color:var(--accent-ink)}

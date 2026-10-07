@@ -5,7 +5,7 @@ type Pair = [normal: number, rage: number];
 export const BOSS_RULES = {
   rageAt: 0.5,       // rage phase below this fraction of max HP
   rageDmgMult: 1.25,
-  xpMult: 6,         // boss XP = floor mob XP * xpMult
+  xpMult: 6,         // boss XP (and Col) = floor mob XP (Col) * xpMult
   firstMoveDelay: 2,
 };
 

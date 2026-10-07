@@ -13,6 +13,7 @@ const HINTS = [
   { id: 'windup', when: () => G.mobs.some(m => m.wind > 0), title: 'ระวัง!', sub: () => 'มอนสเตอร์ขึ้น ! สีแดง = กำลังจะโจมตี ให้ถอยออกก่อน' },
   { id: 'skill', when: () => G.run.kills >= 1, title: 'Sword Skill: Sonic Leap', sub: () => `คลิกขวา หรือกด ${keyLabel('skill')} · ระหว่างพุ่งไม่โดนดาเมจ` },
   { id: 'heal', when: () => G.P.x > TOWN_X && G.P.hp < G.P.maxHp * 0.4, title: 'HP ต่ำ', sub: () => 'กลับเข้าเมือง (ซ้ายสุด) เพื่อฟื้น HP' },
+  { id: 'shop', when: () => G.P.col >= 40, title: 'มี Col แล้ว', sub: () => `กลับเมืองไปหาพ่อค้า กด ${keyLabel('interact')} ซื้อ Potion (ดื่มด้วย ${keyLabel('potion')})` },
   { id: 'boss', when: () => G.boss.awake, title: 'ห้องบอส', sub: () => 'หลบวงสีแดงก่อนบอสฟาด · ประตูล็อกจนกว่าบอสจะตาย' },
   { id: 'save', when: () => G.run.time > 45, title: 'พักเกมได้', sub: () => `${keyLabel('pause')} หยุดเกม · ปิดแท็บได้เลย เกมเซฟให้อัตโนมัติ` },
 ];

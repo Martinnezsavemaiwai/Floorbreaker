@@ -37,7 +37,8 @@ const MetaSchema = z.object({ best: BestSchema.nullable().default(null), hintsSe
 const SuspendSchema = z.object({
   floorIdx: z.number().int().min(0).max(FLOORS.length - 1),
   player: z.object({ lv: z.number().int().min(1), xp: z.number().min(0), maxHp: z.number().positive(), atk: z.number().positive(),
-    up: z.record(z.string(), z.number().int().min(0)).default({}), pendingUpgrades: z.number().int().min(0).default(0) }),
+    up: z.record(z.string(), z.number().int().min(0)).default({}), pendingUpgrades: z.number().int().min(0).default(0),
+    col: z.number().int().min(0).default(0), potions: z.number().int().min(0).default(0), scrolls: z.number().int().min(0).default(0) }),
   run: z.object({ floor: z.number().int().min(1), kills: z.number().int().min(0), time: z.number().min(0), assisted: z.boolean().default(false) }),
 });
 export type Settings = z.infer<typeof SettingsSchema>;

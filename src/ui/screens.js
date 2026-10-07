@@ -5,6 +5,8 @@ import { on } from '../core/events.ts';
 import { keyLabel } from '../core/input.ts';
 import { FLOORS } from '../data/floors.ts';
 import { UPGRADES } from '../data/upgrades.ts';
+import { SHOP } from '../data/shop.ts';
+import { price, canBuy } from '../systems/shop.js';
 import { SFX } from '../audio/audio.js';
 
 export const $ = id => /** @type {any} */ (document.getElementById(id)); // DOM ids come from index.html
@@ -62,6 +64,19 @@ export function showUpgradePicker(offer) {
   $('upgrade-cards').querySelector('.card')?.focus();
 }
 
+// Shop: one card per item with its price; cards you can't afford are disabled, not hidden
+export function renderShop(status = '') {
+  const P = G.P;
+  $('shop-col').textContent = `มี ${P.col} Col · Potion ${P.potions}/${SHOP.potion.max}`;
+  $('shop-items').innerHTML = Object.entries(SHOP).map(([id, it], i) => {
+    const full = id === 'potion' && P.potions >= it.max, ok = canBuy(id);
+    return `<button class="card" data-buy="${id}" ${ok ? '' : 'aria-disabled="true"'}
+      aria-label="${i + 1}: ${it.name} — ${it.desc} — ${full ? 'เต็มแล้ว' : price(id) + ' Col'}">
+      <kbd>${i + 1}</kbd><b>${it.name}</b><span>${it.desc}</span><span class="price">${full ? 'เต็มแล้ว' : price(id) + ' Col'}</span></button>`;
+  }).join('');
+  $('shop-status').textContent = status;
+}
+
 // Title: best record + a Continue button when a suspended run exists
 function renderTitle() {
   const b = meta.best;
@@ -79,6 +94,7 @@ function renderHowTo() {
     [`${k('up')}${k('left')}${k('down')}${k('right')}`, 'เดิน · เมาส์ใช้เล็ง'],
     [`${k('attack')} / คลิกซ้าย`, 'ฟันดาบ'],
     [`${k('skill')} / คลิกขวา`, 'Sword Skill: Sonic Leap'],
+    [k('potion'), 'ดื่ม Potion (ซื้อจากร้านในเมือง)'], [k('interact'), 'คุยกับพ่อค้า'],
     [k('pause'), 'หยุดเกม'], [k('mute'), 'ปิด/เปิดเสียง'], [k('fullscreen'), 'เต็มจอ'],
   ].map(([keys, what]) => `<span>${keys}</span><span>${what}</span>`).join('');
 }

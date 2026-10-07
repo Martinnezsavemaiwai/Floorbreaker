@@ -3,11 +3,14 @@ import { G, rage } from '../world/state.ts';
 import { W, H, WORLD, TOWN_X, ROOM_X, DOOR, TORCHES } from '../world/constants.ts';
 import { PLAYER } from '../data/player.ts';
 import { MOVES } from '../data/bosses.ts';
+import { MERCHANT } from '../data/shop.ts';
+import { keyLabel } from '../core/input.ts';
+import { nearMerchant } from '../systems/shop.js';
 import { IMG } from '../core/assets.ts';
 import { settings } from '../core/save.ts';
 import { clamp } from '../core/math.ts';
 import { burst } from '../systems/fx.js';
-import { ctx, frame, shadow, dirCol } from './canvas.js';
+import { ctx, frame, shadow, dirCol, FT } from './canvas.js';
 import { bg, vig } from './terrain.js';
 import { drawHud } from './hud.js';
 
@@ -67,6 +70,16 @@ function drawBoss() {
   const img = b.hurt > 0 && settings.flash ? IMG.bossWhite : IMG[rage() ? F.boss.rageImg : F.boss.img];
   frame(img, dirCol(b.ang), attacking ? 4 : Math.floor(time * 5) % 4, b.x + jit, b.y - b.z, F.boss.scale);
   ctx.restore();
+}
+
+// Town merchant: idles facing down; name tag always, the key prompt only when close enough to open the shop
+function drawMerchant() {
+  const { x, y } = MERCHANT;
+  shadow(x, y, 14);
+  frame(IMG.merchantT, 0, Math.floor(G.time * 2) % 2 ? 0 : 2, x, y, 3);
+  ctx.textAlign = 'center'; ctx.font = `700 13px ${FT}`; ctx.lineJoin = 'round'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.8)';
+  const tag = nearMerchant() ? `[${keyLabel('interact')}] ร้านค้า` : 'ร้านค้า';
+  ctx.strokeText(tag, x, y - 34); ctx.fillStyle = nearMerchant() ? '#ffe14d' : '#fff'; ctx.fillText(tag, x, y - 34);
 }
 
 function drawShots() {
@@ -237,7 +250,7 @@ export function drawWorld() {
   drawTorches(); drawDoor(); drawPortal(); drawTelegraph();
   // y-sort so whoever is lower on screen is drawn in front
   const actors = G.mobs.filter(m => m.hp > 0).map(m => ({ y: m.y, draw: () => drawMob(m) }));
-  actors.push({ y: P.y, draw: drawPlayer });
+  actors.push({ y: P.y, draw: drawPlayer }, { y: MERCHANT.y, draw: drawMerchant });
   if (G.boss.hp > 0) actors.push({ y: G.boss.y, draw: drawBoss });
   for (const a of actors.sort((a, b) => a.y - b.y)) a.draw();
   drawShots();

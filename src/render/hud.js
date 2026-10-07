@@ -51,6 +51,7 @@ function drawPlayerPanel() {
   ctx.fillStyle = '#5fc3ff'; ctx.fillRect(78, 59, 240 * P.xp / PLAYER.xpToNext(P.lv), 3);
   const zone = P.x < TOWN_X ? ['SAFE ZONE · HP ฟื้นฟู', '#9fe89f'] : P.x > ROOM_X ? ['BOSS ROOM', '#ff8a7a'] : ['FIELD', '#cfd8e6'];
   ctx.textAlign = 'left'; label(`${F.name} · ${zone[0]}`, 22, 92, zone[1], `600 13px ${FT}`);
+  label(`${P.col} Col`, 22, 110, '#ffe14d', `700 13px ${FN}`);
 }
 
 function drawBossBar() {
@@ -72,11 +73,21 @@ function drawBossBar() {
   ctx.textAlign = 'right'; label(`×${left}`, x + w, y + 27, '#fff', `800 12px ${FN}`);
 }
 
+function drawFlask(x, y, full) {
+  ctx.save(); ctx.globalAlpha = full ? 1 : 0.35;
+  ctx.fillStyle = '#e8eef7'; ctx.fillRect(x - 4, y - 18, 8, 7);                  // neck
+  ctx.beginPath(); ctx.arc(x, y, 11, 0, 7); ctx.fillStyle = '#e8eef7'; ctx.fill(); // glass
+  ctx.beginPath(); ctx.arc(x, y + 1, 8.5, 0, 7); ctx.fillStyle = '#ff5a6a'; ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.fillRect(x - 5, y - 4, 3, 5);       // shine
+  ctx.restore();
+}
+
 function drawSkillSlots() {
-  const P = G.P, s = 56, gap = 12, x0 = W / 2 - s - gap / 2, y = H - s - 18;
+  const P = G.P, s = 56, gap = 12, x0 = W / 2 - (3 * s + 2 * gap) / 2, y = H - s - 18;
   const slots = [
     { key: keyLabel('attack'), label: 'ฟัน', cd: Math.max(0, P.atkCd) / A.cd, glow: false },
     { key: keyLabel('skill'), label: SK.name, cd: Math.max(0, P.skillCd) / SK.cd, glow: P.skillCd <= 0, secs: P.skillCd },
+    { key: keyLabel('potion'), label: `Potion ×${P.potions}`, cd: 0, glow: false, potion: true },
   ];
   slots.forEach((sl, i) => {
     const x = x0 + i * (s + gap), cx = x + s / 2, cy = y + s / 2;
@@ -84,9 +95,12 @@ function drawSkillSlots() {
     if (sl.glow) { ctx.shadowColor = '#f39a1d'; ctx.shadowBlur = 16; }
     panel(x, y, s, s, 12); ctx.restore();
     if (sl.glow) { ctx.beginPath(); ctx.roundRect(x, y, s, s, 12); ctx.strokeStyle = '#f39a1d'; ctx.lineWidth = 2; ctx.stroke(); }
-    ctx.save(); ctx.translate(cx, cy + 2); ctx.rotate(i ? -Math.PI / 4 : Math.PI / 4);
-    if (i) { ctx.shadowColor = '#5fc3ff'; ctx.shadowBlur = 10; }
-    ctx.drawImage(IMG.sword, -7, -16, 14, 28); ctx.restore();
+    if (sl.potion) drawFlask(cx, cy + 4, P.potions > 0);
+    else {
+      ctx.save(); ctx.translate(cx, cy + 2); ctx.rotate(i ? -Math.PI / 4 : Math.PI / 4);
+      if (i) { ctx.shadowColor = '#5fc3ff'; ctx.shadowBlur = 10; }
+      ctx.drawImage(IMG.sword, -7, -16, 14, 28); ctx.restore();
+    }
     if (sl.cd > 0) { // radial cooldown sweep
       ctx.save(); ctx.beginPath(); ctx.roundRect(x, y, s, s, 12); ctx.clip();
       ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, s, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * sl.cd); ctx.closePath();

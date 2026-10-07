@@ -11,7 +11,7 @@ export function tinted(img: HTMLImageElement, mode: GlobalCompositeOperation, co
   return c;
 }
 const TINTS: Record<string, Record<string, string>> = {
-  taurus: { taurusT: '#d09a70', slingerT: '#a8c878' }, village: { treeRage: '#ff7050' }, player: { javelinT: '#e07050' },
+  taurus: { taurusT: '#d09a70', slingerT: '#a8c878', merchantT: '#f0c860' }, village: { treeRage: '#ff7050' }, player: { javelinT: '#e07050' },
   boss: { boss1: '#ff4a3a', boss1Rage: '#ff9a30', boss2: '#b070ff', boss2Rage: '#ff50b0', elfT: '#8a78c0', mageT: '#50c8c0' },
 };
 const loadImg = (n: string) => { const i = new Image(); i.src = `assets/${n}.png`; return i.decode().then(() => i); };

@@ -11,7 +11,9 @@ import { updateGame, updateFx } from '../systems/index.js';
 import { drawWorld } from '../render/world.js';
 import { updateMenuBg, drawMenuBg, drawIntro, INTRO_TIME } from '../render/menu.js';
 import { initAudio, stopMusic, pauseMusic, resumeMusic, SFX } from '../audio/audio.js';
-import { screen, showPauseStats, showUpgradePicker, confirmDialog, $ } from '../ui/screens.js';
+import { screen, showPauseStats, showUpgradePicker, renderShop, confirmDialog, $ } from '../ui/screens.js';
+import { nearMerchant, buy } from '../systems/shop.js';
+import { SHOP } from '../data/shop.ts';
 import { rollOffer, applyUpgrade, hasPendingUpgrade } from '../systems/upgrades.js';
 
 let resume = null; // suspend data to continue from once the intro finishes
@@ -60,7 +62,25 @@ $('upgrade-cards').addEventListener('click', e => {
   if (card) pickUpgrade(+card.dataset.pick);
 });
 
-const liveRun = () => G.run && !G.run.over && (scenes.top === playScene || scenes.top === pauseScene || scenes.top === upgradeScene);
+// Town shop: also freezes play. A bought Skill Scroll adds a pending pick, so the picker opens right after leaving.
+const shopScene = {
+  name: 'shop', blocksUpdate: true,
+  enter() { releaseAll(); renderShop(); screen('shop'); },
+  exit() { screen(null); },
+};
+export const shopping = () => scenes.top === shopScene;
+export function openShop() { if (playing() && nearMerchant()) scenes.push(shopScene); }
+export function closeShop() { if (shopping()) scenes.pop(); }
+export function buyItem(id) {
+  if (!shopping() || !SHOP[id]) return;
+  renderShop(buy(id) ? `ซื้อ ${SHOP[id].name} แล้ว` : 'Col ไม่พอ หรือของเต็มแล้ว');
+}
+$('shop-items').addEventListener('click', e => {
+  const card = /** @type {HTMLElement | null} */ (/** @type {Element} */ (e.target).closest('[data-buy]'));
+  if (card) buyItem(card.dataset.buy);
+});
+
+const liveRun = () => G.run && !G.run.over && (scenes.top === playScene || scenes.top === pauseScene || scenes.top === upgradeScene || scenes.top === shopScene);
 export const playing = () => scenes.top === playScene && !G.run?.over; // in control of a live character
 
 export function newGame() {

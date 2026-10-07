@@ -6,7 +6,7 @@ import { applyAudio } from '../audio/audio.js';
 import { $, confirmDialog } from './screens.js';
 
 const ACTION_NAMES = {
-  up: 'เดินขึ้น', down: 'เดินลง', left: 'เดินซ้าย', right: 'เดินขวา', attack: 'ฟันดาบ', skill: 'Sword Skill',
+  up: 'เดินขึ้น', down: 'เดินลง', left: 'เดินซ้าย', right: 'เดินขวา', attack: 'ฟันดาบ', skill: 'Sword Skill', potion: 'ดื่ม Potion', interact: 'คุย / เปิดร้าน',
   pause: 'หยุดเกม', mute: 'ปิด/เปิดเสียง', fullscreen: 'เต็มจอ',
 };
 
@@ -30,7 +30,7 @@ applyAssist();
 
 // ---------- key rebinding ----------
 /** @type {[string, import('../data/controls.ts').Action[]][]} */
-const GROUPS = [['เดิน', ['up', 'down', 'left', 'right']], ['ต่อสู้', ['attack', 'skill']], ['ระบบ', ['pause', 'mute', 'fullscreen']]];
+const GROUPS = [['เดิน', ['up', 'down', 'left', 'right']], ['ต่อสู้', ['attack', 'skill', 'potion', 'interact']], ['ระบบ', ['pause', 'mute', 'fullscreen']]];
 let listening = null; // the action waiting for a key, or null
 export const isRebinding = () => listening !== null;
 const keysText = a => codesFor(a).map(codeLabel).join(' / ') || '—';

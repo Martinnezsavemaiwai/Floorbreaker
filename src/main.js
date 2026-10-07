@@ -14,13 +14,16 @@ import { scenes, clock } from './core/app.ts';
 import { runFrames } from './core/loop.ts';
 import { ready } from './core/assets.ts';
 import { keys, mouse, actionForKey, actionForButton, releaseAll, keyLabel } from './core/input.ts';
+import { drinkPotion } from './systems/shop.js';
+import { SHOP } from './data/shop.ts';
 import { attack, skill, hurtPlayer, startBossMove, updateGame, updateFx } from './systems/index.js';
 import { drawWorld } from './render/world.js';
 import { cv } from './render/canvas.js';
 import { toggleMute } from './audio/audio.js';
 import { current, closeSub, inSubScreen, openSub, toast, bindActions, dialogOpen } from './ui/screens.js';
 import { resetKeys, downloadSave, pickImport } from './ui/settings.js';
-import { titleScene, playing, newGame, pauseGame, resumeGame, startIntro, continueRun, goHome, saveAndQuit, suspendRun, picking, pickUpgrade } from './scenes/index.js';
+import { titleScene, playing, newGame, pauseGame, resumeGame, startIntro, continueRun, goHome, saveAndQuit, suspendRun, picking, pickUpgrade,
+  shopping, openShop, closeShop, buyItem } from './scenes/index.js';
 
 function toggleFullscreen() {
   if (document.fullscreenElement) document.exitFullscreen();
@@ -32,15 +35,20 @@ bindActions({
   start: () => ready.then(startIntro), continue: () => ready.then(continueRun),
   howto: () => openSub('howto'), settings: () => openSub('settings'), back: closeSub,
   resume: resumeGame, saveQuit: saveAndQuit, home: goHome, fullscreen: toggleFullscreen,
-  resetKeys, exportSave: downloadSave, importSave: pickImport,
+  resetKeys, exportSave: downloadSave, importSave: pickImport, closeShop,
 });
 
 // Keyboard: physical keys -> actions (data/controls.ts + rebinding). Gameplay keys only count while a live character is in control.
-const GAME_ACTIONS = { attack, skill, mute };
+const GAME_ACTIONS = { attack, skill, mute, potion: drinkPotion, interact: openShop };
 addEventListener('keydown', e => {
   if (dialogOpen()) return; // the confirm <dialog> handles its own keys (Esc = cancel)
   if (picking() && /^(Digit|Numpad)[1-9]$/.test(e.code)) return pickUpgrade(+e.code.at(-1) - 1);
   const action = actionForKey(e.code);
+  if (shopping()) { // number keys buy, Esc / interact leaves
+    if (/^(Digit|Numpad)[1-9]$/.test(e.code)) buyItem(Object.keys(SHOP)[+e.code.at(-1) - 1]);
+    else if ((action === 'pause' || action === 'interact') && !e.repeat) closeShop();
+    return;
+  }
   if (action === 'fullscreen' && !e.repeat) return toggleFullscreen();
   if (action === 'pause') {
     if (playing()) pauseGame();

@@ -13,6 +13,7 @@ import { mods } from './upgrades.js';
 
 export const targets = () => [...G.mobs, G.boss].filter(e => e.hp > 0 && (e !== G.boss || G.boss.awake));
 
+export function gainCol(n, at) { G.P.col += n; text(at.x + 14, at.y - 34, `+${n} Col`, '#ffe14d'); }
 export function gainXp(n) {
   const P = G.P;
   P.xp += n; text(P.x, P.y - 30, '+' + n + ' XP', '#7fd4ff');
@@ -47,11 +48,11 @@ export function hurtEnemy(e, d, big, crit = false) {
     ring(e.x, e.y, 20, 260, 0.8, '143,227,255');
     for (const m of G.mobs) if (m.summoned && m.hp > 0) { m.hp = 0; m.dead = Infinity; burst(m.x, m.y, 20, '#8fe3ff', 260, 0.9, 8, true); }
     emit('bossDeath');
-    gainXp(F.mob.xp * BOSS_RULES.xpMult);
+    gainXp(F.mob.xp * BOSS_RULES.xpMult); gainCol(F.mob.col * BOSS_RULES.xpMult, e);
     if (!isLastFloor()) { G.portal = { x: boss.x, y: boss.y }; emit('portalOpen'); }
     else { run.over = 'win'; emit('runOver', { cleared: true }); }
   } else {
-    e.dead = e.summoned ? Infinity : e.def.respawn; gainXp(e.def.xp); emit('mobDeath'); run.kills++;
+    e.dead = e.summoned ? Infinity : e.def.respawn; gainXp(e.def.xp); gainCol(e.def.col, e); emit('mobDeath'); run.kills++;
     burst(e.x, e.y, 26, '#8fe3ff', 260, 0.9, 9, true); ring(e.x, e.y, 5, 50, 0.3, '143,227,255');
   }
 }

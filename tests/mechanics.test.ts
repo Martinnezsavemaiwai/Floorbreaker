@@ -215,3 +215,46 @@ describe('ranged mobs', () => {
     expect(m.x).toBeGreaterThan(G.P!.x + 60);
   });
 });
+
+describe('col and shop', () => {
+  beforeEach(quietField);
+
+  it('a kill drops its Col', async () => {
+    const { hurtEnemy } = await import('../src/systems/combat.js');
+    const m = G.mobs[0]; m.hp = 1;
+    hurtEnemy(m, 5, false);
+    expect(G.P!.col).toBe(m.def.col);
+  });
+
+  it('buys only with enough Col, potions cap at 3, scrolls get pricier and add a pick', async () => {
+    const { buy, price } = await import('../src/systems/shop.js');
+    expect(buy('potion')).toBe(false);
+    G.P!.col = 1000;
+    for (let i = 0; i < 4; i++) buy('potion');
+    expect(G.P!.potions).toBe(3);
+    const p1 = price('pick');
+    expect(buy('pick')).toBe(true);
+    expect(G.P!.pendingUpgrades).toBe(1);
+    expect(price('pick')).toBeGreaterThan(p1);
+    expect(G.P!.col).toBe(1000 - 3 * 40 - p1);
+  });
+
+  it('a potion heals half of max HP and is used up', async () => {
+    const { drinkPotion } = await import('../src/systems/shop.js');
+    G.P!.potions = 1; G.P!.hp = 10;
+    drinkPotion();
+    expect(G.P!.hp).toBe(10 + Math.round(G.P!.maxHp * 0.5));
+    expect(G.P!.potions).toBe(0);
+    drinkPotion(); // none left: nothing happens
+    expect(G.P!.potions).toBe(0);
+  });
+
+  it('the merchant stands in the safe zone and can be reached', async () => {
+    const { MERCHANT } = await import('../src/data/shop.ts');
+    const { TOWN_X } = await import('../src/world/constants.ts');
+    expect(MERCHANT.x).toBeLessThan(TOWN_X);
+    G.P!.x = MERCHANT.x; G.P!.y = MERCHANT.y + 30;
+    const { nearMerchant } = await import('../src/systems/shop.js');
+    expect(nearMerchant()).toBe(true);
+  });
+});
