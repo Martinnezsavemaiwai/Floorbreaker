@@ -29,7 +29,7 @@ export const MOBS = {
   // ranged support mobs, one per floor
   koboldSlinger: { ...BASE, name: 'Kobold Slinger', img: 'slingerT', white: 'taurusWhite', kind: 'humanoid', hp: 30, dmg: 8, speed: 110, wind: 0.6, xp: 20, col: 6,
     attackCd: 2.2, ranged: { keep: 170, range: 300, shotSpeed: 320, shotR: 7, color: '#d8b070' } },
-  taurusJavelineer: { ...BASE, name: 'Taurus Javelineer', img: 'javelinT', white: 'playerWhite', kind: 'humanoid', hp: 60, dmg: 14, speed: 115, wind: 0.55, xp: 40, col: 10,
+  taurusJavelineer: { ...BASE, name: 'Taurus Javelineer', img: 'javelinT', white: 'ninjaWhite', kind: 'humanoid', hp: 60, dmg: 14, speed: 115, wind: 0.55, xp: 40, col: 10,
     attackCd: 2, ranged: { keep: 180, range: 320, shotSpeed: 420, shotR: 8, color: '#ff9050' } },
   darkElfMage: { ...BASE, name: 'Dark Elf Mage', img: 'mageT', white: 'bossWhite', kind: 'humanoid', hp: 90, dmg: 20, speed: 115, wind: 0.7, xp: 60, col: 14,
     attackCd: 2.4, ranged: { keep: 190, range: 340, shotSpeed: 260, shotR: 11, color: '#b080ff' } },
@@ -48,7 +48,7 @@ export const MOBS = {
     radius: 10, scale: 0.65, respawn: 10 },
   // floor 4 (Rovia, the water town)
   tidalBoar: { ...BASE, name: 'Tidal Boar', img: 'tidalBoar', white: 'boarWhite', kind: 'beast', hp: 200, dmg: 28, speed: 160, wind: 0.32, xp: 100, col: 16 },
-  waterWraith: { ...BASE, name: 'Water Wraith', img: 'wraithT', white: 'playerWhite', kind: 'humanoid', hp: 120, dmg: 24, speed: 120, wind: 0.6, xp: 85, col: 18,
+  waterWraith: { ...BASE, name: 'Water Wraith', img: 'wraithT', white: 'ninjaWhite', kind: 'humanoid', hp: 120, dmg: 24, speed: 120, wind: 0.6, xp: 85, col: 18,
     attackCd: 2.2, ranged: { keep: 190, range: 340, shotSpeed: 340, shotR: 9, color: '#6fd8ff' } },
 } satisfies Record<string, MobStats>;
 
