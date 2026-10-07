@@ -91,6 +91,8 @@
         <div class="row"><label for="s-hints">คำแนะนำในเกม</label><span class="state" data-for="s-hints"></span><input id="s-hints" class="switch" type="checkbox"></div>
       </div>
       <div role="tabpanel" id="pane-keys" aria-labelledby="tab-keys" hidden>
+        <div class="row"><label for="s-aim">ทิศที่หันและโจมตี</label>
+          <select id="s-aim"><option value="move">ตามทิศที่เดิน (ช่วยเล็งศัตรูใกล้)</option><option value="mouse">ตามเมาส์</option></select></div>
         <p class="hint">กดที่ปุ่มแล้วกดปุ่มใหม่บนคีย์บอร์ด · <kbd>Esc</kbd> ยกเลิก</p>
         <div class="bind-groups" id="binds"><!-- grouped rows, filled by ui/settings.js --></div>
         <p class="status" id="bind-status" role="status" aria-live="polite"></p>

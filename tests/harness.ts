@@ -8,6 +8,7 @@ import { W, H, WORLD, TOWN_X, ROOM_X } from '../src/world/constants.ts';
 import { scenes, clock } from '../src/core/app.ts';
 import { STEP } from '../src/core/loop.ts';
 import { seedRng } from '../src/core/rng.ts';
+import { settings } from '../src/core/save.ts';
 import { keys, mouse, releaseAll } from '../src/core/input.ts';
 import { dist, clamp, type Point } from '../src/core/math.ts';
 import { updateGame, updateFx, attack, skill, roll } from '../src/systems/index.js';
@@ -22,6 +23,7 @@ const playScene = { name: 'play', update(dt: number) {
 } };
 
 export function startRun(seed = 1) {
+  settings.aim = 'mouse'; // the bot aims with the (virtual) mouse
   seedRng(seed); releaseAll(); clock.acc = 0; clock.hitStop = 0; clock.scale = 1;
   newRun(); scenes.replace(playScene);
 }

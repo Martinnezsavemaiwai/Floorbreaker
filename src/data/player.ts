@@ -7,6 +7,7 @@ export interface PlayerStats {
   attack: { cd: number; swing: number; range: number; halfArc: number; dmgRand: number };
   combo: { window: number; mult: number; range: number; halfArc: number; cdMult: number; lunge: number };
   roll: { time: number; speed: number; cd: number };
+  aimAssist: { range: number; cone: number };
   knockback: { light: number; heavy: number; heavyFrom: number };
 }
 
@@ -22,7 +23,9 @@ export const PLAYER = {
   // every 3rd swing in a chain (next press within `window` s of the last one ending) is a finisher:
   // more damage, a wider/longer arc, heavy knockback + stagger, a short step forward and a longer recovery
   combo: { window: 0.45, mult: 1.6, range: 70, halfArc: Math.PI * 0.6, cdMult: 1.4, lunge: 260 },
-  roll: { time: 0.22, speed: 620, cd: 0.7 }, // dodge roll: i-frames for its whole duration
+  roll: { time: 0.22, speed: 620, cd: 0.7 },
+  // when facing where you walk: attacks snap to the nearest enemy within `range` px and `cone` rad of the facing
+  aimAssist: { range: 110, cone: Math.PI / 3 }, // dodge roll: i-frames for its whole duration
   // Sword Skills live in skills.ts
   knockback: { light: 280, heavy: 520, heavyFrom: 20 }, // hits of heavyFrom+ damage knock harder
 } satisfies PlayerStats;

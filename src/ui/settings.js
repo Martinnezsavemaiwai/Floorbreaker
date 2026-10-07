@@ -27,6 +27,7 @@ for (const k of ['assistDamage', 'assistSpeed']) {
   el.onchange = () => { settings[k] = +el.value; saveSettings(); applyAssist(); };
 }
 applyAssist();
+{ const el = $('s-aim'); el.value = settings.aim; el.onchange = () => { settings.aim = el.value; saveSettings(); }; }
 
 // ---------- key rebinding ----------
 /** @type {[string, import('../data/controls.ts').Action[]][]} */

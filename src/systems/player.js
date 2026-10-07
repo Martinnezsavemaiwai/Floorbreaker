@@ -9,12 +9,13 @@ import { dist, rand } from '../core/math.ts';
 import { emit } from '../core/events.ts';
 import { moveVector, mouse } from '../core/input.ts';
 import { pad } from '../core/gamepad.ts';
+import { settings } from '../core/save.ts';
 import { text, burst, ring, kick } from './fx.js';
 import { targets, hurtEnemy } from './combat.js';
 import { mods } from './upgrades.js';
 import { rng } from '../core/rng.ts';
 
-const A = PLAYER.attack, SK = SKILLS.sonicLeap, C = PLAYER.combo, RL = PLAYER.roll;
+const AIM_ASSIST = PLAYER.aimAssist, A = PLAYER.attack, SK = SKILLS.sonicLeap, C = PLAYER.combo, RL = PLAYER.roll;
 const free = () => G.P.delay <= 0 && G.P.dash <= 0 && G.P.roll <= 0 && G.P.thrust <= 0;
 const canAttack = () => G.P.atkCd <= 0 && free();
 const canSkill = slot => !!G.P.skills[slot] && G.P.skillCd[slot] <= 0 && free();
@@ -30,6 +31,7 @@ export function attack() {
   if (!live()) return;
   const P = G.P;
   if (!canAttack()) { P.buf = { kind: 'attack', t: PLAYER.inputBuffer }; return; }
+  assistAim();
   const m = mods();
   P.combo = P.comboT > 0 ? (P.combo + 1) % 3 : 0;
   const fin = P.finisher = P.combo === 2;
@@ -55,12 +57,25 @@ export function roll() {
   P.roll = RL.time; P.rollCd = RL.cd; P.combo = 0; P.comboT = 0; P.buf = null;
   burst(P.x, P.y + 10, 8, '#c8b89a', 140, 0.35, 4, false); emit('roll');
 }
+// Without a pointer to aim with, swings and skills turn toward the nearest enemy roughly in front
+const facingMove = () => pad.active || settings.aim === 'move';
+function assistAim() {
+  const P = G.P;
+  if (!facingMove() || pad.aiming) return;
+  let best = null, bd = Infinity;
+  for (const e of targets()) {
+    const d = dist(P, e) - e.r, a = Math.atan2(e.y - P.y, e.x - P.x) - P.ang;
+    if (d < AIM_ASSIST.range && Math.abs(Math.atan2(Math.sin(a), Math.cos(a))) < AIM_ASSIST.cone && d < bd) { best = e; bd = d; }
+  }
+  if (best) P.ang = Math.atan2(best.y - P.y, best.x - P.x);
+}
 const skillDmg = (S, m) => Math.round((G.P.atk + m.atkBonus) * S.dmgMult * m.skillDmg);
 export function skill(slot = 0) {
   if (!live()) return;
   const P = G.P, id = P.skills[slot];
   if (!id) return;
   if (!canSkill(slot)) { P.buf = { kind: 'skill', slot, t: PLAYER.inputBuffer }; return; }
+  assistAim();
   const S = SKILLS[id], m = mods();
   P.skillCd[slot] = S.cd * m.skillCd; P.combo = 0; P.comboT = 0; emit('skill');
   text(P.x, P.y - 30, S.name + '!', '#ffb347', true);
@@ -111,9 +126,9 @@ export function updatePlayer(dt) {
     move(P, Math.cos(P.rollAng) * RL.speed * dt, Math.sin(P.rollAng) * RL.speed * dt);
     P.moving = true;
   } else {
-    // aim: right stick, else (playing on a pad) the walking direction, else the mouse
+    // aim: right stick, else the walking direction (pad, or the "move" setting), else the mouse
     if (pad.aiming) P.ang = Math.atan2(pad.aim.y, pad.aim.x);
-    else if (pad.active) { const v = moveVector(); if (v.moving) P.ang = Math.atan2(v.y, v.x); }
+    else if (facingMove()) { const v = moveVector(); if (v.moving) P.ang = Math.atan2(v.y, v.x); }
     else P.ang = Math.atan2(mouse.y + G.cam.y - P.y, mouse.x + G.cam.x - P.x);
     applyKnock(P, dt);
     if (P.delay > 0) { P.delay -= dt; P.moving = false; }

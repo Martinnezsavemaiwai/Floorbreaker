@@ -25,6 +25,7 @@ const SettingsSchema = z.object({
   shake: z.boolean().default(!reduced),
   flash: z.boolean().default(!reduced),
   hints: z.boolean().default(true),
+  aim: z.enum(['move', 'mouse']).default('move'), // face where you walk (+ aim assist) or aim with the mouse
   assistDamage: z.number().min(0.25).max(1).default(1), // damage taken multiplier
   assistSpeed: z.number().min(0.5).max(1).default(1),   // game speed multiplier
   bindings: z.record(z.string(), z.array(z.string())).default({}), // per-action overrides of data/controls.ts

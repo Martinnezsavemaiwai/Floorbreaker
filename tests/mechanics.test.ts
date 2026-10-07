@@ -395,3 +395,27 @@ describe('armored and swarm mobs', () => {
     expect(n).toBe(extras.at.length * extras.group!);
   });
 });
+
+describe('facing where you walk', () => {
+  beforeEach(async () => { quietField(); (await import('../src/core/save.ts')).settings.aim = 'move'; });
+
+  it('turns toward the walking direction and keeps facing it after stopping', () => {
+    keys.KeyW = true; frames(5); keys.KeyW = false; frames(5);
+    expect(G.P!.ang).toBeCloseTo(-Math.PI / 2);
+  });
+
+  it('an attack snaps to a nearby enemy roughly in front, but not to one behind', async () => {
+    const { MOBS } = await import('../src/data/mobs.ts');
+    const { makeMob } = await import('../src/world/floor.ts');
+    keys.KeyD = true; frame(); keys.KeyD = false; // face right
+    const front = makeMob(G.P!.x + 50, G.P!.y + 40, false, { ...MOBS.frenzyBoar, hp: 9999, speed: 0, wanderSpeed: 0 }); G.mobs.push(front);
+    attack();
+    expect(G.P!.ang).toBeCloseTo(Math.atan2(40, 50));
+    expect(front.hp).toBeLessThan(9999);
+
+    G.P!.ang = 0; front.hp = 0; front.dead = 1e9;
+    G.mobs.push(makeMob(G.P!.x - 60, G.P!.y, false, { ...MOBS.frenzyBoar, hp: 9999, speed: 0, wanderSpeed: 0 }));
+    G.P!.atkCd = 0; attack();
+    expect(G.P!.ang).toBe(0);
+  });
+});
