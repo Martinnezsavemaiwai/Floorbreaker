@@ -170,3 +170,5 @@ dialog.dialog p{margin:0;font-size:15px;line-height:1.55}
 .story-foot{display:flex;align-items:center;gap:8px}
 .story-foot .hint{margin:0 auto 0 0;font-family:var(--font-num)}
 .story-foot .btn{width:auto}
+.credits{margin:4px 0 0;font-size:13px}
+.credits a{color:var(--focus)}

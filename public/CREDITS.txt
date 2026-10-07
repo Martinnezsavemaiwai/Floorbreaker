@@ -1,0 +1,12 @@
+Sword Art On You — credits
+
+Sprites, tiles and music: Ninja Adventure Asset Pack by Pixel-boy and AAA — CC0 1.0 (public domain)
+  https://pixel-boy.itch.io/ninja-adventure-asset-pack
+
+Fonts (SIL Open Font License 1.1, full texts in licenses/):
+  Kanit — Copyright 2020 The Kanit Project Authors (https://github.com/cadsondemak/kanit)
+  Exo 2 — Copyright 2013 The Exo 2 Project Authors (https://github.com/googlefonts/Exo-2.0)
+
+Sound effects: synthesized in code (Web Audio).
+
+Fan project inspired by Sword Art Online (Reki Kawahara). Not affiliated with or endorsed by the rights holders.

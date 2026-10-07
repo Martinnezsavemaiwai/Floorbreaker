@@ -10,7 +10,8 @@
     "test:e2e": "playwright test",
     "check": "tsc -p . && vitest run && playwright test",
     "build": "tsc -p . && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "package": "npm run build && tar -a -c -f sword-art-on-you-web.zip -C dist ."
   },
   "dependencies": {
     "@fontsource/exo-2": "^5.3.0",
