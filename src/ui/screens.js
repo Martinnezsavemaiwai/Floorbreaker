@@ -1,10 +1,10 @@
 // DOM overlay screens (title, how-to, settings, pause, result) and the toast. Reads game state, never owns it.
-import { G } from '../world/state.js';
-import { store, settings, saveSettings } from '../core/store.js';
-import { on } from '../core/events.js';
+import { G } from '../world/state.ts';
+import { store, settings, saveSettings } from '../core/store.ts';
+import { on } from '../core/events.ts';
 import { applyAudio, SFX } from '../audio/audio.js';
 
-const $ = id => document.getElementById(id);
+const $ = id => /** @type {any} */ (document.getElementById(id)); // DOM ids come from index.html
 const fmtTime = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
 export let current = 'title-screen';
@@ -12,7 +12,7 @@ let backTo = 'title-screen';
 export function screen(id) {
   current = id;
   for (const s of document.querySelectorAll('.screen')) s.classList.toggle('on', s.id === id);
-  $(id)?.querySelector('.btn.primary, .btn, input')?.focus({ preventScroll: true });
+  /** @type {HTMLElement | null} */ ($(id)?.querySelector('.btn.primary, .btn, input'))?.focus({ preventScroll: true });
 }
 export const openSub = id => { backTo = current; screen(id); };
 export const closeSub = () => screen(backTo);
@@ -51,7 +51,7 @@ on('portalOpen', () => toast(`Congratulations! ${G.F.name} Cleared`, 'เดิ�
 // Buttons carry data-act="name"; main.js supplies what each name does
 export function bindActions(actions) {
   document.addEventListener('click', e => {
-    const b = e.target.closest('[data-act]');
+    const b = /** @type {HTMLElement | null} */ (/** @type {Element} */ (e.target).closest('[data-act]'));
     if (b) { SFX.ui(); actions[b.dataset.act](); }
   });
 }

@@ -7,14 +7,14 @@ import '@fontsource/exo-2/500.css';
 import '@fontsource/exo-2/700.css';
 import '@fontsource/exo-2/800.css';
 import './style.css';
-import { W, H, WORLD, TOWN_X, ROOM_X } from './world/constants.js';
-import { G } from './world/state.js';
-import { loadFloor } from './world/floor.js';
-import { hitWall } from './world/physics.js';
-import { scenes, clock } from './core/app.js';
-import { runFrames } from './core/loop.js';
-import { ready } from './core/assets.js';
-import { keys, mouse, actionForKey, actionForButton, releaseAll } from './core/input.js';
+import { W, H, WORLD, TOWN_X, ROOM_X } from './world/constants.ts';
+import { G } from './world/state.ts';
+import { loadFloor } from './world/floor.ts';
+import { hitWall } from './world/physics.ts';
+import { scenes, clock } from './core/app.ts';
+import { runFrames } from './core/loop.ts';
+import { ready } from './core/assets.ts';
+import { keys, mouse, actionForKey, actionForButton, releaseAll } from './core/input.ts';
 import { attack, skill, hurtPlayer, startBossMove, updateGame, updateFx } from './systems/index.js';
 import { drawWorld } from './render/world.js';
 import { cv } from './render/canvas.js';
@@ -68,7 +68,7 @@ scenes.replace(titleScene);
 if (import.meta.env.DEV) {
   const live = { state: () => G.run?.over || scenes.top?.name, P: () => G.P, mobs: () => G.mobs, boss: () => G.boss, F: () => G.F,
                  floorIdx: () => G.floorIdx, portal: () => G.portal, run: () => G.run, clock: () => clock, scenes: () => scenes, cam: () => G.cam };
-  window.__saoy = Object.defineProperties(
+  /** @type {any} */ (window).__saoy = Object.defineProperties(
     { tick: dt => clock.advance(dt), update: updateGame, updateFx, draw: drawWorld, newGame, loadFloor, attack, skill, hurtPlayer,
       hitWall, startBossMove, keys, mouse, ready, consts: { W, H, WORLD, TOWN_X, ROOM_X } },
     Object.fromEntries(Object.entries(live).map(([k, get]) => [k, { get }])));

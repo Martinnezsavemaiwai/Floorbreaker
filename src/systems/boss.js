@@ -1,11 +1,11 @@
 // Boss AI: walk toward the player, then pick a (weighted-by-repetition) move from the phase's list.
 // Each move telegraphs for MOVES[mv].wind seconds, then RESOLVE[mv] fires; ACTIVE moves run every step.
-import { G, rage } from '../world/state.js';
-import { ROOM, ROOM_X, WORLD } from '../world/constants.js';
-import { move } from '../world/physics.js';
-import { BOSS_RULES, MOVES } from '../data/bosses.js';
-import { clamp, dist, lerp, pick, rand } from '../core/math.js';
-import { emit } from '../core/events.js';
+import { G, rage } from '../world/state.ts';
+import { ROOM, ROOM_X, WORLD } from '../world/constants.ts';
+import { move } from '../world/physics.ts';
+import { BOSS_RULES, MOVES } from '../data/bosses.ts';
+import { clamp, dist, lerp, pick, rand } from '../core/math.ts';
+import { emit } from '../core/events.ts';
 import { text, burst, ring, kick } from './fx.js';
 import { hurtPlayer } from './combat.js';
 

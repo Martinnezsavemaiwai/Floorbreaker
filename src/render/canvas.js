@@ -1,7 +1,7 @@
 // The main canvas plus small drawing helpers shared by world, HUD and menu rendering.
-import { IMG } from '../core/assets.js';
+import { IMG } from '../core/assets.ts';
 
-export const cv = document.getElementById('c');
+export const cv = /** @type {HTMLCanvasElement} */ (document.getElementById('c'));
 export const ctx = cv.getContext('2d');
 export const FN = "'Exo 2','Kanit',system-ui,sans-serif", FT = "'Kanit','Exo 2',system-ui,sans-serif";
 

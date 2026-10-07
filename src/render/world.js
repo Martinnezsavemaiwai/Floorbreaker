@@ -1,11 +1,11 @@
 // Drawing the live world: terrain, telegraphs, y-sorted actors, effects, fog and screen tint.
-import { G, rage } from '../world/state.js';
-import { W, H, WORLD, TOWN_X, ROOM_X, DOOR, TORCHES } from '../world/constants.js';
-import { PLAYER } from '../data/player.js';
-import { MOVES } from '../data/bosses.js';
-import { IMG } from '../core/assets.js';
-import { settings } from '../core/store.js';
-import { clamp } from '../core/math.js';
+import { G, rage } from '../world/state.ts';
+import { W, H, WORLD, TOWN_X, ROOM_X, DOOR, TORCHES } from '../world/constants.ts';
+import { PLAYER } from '../data/player.ts';
+import { MOVES } from '../data/bosses.ts';
+import { IMG } from '../core/assets.ts';
+import { settings } from '../core/store.ts';
+import { clamp } from '../core/math.ts';
 import { burst } from '../systems/fx.js';
 import { ctx, frame, shadow, dirCol } from './canvas.js';
 import { bg, vig } from './terrain.js';
@@ -221,9 +221,10 @@ export function drawWorld() {
   ctx.drawImage(bg, 0, 0);
   drawTorches(); drawDoor(); drawPortal(); drawTelegraph();
   // y-sort so whoever is lower on screen is drawn in front
-  const actors = [...G.mobs.filter(m => m.hp > 0).map(m => [m.y, () => drawMob(m)]), [P.y, drawPlayer]];
-  if (G.boss.hp > 0) actors.push([G.boss.y, drawBoss]);
-  for (const [, d] of actors.sort((a, b) => a[0] - b[0])) d();
+  const actors = G.mobs.filter(m => m.hp > 0).map(m => ({ y: m.y, draw: () => drawMob(m) }));
+  actors.push({ y: P.y, draw: drawPlayer });
+  if (G.boss.hp > 0) actors.push({ y: G.boss.y, draw: drawBoss });
+  for (const a of actors.sort((a, b) => a.y - b.y)) a.draw();
   drawFx();
   if (G.F.fog) drawFog();
   ctx.restore();

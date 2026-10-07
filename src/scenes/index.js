@@ -1,8 +1,8 @@
 // The four scenes and the transitions between them: title -> intro -> play, with pause pushed on top of play.
-import { G } from '../world/state.js';
-import { newRun } from '../world/floor.js';
-import { scenes } from '../core/app.js';
-import { releaseAll } from '../core/input.js';
+import { G } from '../world/state.ts';
+import { newRun } from '../world/floor.ts';
+import { scenes } from '../core/app.ts';
+import { releaseAll } from '../core/input.ts';
 import { updateGame, updateFx } from '../systems/index.js';
 import { drawWorld } from '../render/world.js';
 import { updateMenuBg, drawMenuBg, drawIntro, INTRO_TIME } from '../render/menu.js';

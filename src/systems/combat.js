@@ -1,12 +1,12 @@
 // Damage, death, XP. Sounds, music and result screens hang off the events emitted here.
-import { G, rage } from '../world/state.js';
-import { ROOM, WORLD } from '../world/constants.js';
-import { knock } from '../world/physics.js';
-import { makeMob, isLastFloor } from '../world/floor.js';
-import { PLAYER } from '../data/player.js';
-import { BOSS_RULES } from '../data/bosses.js';
-import { clamp } from '../core/math.js';
-import { emit } from '../core/events.js';
+import { G, rage } from '../world/state.ts';
+import { ROOM, WORLD } from '../world/constants.ts';
+import { knock } from '../world/physics.ts';
+import { makeMob, isLastFloor } from '../world/floor.ts';
+import { PLAYER } from '../data/player.ts';
+import { BOSS_RULES } from '../data/bosses.ts';
+import { clamp } from '../core/math.ts';
+import { emit } from '../core/events.ts';
 import { text, burst, ring, kick } from './fx.js';
 
 export const targets = () => [...G.mobs, G.boss].filter(e => e.hp > 0 && (e !== G.boss || G.boss.awake));

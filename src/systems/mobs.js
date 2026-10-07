@@ -1,10 +1,10 @@
 // Field mobs: wander, chase outside town, wind up (telegraph) then lunge; sidestep around trees.
-import { G } from '../world/state.js';
-import { TOWN_X } from '../world/constants.js';
-import { move, applyKnock } from '../world/physics.js';
-import { makeMob } from '../world/floor.js';
-import { dist, rand } from '../core/math.js';
-import { emit } from '../core/events.js';
+import { G } from '../world/state.ts';
+import { TOWN_X } from '../world/constants.ts';
+import { move, applyKnock } from '../world/physics.ts';
+import { makeMob } from '../world/floor.ts';
+import { dist, rand } from '../core/math.ts';
+import { emit } from '../core/events.ts';
 import { hurtPlayer } from './combat.js';
 
 export function updateMobs(dt) {

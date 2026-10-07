@@ -1,10 +1,10 @@
 // Canvas HUD: SAO-style player panel, stacked boss HP bars, skill slots and the minimap.
-import { G, rage } from '../world/state.js';
-import { W, H, WORLD, TOWN_X, ROOM_X, DOOR } from '../world/constants.js';
-import { PLAYER } from '../data/player.js';
-import { IMG } from '../core/assets.js';
-import { on } from '../core/events.js';
-import { clamp } from '../core/math.js';
+import { G, rage } from '../world/state.ts';
+import { W, H, WORLD, TOWN_X, ROOM_X, DOOR } from '../world/constants.ts';
+import { PLAYER } from '../data/player.ts';
+import { IMG } from '../core/assets.ts';
+import { on } from '../core/events.ts';
+import { clamp } from '../core/math.ts';
 import { ctx, FN, FT } from './canvas.js';
 
 const A = PLAYER.attack, SK = PLAYER.skill;
@@ -36,7 +36,7 @@ function drawPlayerPanel() {
   ctx.beginPath(); ctx.arc(46, 44, 21, 0, 7); ctx.fillStyle = '#f39a1d'; ctx.fill();
   ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.stroke();
   ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.font = `700 10px ${FN}`; ctx.fillText('LV', 46, 36);
-  ctx.font = `800 17px ${FN}`; ctx.fillText(P.lv, 46, 54);
+  ctx.font = `800 17px ${FN}`; ctx.fillText(String(P.lv), 46, 54);
   ctx.textAlign = 'left'; ctx.font = `700 14px ${FN}`; ctx.fillStyle = '#fff'; ctx.fillText('PLAYER', 78, 33);
   hpBar(78, 39, 316, 15, P.hp / P.maxHp, P.lag / P.maxHp);
   ctx.textAlign = 'right'; ctx.font = `700 12px ${FN}`; ctx.fillStyle = '#e8eef7';

@@ -1,8 +1,8 @@
 // Title background and the "Link Start" intro tunnel.
-import { G } from '../world/state.js';
-import { W, H } from '../world/constants.js';
-import { settings } from '../core/store.js';
-import { clamp } from '../core/math.js';
+import { G } from '../world/state.ts';
+import { W, H } from '../world/constants.ts';
+import { settings } from '../core/store.ts';
+import { clamp } from '../core/math.ts';
 import { ctx, FN } from './canvas.js';
 
 export const INTRO_TIME = 1.9;

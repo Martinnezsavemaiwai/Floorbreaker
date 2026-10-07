@@ -6,10 +6,10 @@ export const STEP = 1 / 60;
 // - hitStop is spent in *real* time before any simulation (a sim-time counter would never tick down while frozen)
 // - scale gives slow-mo / fast-forward for free
 // - a long hitch (tab switch, breakpoint) is capped instead of snowballing into hundreds of steps
-export function createClock(step, { maxFrame = 0.25, maxSteps = 8 } = {}) {
+export function createClock(step: (dt: number) => void, { maxFrame = 0.25, maxSteps = 8 } = {}) {
   const clock = {
     scale: 1, hitStop: 0, acc: 0,
-    advance(real) {
+    advance(real: number) {
       real = Math.min(real, maxFrame);
       if (clock.hitStop > 0) { const used = Math.min(clock.hitStop, real); clock.hitStop -= used; real -= used; }
       clock.acc += real * clock.scale;
@@ -24,9 +24,9 @@ export function createClock(step, { maxFrame = 0.25, maxSteps = 8 } = {}) {
 
 // Drives a callback with real elapsed seconds from requestAnimationFrame. reset() drops the stale timestamp
 // (e.g. after the tab was hidden) so the next frame doesn't see a huge gap.
-export function runFrames(onFrame) {
-  let last;
-  requestAnimationFrame(function frame(now) {
+export function runFrames(onFrame: (realSeconds: number) => void) {
+  let last: number | undefined;
+  requestAnimationFrame(function frame(now: number) {
     const real = last === undefined ? 0 : (now - last) / 1000;
     last = now; onFrame(real);
     requestAnimationFrame(frame);

@@ -1,13 +1,25 @@
-// Floor layouts and looks. `mob` / `boss` are ids into mobs.js / bosses.js.
+// Floor layouts and looks. `mob` / `boss` are ids into mobs.ts / bosses.ts — a typo is a compile error.
 // trees: [x, y, type] top-left of the drawn sprite; spawns: [x, y] mob spawn points.
+import type { MobId } from './mobs.ts';
+import type { BossId } from './bosses.ts';
 
 // Trees from village.png: sprite source rect, draw scale, and the solid box (relative to the drawn sprite)
 export const TREE_TYPES = {
   big: { src: [0, 96, 64, 48], s: 2, hit: [20, 30, 88, 56] },
   small: { src: [64, 96, 32, 32], s: 2.5, hit: [14, 22, 52, 50] },
-};
+} satisfies Record<string, { src: [number, number, number, number]; s: number; hit: [number, number, number, number] }>;
+export type TreeType = keyof typeof TREE_TYPES;
 
-export const FLOORS = [
+export interface FloorDef {
+  name: string; town: string;
+  grass: 0 | 11;                 // column offset of the palette in floor.png
+  roomTint: string | null; fieldTint?: string; fog?: boolean; torch: string;
+  mob: MobId; boss: BossId;
+  trees: [number, number, TreeType][];
+  spawns: [number, number][];
+}
+
+export const FLOORS: FloorDef[] = [
   {
     name: 'Floor 1', town: 'Town of Beginnings', grass: 0, roomTint: null, torch: '255,150,60',
     mob: 'frenzyBoar', boss: 'koboldLord',

@@ -1,12 +1,12 @@
 // Player actions and movement: sword swing, Sword Skill dash -> post-motion delay, input buffer, town regen.
-import { G } from '../world/state.js';
-import { TOWN_X } from '../world/constants.js';
-import { move, applyKnock } from '../world/physics.js';
-import { loadFloor } from '../world/floor.js';
-import { PLAYER } from '../data/player.js';
-import { dist, rand } from '../core/math.js';
-import { emit } from '../core/events.js';
-import { moveVector, mouse } from '../core/input.js';
+import { G } from '../world/state.ts';
+import { TOWN_X } from '../world/constants.ts';
+import { move, applyKnock } from '../world/physics.ts';
+import { loadFloor } from '../world/floor.ts';
+import { PLAYER } from '../data/player.ts';
+import { dist, rand } from '../core/math.ts';
+import { emit } from '../core/events.ts';
+import { moveVector, mouse } from '../core/input.ts';
 import { text } from './fx.js';
 import { targets, hurtEnemy } from './combat.js';
 

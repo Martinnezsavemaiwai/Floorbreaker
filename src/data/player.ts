@@ -1,4 +1,14 @@
 // Player stats and combat tuning — every gameplay number for the player lives here.
+export interface PlayerStats {
+  hp: number; atk: number; radius: number; speed: number;
+  perLevel: { hp: number; atk: number };
+  xpToNext: (lv: number) => number;
+  townRegen: number; invTime: number; inputBuffer: number;
+  attack: { cd: number; swing: number; range: number; halfArc: number; dmgRand: number };
+  skill: { name: string; cd: number; dashTime: number; dashSpeed: number; delay: number; dmgMult: number; hitRadius: number };
+  knockback: { light: number; heavy: number; heavyFrom: number };
+}
+
 export const PLAYER = {
   hp: 100, atk: 10, radius: 14, speed: 220,
   perLevel: { hp: 20, atk: 3 },
@@ -10,4 +20,4 @@ export const PLAYER = {
   attack: { cd: 0.32, swing: 0.2, range: 55, halfArc: Math.PI * 0.4, dmgRand: 3 },
   skill: { name: 'Sonic Leap', cd: 3, dashTime: 0.18, dashSpeed: 900, delay: 0.5, dmgMult: 2.5, hitRadius: 35 },
   knockback: { light: 280, heavy: 520, heavyFrom: 20 }, // hits of heavyFrom+ damage knock harder
-};
+} satisfies PlayerStats;
