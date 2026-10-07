@@ -8,6 +8,7 @@ import { SKILLS } from '../data/skills.ts';
 import { dist, rand } from '../core/math.ts';
 import { emit } from '../core/events.ts';
 import { moveVector, mouse } from '../core/input.ts';
+import { pad } from '../core/gamepad.ts';
 import { text, burst, ring, kick } from './fx.js';
 import { targets, hurtEnemy } from './combat.js';
 import { mods } from './upgrades.js';
@@ -110,7 +111,10 @@ export function updatePlayer(dt) {
     move(P, Math.cos(P.rollAng) * RL.speed * dt, Math.sin(P.rollAng) * RL.speed * dt);
     P.moving = true;
   } else {
-    P.ang = Math.atan2(mouse.y + G.cam.y - P.y, mouse.x + G.cam.x - P.x);
+    // aim: right stick, else (playing on a pad) the walking direction, else the mouse
+    if (pad.aiming) P.ang = Math.atan2(pad.aim.y, pad.aim.x);
+    else if (pad.active) { const v = moveVector(); if (v.moving) P.ang = Math.atan2(v.y, v.x); }
+    else P.ang = Math.atan2(mouse.y + G.cam.y - P.y, mouse.x + G.cam.x - P.x);
     applyKnock(P, dt);
     if (P.delay > 0) { P.delay -= dt; P.moving = false; }
     else {

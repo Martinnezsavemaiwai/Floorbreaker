@@ -13,6 +13,10 @@ import { hitWall } from './world/physics.ts';
 import { scenes, clock } from './core/app.ts';
 import { runFrames } from './core/loop.ts';
 import { ready } from './core/assets.ts';
+import { pad, pollPad, rumble } from './core/gamepad.ts';
+import { PAD, PAD_BUTTONS } from './data/controls.ts';
+import { on } from './core/events.ts';
+import { settings } from './core/save.ts';
 import { keys, mouse, actionForKey, actionForButton, releaseAll, keyLabel } from './core/input.ts';
 import { drinkPotion } from './systems/shop.js';
 import { SHOP } from './data/shop.ts';
@@ -20,7 +24,7 @@ import { attack, skill, roll, hurtPlayer, startBossMove, updateGame, updateFx } 
 import { drawWorld } from './render/world.js';
 import { cv } from './render/canvas.js';
 import { toggleMute } from './audio/audio.js';
-import { current, closeSub, inSubScreen, openSub, toast, bindActions, dialogOpen } from './ui/screens.js';
+import { $, current, closeSub, inSubScreen, openSub, toast, bindActions, dialogOpen } from './ui/screens.js';
 import { resetKeys, downloadSave, pickImport } from './ui/settings.js';
 import { titleScene, playing, newGame, pauseGame, resumeGame, startIntro, continueRun, goHome, saveAndQuit, suspendRun, picking, pickUpgrade,
   shopping, openShop, closeShop, buyItem, reading, storyNext, storySkip } from './scenes/index.js';
@@ -56,23 +60,50 @@ addEventListener('keydown', e => {
     return;
   }
   if (action === 'fullscreen' && !e.repeat) return toggleFullscreen();
-  if (action === 'pause') {
-    if (playing()) pauseGame();
-    else if (current === 'pause') resumeGame();
-    else if (inSubScreen()) closeSub();
-    else if (current === 'result') goHome();
-    return;
-  }
+  if (action === 'pause') return back();
   if (!playing()) return; // leave keys alone while a menu (sliders, buttons) has focus
   keys[e.code] = true;
   if (action === 'dodge') e.preventDefault(); // Space must not also press a focused button or scroll
   if (GAME_ACTIONS[action] && !(action === 'mute' && e.repeat)) GAME_ACTIONS[action]();
 });
 addEventListener('keyup', e => { keys[e.code] = false; });
+// Esc / Start / B: pause in play, otherwise close whatever is open, one layer at a time
+function back() {
+  if (playing()) pauseGame();
+  else if (reading()) storySkip();
+  else if (shopping()) closeShop();
+  else if (current === 'pause') resumeGame();
+  else if (inSubScreen()) closeSub();
+  else if (current === 'result') goHome();
+}
+
+// Gamepad: in play the buttons are game actions; in menus the d-pad walks the focus, A presses, B goes back
+const focusables = () => /** @type {HTMLElement[]} */ ([...(document.querySelector('dialog[open]') ?? document.querySelector('.screen.on'))?.querySelectorAll(
+  'button:not([hidden]):not([disabled]), input, select, [role=tab][aria-selected=true]') ?? []]).filter(el => el.offsetParent); // visible only
+function padMenu(btn) {
+  const list = focusables(), el = /** @type {HTMLElement} */ (document.activeElement), i = list.indexOf(el);
+  if (btn === PAD.A) return i < 0 ? list[0]?.focus() : el.click();
+  if (btn === PAD.B || btn === 9) return dialogOpen() ? /** @type {HTMLDialogElement} */ ($('confirm')).close('cancel') : back();
+  const step = btn === PAD.UP || btn === PAD.LEFT ? -1 : btn === PAD.DOWN || btn === PAD.RIGHT ? 1 : 0;
+  if (!step) return;
+  if (el instanceof HTMLInputElement && el.type === 'range' && (btn === PAD.LEFT || btn === PAD.RIGHT)) { // sliders take left/right
+    step > 0 ? el.stepUp() : el.stepDown(); el.dispatchEvent(new Event('input', { bubbles: true })); return;
+  }
+  list[(i + step + list.length) % list.length]?.focus();
+}
+function padPress(btn) {
+  if (!playing()) return padMenu(btn);
+  const a = PAD_BUTTONS[btn];
+  if (a === 'pause') back(); else GAME_ACTIONS[a]?.();
+}
+addEventListener('gamepadconnected', () => toast('เชื่อมต่อจอยแล้ว', 'อนาล็อกซ้ายเดิน · ขวาเล็ง · X ฟัน · A กลิ้ง · RB / RT Sword Skill', 3.5));
+on('playerHurt', () => { if (settings.shake) rumble(0.6); });
+on('guardBreak', () => { if (settings.shake) rumble(0.3, 80); });
 addEventListener('blur', () => { releaseAll(); pauseGame(); });
 cv.addEventListener('mousemove', e => {
   const r = cv.getBoundingClientRect();
   mouse.x = (e.clientX - r.left) * W / r.width; mouse.y = (e.clientY - r.top) * H / r.height;
+  pad.active = false; // the mouse takes aiming back from the pad
 });
 cv.addEventListener('mousedown', e => {
   const a = actionForButton(e.button);
@@ -82,7 +113,7 @@ cv.addEventListener('mousedown', e => {
 cv.addEventListener('contextmenu', e => e.preventDefault());
 mouse.x = W / 2; mouse.y = H / 2;
 
-const frames = runFrames(real => { clock.advance(real); scenes.draw(); });
+const frames = runFrames(real => { for (const b of pollPad()) padPress(b); clock.advance(real); scenes.draw(); });
 // Switching tabs doesn't always fire blur; pause there too and drop the stale frame time
 // Leaving the tab also writes the suspend save, so closing it mid-run loses nothing
 document.addEventListener('visibilitychange', () => { if (document.hidden) { pauseGame(); suspendRun(); } else frames.reset(); });

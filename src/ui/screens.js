@@ -127,7 +127,8 @@ function renderHowTo() {
     [`${k('skill2')} / ปุ่มกลางเมาส์`, 'Sword Skill 2 (เลือกที่ Sword Skills หน้าแรก)'],
     [k('dodge'), 'กลิ้งหลบ · ระหว่างกลิ้งไม่โดนดาเมจ'],
     [k('potion'), 'ดื่ม Potion (ซื้อจากร้านในเมือง)'], [k('interact'), 'คุยกับพ่อค้า'],
-    [k('pause'), 'หยุดเกม'], [k('mute'), 'ปิด/เปิดเสียง'], [k('fullscreen'), 'เต็มจอ'],
+    [k('pause'), 'หยุดเกม'],
+    ['จอย', 'อนาล็อกซ้ายเดิน · ขวาเล็ง · X ฟัน · A กลิ้ง · RB / RT สกิล 1 / 2 · LB Potion · Y คุย · Start หยุด · เมนู: D-pad เลือก, A กด, B กลับ'], [k('mute'), 'ปิด/เปิดเสียง'], [k('fullscreen'), 'เต็มจอ'],
   ].map(([keys, what]) => `<span>${keys}</span><span>${what}</span>`).join('');
 }
 

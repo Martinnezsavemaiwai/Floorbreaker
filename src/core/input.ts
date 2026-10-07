@@ -3,6 +3,7 @@
 // Bindings = defaults from data/controls.ts overridden by the player's settings.bindings (rebinding).
 import { BINDINGS, MOUSE_BINDINGS, type Action } from '../data/controls.ts';
 import { settings, saveSettings } from './save.ts';
+import { pad } from './gamepad.ts';
 
 export const keys: Record<string, boolean> = {}; // held physical keys (e.code -> bool)
 export const mouse = { x: 0, y: 0 };              // in canvas pixels
@@ -11,8 +12,9 @@ export const ACTIONS = Object.keys(BINDINGS) as Action[];
 export const codesFor = (action: Action): string[] => settings.bindings[action] ?? BINDINGS[action];
 const held = (action: Action) => codesFor(action).some(code => keys[code]);
 export function moveVector() {
-  const x = (held('right') ? 1 : 0) - (held('left') ? 1 : 0), y = (held('down') ? 1 : 0) - (held('up') ? 1 : 0);
-  const l = Math.hypot(x, y) || 1;
+  let x = (held('right') ? 1 : 0) - (held('left') ? 1 : 0), y = (held('down') ? 1 : 0) - (held('up') ? 1 : 0);
+  if (!x && !y) ({ x, y } = pad.move); // left stick: analog, so a light push walks slower
+  const l = Math.max(1, Math.hypot(x, y));
   return { x: x / l, y: y / l, moving: !!(x || y) };
 }
 export const actionForKey = (code: string) => ACTIONS.find(a => codesFor(a).includes(code));
