@@ -7,71 +7,135 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 1 25 16 16 31 7 16Z' fill='%235fc3ff'/%3E%3Cpath d='M16 1 25 16H7Z' fill='%23bfe8ff'/%3E%3C/svg%3E">
 </head>
 <body>
+<!-- One icon family for every menu: 24px grid, 2px round strokes -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-play" viewBox="0 0 24 24"><path fill="currentColor" d="M8 5.5v13l10.5-6.5z"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.4a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.9M12 17h.01"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11.5 12 5l8 6.5M6.5 10v9.5h11V10"/></symbol>
+    <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 4.5h11l3 3v12H5zM8.5 4.5v4.5h6V4.5M8.5 19.5v-5h7v5"/></symbol>
+    <symbol id="i-reset" viewBox="0 0 24 24"><path d="M5 12a7 7 0 1 0 2-4.9L5 9M5 4.5V9h4.5"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4.5v10M7.5 10.5 12 15l4.5-4.5M5 19.5h14"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 19.5v-10M7.5 13.5 12 9l4.5 4.5M5 4.5h14"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5.5M11 6.5 5.5 12l5.5 5.5"/></symbol>
+  </defs>
+</svg>
+
 <canvas id="c" width="960" height="640"></canvas>
 
 <section id="title-screen" class="screen on" aria-label="หน้าแรก">
-  <h1 class="logo">SWORD ART<br>ON YOU<small>AINCRAD · FLOOR 1–3</small></h1>
-  <nav class="menu">
-    <button class="btn primary" data-act="start"><span class="ic">▶</span>Link Start</button>
-    <button class="btn" data-act="howto"><span class="ic">?</span>วิธีเล่น</button>
-    <button class="btn" data-act="settings"><span class="ic">⚙</span>ตั้งค่า</button>
-    <button class="btn" data-act="fullscreen"><span class="ic">⛶</span>เต็มจอ (F)</button>
+  <h1 class="logo" lang="en">SWORD ART<br>ON YOU<small>AINCRAD · FLOOR 1–3</small></h1>
+  <nav class="menu" aria-label="เมนูหลัก">
+    <button class="btn primary" data-act="continue" id="continue-btn" hidden>
+      <span class="ic"><svg class="ico"><use href="#i-play"/></svg></span>
+      <span class="lbl"><span><span lang="en">Continue</span> · เล่นต่อ</span><small id="continue-info"></small></span>
+    </button>
+    <button class="btn primary" data-act="start" id="start-btn">
+      <span class="ic"><svg class="ico"><use href="#i-play"/></svg></span>
+      <span class="lbl"><span lang="en">Link Start</span><small>สร้างตัวละครใหม่ · ตายแล้วหายถาวร</small></span>
+    </button>
+    <button class="btn" data-act="howto"><span class="ic"><svg class="ico"><use href="#i-help"/></svg></span>วิธีเล่น</button>
+    <button class="btn" data-act="settings"><span class="ic"><svg class="ico"><use href="#i-sliders"/></svg></span>ตั้งค่า</button>
+    <p class="record" id="record"></p>
   </nav>
-  <p class="record" id="record"></p>
+  <button class="corner-btn" data-act="fullscreen" aria-label="เต็มจอ (ปุ่ม F)"><svg class="ico"><use href="#i-expand"/></svg>เต็มจอ</button>
 </section>
 
-<section id="howto" class="screen" aria-label="วิธีเล่น">
-  <div class="win"><header>วิธีเล่น</header><div class="body">
-    <div class="keys">
-      <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span>เดิน · เมาส์ใช้เล็ง</span>
-      <span><kbd>J</kbd> / คลิกซ้าย</span><span>ฟันดาบ</span>
-      <span><kbd>K</kbd> / คลิกขวา</span><span>Sword Skill: Sonic Leap</span>
-      <span><kbd>Esc</kbd></span><span>หยุดเกม</span>
-      <span><kbd>M</kbd></span><span>ปิด/เปิดเสียง</span>
-      <span><kbd>F</kbd></span><span>เต็มจอ</span>
-    </div>
+<section id="howto" class="screen" aria-labelledby="howto-h">
+  <div class="win"><header id="howto-h">วิธีเล่น</header><div class="body">
+    <p class="rule"><strong>ตายแล้วจบ</strong> ตัวละครหายถาวร · ปิดเกมกลางทางได้ เกมเซฟให้ แล้วกด "เล่นต่อ" ที่หน้าแรก</p>
+    <div class="keys" id="howto-keys"><!-- filled from the current key bindings --></div>
     <ul class="tips">
-      <li>ตายในเกม = จบเกม ตัวละครหายถาวร</li>
       <li>มอนสเตอร์ขึ้น <b>!</b> สีแดง = กำลังจะโจมตี ให้ถอยออก</li>
       <li>ระหว่างพุ่ง Sonic Leap จะไม่โดนดาเมจ ใช้หลบท่าบอสได้</li>
       <li>ในเมืองปลอดภัย และ HP ฟื้นเอง</li>
       <li>ล้มบอสแล้วเดินเข้าประตูมิติเพื่อขึ้นชั้นถัดไป</li>
     </ul>
-    <button class="btn ghost" data-act="back"><span class="ic">←</span>กลับ</button>
-  </div></div>
+  </div>
+  <footer class="win-foot"><button class="btn ghost" data-act="back"><span class="ic"><svg class="ico"><use href="#i-back"/></svg></span>กลับ<kbd>Esc</kbd></button></footer>
+  </div>
 </section>
 
-<section id="settings" class="screen" aria-label="ตั้งค่า">
-  <div class="win"><header>ตั้งค่า</header><div class="body">
-    <div class="row"><label for="s-music">เพลง</label><input id="s-music" type="range" min="0" max="100" step="5"><output for="s-music"></output></div>
-    <div class="row"><label for="s-sfx">เสียงเอฟเฟกต์</label><input id="s-sfx" type="range" min="0" max="100" step="5"><output for="s-sfx"></output></div>
-    <div class="row"><label for="s-shake">จอสั่น</label><input id="s-shake" class="switch" type="checkbox"></div>
-    <div class="row"><label for="s-flash">แสงกะพริบ</label><input id="s-flash" class="switch" type="checkbox"></div>
-    <p class="hint">ปิด "แสงกะพริบ" ถ้าไวต่อแสง เกมจะใช้สีค้างแทนการกะพริบ</p>
-    <button class="btn ghost" data-act="back"><span class="ic">←</span>กลับ</button>
-  </div></div>
+<section id="settings" class="screen" aria-labelledby="settings-h">
+  <div class="win wide"><header id="settings-h">ตั้งค่า</header>
+    <div class="tabs" role="tablist" aria-label="หมวดการตั้งค่า">
+      <button role="tab" id="tab-av" aria-controls="pane-av" aria-selected="true">เสียงและภาพ</button>
+      <button role="tab" id="tab-keys" aria-controls="pane-keys" aria-selected="false" tabindex="-1">ปุ่มควบคุม</button>
+      <button role="tab" id="tab-assist" aria-controls="pane-assist" aria-selected="false" tabindex="-1">ช่วยเหลือ</button>
+      <button role="tab" id="tab-save" aria-controls="pane-save" aria-selected="false" tabindex="-1">เซฟ</button>
+    </div>
+    <div class="body">
+      <div role="tabpanel" id="pane-av" aria-labelledby="tab-av">
+        <div class="row"><label for="s-music">เพลง</label><input id="s-music" type="range" min="0" max="100" step="5"><output for="s-music"></output></div>
+        <div class="row"><label for="s-sfx">เสียงเอฟเฟกต์</label><input id="s-sfx" type="range" min="0" max="100" step="5"><output for="s-sfx"></output></div>
+        <div class="row"><label for="s-shake">จอสั่น</label><span class="state" data-for="s-shake"></span><input id="s-shake" class="switch" type="checkbox"></div>
+        <div class="row"><label for="s-flash">แสงกะพริบ</label><span class="state" data-for="s-flash"></span><input id="s-flash" class="switch" type="checkbox" aria-describedby="flash-hint"></div>
+        <p class="hint" id="flash-hint">ปิดถ้าไวต่อแสง เกมจะใช้สีค้างแทนการกะพริบ</p>
+        <div class="row"><label for="s-hints">คำแนะนำในเกม</label><span class="state" data-for="s-hints"></span><input id="s-hints" class="switch" type="checkbox"></div>
+      </div>
+      <div role="tabpanel" id="pane-keys" aria-labelledby="tab-keys" hidden>
+        <p class="hint">กดที่ปุ่มแล้วกดปุ่มใหม่บนคีย์บอร์ด · <kbd>Esc</kbd> ยกเลิก</p>
+        <div class="bind-groups" id="binds"><!-- grouped rows, filled by ui/settings.js --></div>
+        <p class="status" id="bind-status" role="status" aria-live="polite"></p>
+        <button class="btn ghost" data-act="resetKeys"><span class="ic"><svg class="ico"><use href="#i-reset"/></svg></span>คืนค่าปุ่มเริ่มต้น</button>
+      </div>
+      <div role="tabpanel" id="pane-assist" aria-labelledby="tab-assist" hidden>
+        <div class="row"><label for="s-assistDamage">ดาเมจที่ได้รับ</label>
+          <select id="s-assistDamage"><option value="1">100% (ปกติ)</option><option value="0.75">75%</option><option value="0.5">50%</option></select></div>
+        <div class="row"><label for="s-assistSpeed">ความเร็วเกม</label>
+          <select id="s-assistSpeed"><option value="1">100% (ปกติ)</option><option value="0.8">80%</option><option value="0.6">60%</option></select></div>
+        <p class="hint">รอบที่เปิดโหมดช่วยเหลือจะมีป้าย "assist" ในสถิติ</p>
+      </div>
+      <div role="tabpanel" id="pane-save" aria-labelledby="tab-save" hidden>
+        <p class="hint">เบราว์เซอร์อาจลบเซฟเองได้ (เช่น Safari หลังไม่ได้เล่น 7 วัน) เก็บเป็นไฟล์ไว้จะปลอดภัยที่สุด</p>
+        <div class="pair">
+          <button class="btn" data-act="exportSave"><span class="ic"><svg class="ico"><use href="#i-download"/></svg></span>Export เป็นไฟล์</button>
+          <button class="btn" data-act="importSave"><span class="ic"><svg class="ico"><use href="#i-upload"/></svg></span>Import จากไฟล์</button>
+        </div>
+        <input type="file" id="import-file" accept="application/json,.json" hidden>
+        <p class="status" id="save-status" role="status" aria-live="polite"></p>
+      </div>
+    </div>
+    <footer class="win-foot"><button class="btn ghost" data-act="back"><span class="ic"><svg class="ico"><use href="#i-back"/></svg></span>กลับ<kbd>Esc</kbd></button></footer>
+  </div>
 </section>
 
-<section id="pause" class="screen" aria-label="หยุดเกม">
-  <div class="win"><header>Menu</header><div class="body">
+<section id="pause" class="screen" aria-labelledby="pause-h">
+  <div class="win"><header id="pause-h">หยุดเกม</header><div class="body">
     <div class="stats" id="pause-stats"></div>
-    <button class="btn primary" data-act="resume"><span class="ic">▶</span>เล่นต่อ</button>
-    <button class="btn" data-act="settings"><span class="ic">⚙</span>ตั้งค่า</button>
-    <button class="btn" data-act="fullscreen"><span class="ic">⛶</span>เต็มจอ (F)</button>
-    <button class="btn" data-act="quit"><span class="ic">✕</span>ออกไปหน้าแรก (ตัวละครหายถาวร)</button>
+    <button class="btn primary" data-act="resume"><span class="ic"><svg class="ico"><use href="#i-play"/></svg></span>กลับเข้าเกม<kbd>Esc</kbd></button>
+    <button class="btn" data-act="settings"><span class="ic"><svg class="ico"><use href="#i-sliders"/></svg></span>ตั้งค่า</button>
+    <button class="btn" data-act="fullscreen"><span class="ic"><svg class="ico"><use href="#i-expand"/></svg></span>เต็มจอ<kbd>F</kbd></button>
+    <button class="btn" data-act="saveQuit"><span class="ic"><svg class="ico"><use href="#i-save"/></svg></span>บันทึกแล้วออกไปหน้าแรก</button>
   </div></div>
 </section>
 
-<section id="result" class="screen" aria-label="สรุปผล">
-  <div class="win"><header id="result-head">System</header><div class="body">
-    <p class="result-title" id="result-title"></p>
-    <p class="hint" id="result-msg" style="text-align:center;margin:0"></p>
-    <span class="newrec" id="newrec" hidden>NEW RECORD</span>
+<section id="result" class="screen" role="alertdialog" aria-labelledby="result-title" aria-describedby="result-msg">
+  <div class="win"><header id="result-head" lang="en">System</header><div class="body">
+    <p class="result-title" id="result-title" lang="en"></p>
+    <p class="result-msg" id="result-msg"></p>
+    <span class="newrec" id="newrec" hidden>สถิติใหม่</span>
     <div class="stats" id="result-stats"></div>
-    <button class="btn primary" data-act="start"><span class="ic">▶</span>สร้างตัวละครใหม่</button>
-    <button class="btn" data-act="home"><span class="ic">⌂</span>หน้าแรก</button>
+    <button class="btn primary" data-act="start"><span class="ic"><svg class="ico"><use href="#i-play"/></svg></span>สร้างตัวละครใหม่</button>
+    <button class="btn" data-act="home"><span class="ic"><svg class="ico"><use href="#i-home"/></svg></span>หน้าแรก<kbd>Esc</kbd></button>
   </div></div>
 </section>
+
+<!-- Themed confirmation for irreversible actions (native <dialog>: focus trap + Esc to cancel for free) -->
+<dialog id="confirm" class="win dialog" aria-labelledby="confirm-title" aria-describedby="confirm-msg">
+  <form method="dialog">
+    <header id="confirm-title"></header>
+    <div class="body">
+      <p id="confirm-msg"></p>
+      <div class="pair">
+        <button class="btn" value="cancel">ยกเลิก</button>
+        <button class="btn danger" value="ok" id="confirm-ok"></button>
+      </div>
+    </div>
+  </form>
+</dialog>
 
 <div id="toast" role="status" aria-live="polite"><div class="win"><div class="body"><b id="toast-title"></b><span id="toast-sub"></span></div></div></div>
 <script type="module" src="/src/main.js"></script>

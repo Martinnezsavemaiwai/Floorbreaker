@@ -7,6 +7,7 @@ import { PLAYER } from '../data/player.ts';
 import { BOSS_RULES } from '../data/bosses.ts';
 import { clamp } from '../core/math.ts';
 import { emit } from '../core/events.ts';
+import { settings } from '../core/save.ts';
 import { text, burst, ring, kick } from './fx.js';
 
 export const targets = () => [...G.mobs, G.boss].filter(e => e.hp > 0 && (e !== G.boss || G.boss.awake));
@@ -57,6 +58,7 @@ export function hurtPlayer(d, from) {
   if (run.over) return;
   if (P.dash > 0) { text(P.x, P.y - 24, 'DODGE', '#7fd4ff'); emit('dodge'); return; } // Sword Skill dash = i-frames
   if (P.inv > 0) return; // brief invulnerability after a hit, so a mob crowd can't chain-stun you
+  d = Math.max(1, Math.round(d * settings.assistDamage)); // assist mode: take less damage
   const heavy = d >= PLAYER.knockback.heavyFrom;
   P.hp -= d; P.hurt = 0.25; P.inv = PLAYER.invTime; text(P.x, P.y - 20, '-' + d, '#ff5252', heavy); emit('playerHurt');
   if (from) knock(P, from, PLAYER.knockback[heavy ? 'heavy' : 'light']);

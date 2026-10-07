@@ -24,7 +24,7 @@ export interface Boss extends Point {
   from?: Point; to?: Point; spots?: Point[]; waveR?: number;
 }
 export type Floor = Omit<FloorDef, 'mob' | 'boss'> & { mob: MobStats; boss: ResolvedBoss };
-export interface Run { floor: number; kills: number; time: number; over?: 'dead' | 'win' }
+export interface Run { floor: number; kills: number; time: number; assisted?: boolean; over?: 'dead' | 'win' }
 export interface FloatText extends Point { s: string; col: string; big?: boolean; t: number }
 export interface Particle extends Point { vx: number; vy: number; life: number; t: number; col: string; size: number; rot: number; vr: number; shard?: boolean }
 export interface Ring extends Point { r0: number; r1: number; life: number; t: number; col: string }

@@ -7,6 +7,7 @@ import { FLOORS, TREE_TYPES } from '../data/floors.ts';
 import { PLAYER } from '../data/player.ts';
 import { clock } from '../core/app.ts';
 import { emit } from '../core/events.ts';
+import { settings, type Suspend } from '../core/save.ts';
 
 // A floor with its mob/boss ids swapped for the actual stat objects (fails loudly on a typo'd id)
 function floorData(i: number): Floor {
@@ -34,10 +35,28 @@ export function loadFloor(i: number) {
   emit('floorLoaded', i);
 }
 
-export function newRun() {
+function newPlayer() {
   // position/HP/transient fields are (re)set by loadFloor
   G.P = { r: PLAYER.radius, maxHp: PLAYER.hp, hp: PLAYER.hp, lag: PLAYER.hp, atk: PLAYER.atk, lv: 1, xp: 0, ang: 0, atkCd: 0, skillCd: 0,
           hurt: 0, swing: 0, swingDir: 1, hitSet: null, x: 0, y: 0, dash: 0, delay: 0, trail: [], kx: 0, ky: 0, inv: 0, buf: null };
-  G.run = { floor: 1, kills: 0, time: 0 };
+}
+export const assistOn = () => settings.assistDamage < 1 || settings.assistSpeed < 1;
+
+export function newRun() {
+  newPlayer();
+  G.run = { floor: 1, kills: 0, time: 0, assisted: assistOn() };
   loadFloor(0);
+}
+
+// Suspend save: the character and run progress. Resuming starts the saved floor from town (full HP),
+// since mid-fight state (mob positions, boss phase) isn't stored.
+export function snapshotRun(): Suspend {
+  const { P, run } = G;
+  return { floorIdx: G.floorIdx, player: { lv: P!.lv, xp: P!.xp, maxHp: P!.maxHp, atk: P!.atk },
+           run: { floor: run!.floor, kills: run!.kills, time: run!.time, assisted: !!run!.assisted } };
+}
+export function resumeRun(s: Suspend) {
+  newPlayer(); Object.assign(G.P!, s.player);
+  G.run = { ...s.run };
+  loadFloor(s.floorIdx);
 }

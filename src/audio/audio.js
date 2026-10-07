@@ -1,6 +1,6 @@
 // Music: Ninja Adventure tracks (CC0). SFX: synthesized with Web Audio (the GitHub pack ships no sound effects).
 // Gameplay never calls sounds directly — the bottom of this file maps game events to SFX and music.
-import { settings } from '../core/store.ts';
+import { settings } from '../core/save.ts';
 import { on } from '../core/events.ts';
 
 const MUSIC = { 0: 'theme_plain', 1: 'theme_swamp', 2: 'theme_dream', boss: 'theme_lost_village', clear: 'theme_dream' };

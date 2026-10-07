@@ -9,6 +9,7 @@ export interface GameEvents {
   mobWindup: void; mobDeath: void;
   bossWake: void; bossSummon: void; bossWind: MoveName; bossImpact: void; bossCharge: void; bossDeath: void;
   portalOpen: void; floorLoaded: number;
+  hint: { title: string; sub: string };
 }
 type Name = keyof GameEvents;
 

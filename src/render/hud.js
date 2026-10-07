@@ -4,6 +4,7 @@ import { W, H, WORLD, TOWN_X, ROOM_X, DOOR } from '../world/constants.ts';
 import { PLAYER } from '../data/player.ts';
 import { IMG } from '../core/assets.ts';
 import { on } from '../core/events.ts';
+import { keyLabel } from '../core/input.ts';
 import { clamp } from '../core/math.ts';
 import { ctx, FN, FT } from './canvas.js';
 
@@ -23,14 +24,19 @@ function hpBar(x, y, w, h, frac, lag) {
   ctx.restore();
   slant(x, y, w, h); ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 1.5; ctx.stroke();
 }
+// Small text over the world gets a dark outline so it reads on bright grass and stone
+function label(text, x, y, color, font) {
+  ctx.font = font; ctx.lineJoin = 'round'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.85)';
+  ctx.strokeText(text, x, y); ctx.fillStyle = color; ctx.fillText(text, x, y);
+}
 function panel(x, y, w, h, r = 10) {
   ctx.beginPath(); ctx.roundRect(x, y, w, h, r);
-  ctx.fillStyle = 'rgba(10,14,24,.62)'; ctx.fill(); ctx.strokeStyle = 'rgba(255,255,255,.18)'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.fillStyle = 'rgba(10,14,24,.78)'; ctx.fill(); ctx.strokeStyle = 'rgba(255,255,255,.18)'; ctx.lineWidth = 1; ctx.stroke();
 }
 
 function drawPlayerPanel() {
   const { P, F } = G;
-  slant(14, 14, 404, 60); ctx.fillStyle = 'rgba(10,14,24,.62)'; ctx.fill();
+  slant(14, 14, 404, 60); ctx.fillStyle = 'rgba(10,14,24,.78)'; ctx.fill();
   ctx.strokeStyle = 'rgba(255,255,255,.2)'; ctx.lineWidth = 1; ctx.stroke();
   // level badge
   ctx.beginPath(); ctx.arc(46, 44, 21, 0, 7); ctx.fillStyle = '#f39a1d'; ctx.fill();
@@ -39,12 +45,12 @@ function drawPlayerPanel() {
   ctx.font = `800 17px ${FN}`; ctx.fillText(String(P.lv), 46, 54);
   ctx.textAlign = 'left'; ctx.font = `700 14px ${FN}`; ctx.fillStyle = '#fff'; ctx.fillText('PLAYER', 78, 33);
   hpBar(78, 39, 316, 15, P.hp / P.maxHp, P.lag / P.maxHp);
-  ctx.textAlign = 'right'; ctx.font = `700 12px ${FN}`; ctx.fillStyle = '#e8eef7';
-  ctx.fillText(`${Math.ceil(P.hp)} / ${P.maxHp}`, 380, 33);
+  ctx.textAlign = 'right'; ctx.font = `700 13px ${FN}`; ctx.fillStyle = '#fff';
+  ctx.fillText(`${Math.max(0, Math.ceil(P.hp))} / ${P.maxHp}`, 380, 33);
   ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.fillRect(78, 59, 240, 3);
   ctx.fillStyle = '#5fc3ff'; ctx.fillRect(78, 59, 240 * P.xp / PLAYER.xpToNext(P.lv), 3);
   const zone = P.x < TOWN_X ? ['SAFE ZONE · HP ฟื้นฟู', '#9fe89f'] : P.x > ROOM_X ? ['BOSS ROOM', '#ff8a7a'] : ['FIELD', '#cfd8e6'];
-  ctx.textAlign = 'left'; ctx.font = `600 12px ${FT}`; ctx.fillStyle = zone[1]; ctx.fillText(`${F.name} · ${zone[0]}`, 22, 92);
+  ctx.textAlign = 'left'; label(`${F.name} · ${zone[0]}`, 22, 92, zone[1], `600 13px ${FT}`);
 }
 
 function drawBossBar() {
@@ -54,20 +60,23 @@ function drawBossBar() {
   const bars = F.boss.bars, seg = boss.maxHp / bars, left = Math.ceil(boss.hp / seg);
   const frac = (boss.hp - (left - 1) * seg) / seg, lag = boss.lag > left * seg ? 1 : (boss.lag - (left - 1) * seg) / seg;
   const w = 440, x = (W - w) / 2, y = H - 118; // bottom centre, above the skill slots
-  ctx.textAlign = 'center'; ctx.font = `700 14px ${FN}`; ctx.lineJoin = 'round';
-  ctx.strokeStyle = 'rgba(0,0,0,.7)'; ctx.lineWidth = 4; ctx.strokeText(F.boss.name, W / 2, y - 8);
-  ctx.fillStyle = rage() ? '#ffd760' : '#fff'; ctx.fillText(F.boss.name, W / 2, y - 8);
+  panel(x - 12, y - 28, w + 24, 60, 10); // backing plate so the bar reads over any floor
+  ctx.textAlign = 'center'; label(F.boss.name, W / 2, y - 9, rage() ? '#ffd760' : '#fff', `700 14px ${FN}`);
   hpBar(x, y, w, 14, frac, lag);
+  // pips = bars still to go after this one (filled) / already broken (hollow)
   for (let i = 0; i < bars; i++) {
-    slant(x + i * 22, y + 19, 18, 6); ctx.fillStyle = i < left - 1 ? '#ff6a4d' : 'rgba(255,255,255,.18)'; ctx.fill();
+    slant(x + i * 26, y + 20, 22, 7);
+    if (i < left - 1) { ctx.fillStyle = '#ff6a4d'; ctx.fill(); }
+    else { ctx.strokeStyle = 'rgba(255,255,255,.45)'; ctx.lineWidth = 1; ctx.stroke(); }
   }
+  ctx.textAlign = 'right'; label(`×${left}`, x + w, y + 27, '#fff', `800 12px ${FN}`);
 }
 
 function drawSkillSlots() {
   const P = G.P, s = 56, gap = 12, x0 = W / 2 - s - gap / 2, y = H - s - 18;
   const slots = [
-    { key: 'J', label: 'ฟัน', cd: Math.max(0, P.atkCd) / A.cd, glow: false },
-    { key: 'K', label: SK.name, cd: Math.max(0, P.skillCd) / SK.cd, glow: P.skillCd <= 0, secs: P.skillCd },
+    { key: keyLabel('attack'), label: 'ฟัน', cd: Math.max(0, P.atkCd) / A.cd, glow: false },
+    { key: keyLabel('skill'), label: SK.name, cd: Math.max(0, P.skillCd) / SK.cd, glow: P.skillCd <= 0, secs: P.skillCd },
   ];
   slots.forEach((sl, i) => {
     const x = x0 + i * (s + gap), cx = x + s / 2, cy = y + s / 2;
@@ -88,9 +97,11 @@ function drawSkillSlots() {
         ctx.fillStyle = '#fff'; ctx.fillText(sl.secs.toFixed(1), cx, cy + 7);
       }
     }
-    ctx.beginPath(); ctx.roundRect(x + 4, y + 4, 18, 16, 4); ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.fill();
-    ctx.textAlign = 'center'; ctx.font = `800 11px ${FN}`; ctx.fillStyle = '#2b313b'; ctx.fillText(sl.key, x + 13, y + 16);
-    ctx.font = `600 11px ${FT}`; ctx.fillStyle = '#dfe7f2'; ctx.fillText(sl.label, cx, y + s + 13);
+    ctx.font = `800 11px ${FN}`;
+    const kw = Math.max(18, ctx.measureText(sl.key).width + 8); // wider badge for long names like Shift
+    ctx.beginPath(); ctx.roundRect(x + 4, y + 4, kw, 16, 4); ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.fill();
+    ctx.textAlign = 'center'; ctx.font = `800 11px ${FN}`; ctx.fillStyle = '#2b313b'; ctx.fillText(sl.key, x + 4 + kw / 2, y + 16);
+    label(sl.label, cx, y + s + 14, '#fff', `600 12px ${FT}`);
   });
 }
 
@@ -125,4 +136,7 @@ function drawMinimap() {
   ctx.textAlign = 'left'; ctx.font = `600 11px ${FT}`; ctx.fillStyle = '#e8eef7'; ctx.fillText(`${F.name} · ${F.town}`, x, y + h + 16);
 }
 
-export function drawHud() { drawPlayerPanel(); drawBossBar(); drawSkillSlots(); drawMinimap(); }
+export function drawHud() {
+  if (G.run.over) return; // the death/clear screen takes over; a stale HP bar behind it only confuses
+  drawPlayerPanel(); drawBossBar(); drawSkillSlots(); drawMinimap();
+}

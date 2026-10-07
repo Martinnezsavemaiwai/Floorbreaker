@@ -4,7 +4,7 @@ import { W, H, WORLD, TOWN_X, ROOM_X, DOOR, TORCHES } from '../world/constants.t
 import { PLAYER } from '../data/player.ts';
 import { MOVES } from '../data/bosses.ts';
 import { IMG } from '../core/assets.ts';
-import { settings } from '../core/store.ts';
+import { settings } from '../core/save.ts';
 import { clamp } from '../core/math.ts';
 import { burst } from '../systems/fx.js';
 import { ctx, frame, shadow, dirCol } from './canvas.js';

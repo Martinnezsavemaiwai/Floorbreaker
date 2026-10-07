@@ -3,7 +3,6 @@
 import '@fontsource/kanit/300.css';
 import '@fontsource/kanit/400.css';
 import '@fontsource/kanit/600.css';
-import '@fontsource/exo-2/500.css';
 import '@fontsource/exo-2/700.css';
 import '@fontsource/exo-2/800.css';
 import './style.css';
@@ -14,34 +13,39 @@ import { hitWall } from './world/physics.ts';
 import { scenes, clock } from './core/app.ts';
 import { runFrames } from './core/loop.ts';
 import { ready } from './core/assets.ts';
-import { keys, mouse, actionForKey, actionForButton, releaseAll } from './core/input.ts';
+import { keys, mouse, actionForKey, actionForButton, releaseAll, keyLabel } from './core/input.ts';
 import { attack, skill, hurtPlayer, startBossMove, updateGame, updateFx } from './systems/index.js';
 import { drawWorld } from './render/world.js';
 import { cv } from './render/canvas.js';
 import { toggleMute } from './audio/audio.js';
-import { current, closeSub, inSubScreen, openSub, toast, bindActions } from './ui/screens.js';
-import { titleScene, playing, newGame, pauseGame, resumeGame, startIntro, goHome } from './scenes/index.js';
+import { current, closeSub, inSubScreen, openSub, toast, bindActions, dialogOpen } from './ui/screens.js';
+import { resetKeys, downloadSave, pickImport } from './ui/settings.js';
+import { titleScene, playing, newGame, pauseGame, resumeGame, startIntro, continueRun, goHome, saveAndQuit, suspendRun } from './scenes/index.js';
 
 function toggleFullscreen() {
   if (document.fullscreenElement) document.exitFullscreen();
   else document.documentElement.requestFullscreen?.().catch(() => {});
 }
-const mute = () => toast(toggleMute() ? 'ปิดเสียงแล้ว' : 'เปิดเสียงแล้ว', 'กด M เพื่อสลับ', 1.4);
+const mute = () => toast(toggleMute() ? 'ปิดเสียงแล้ว' : 'เปิดเสียงแล้ว', `กด ${keyLabel('mute')} เพื่อสลับ`, 1.4);
 
 bindActions({
-  start: () => ready.then(startIntro), howto: () => openSub('howto'), settings: () => openSub('settings'),
-  back: closeSub, resume: resumeGame, quit: goHome, home: goHome, fullscreen: toggleFullscreen,
+  start: () => ready.then(startIntro), continue: () => ready.then(continueRun),
+  howto: () => openSub('howto'), settings: () => openSub('settings'), back: closeSub,
+  resume: resumeGame, saveQuit: saveAndQuit, home: goHome, fullscreen: toggleFullscreen,
+  resetKeys, exportSave: downloadSave, importSave: pickImport,
 });
 
-// Keyboard: physical keys -> actions (data/controls.js). Gameplay keys only count while a live character is in control.
+// Keyboard: physical keys -> actions (data/controls.ts + rebinding). Gameplay keys only count while a live character is in control.
 const GAME_ACTIONS = { attack, skill, mute };
 addEventListener('keydown', e => {
+  if (dialogOpen()) return; // the confirm <dialog> handles its own keys (Esc = cancel)
   const action = actionForKey(e.code);
   if (action === 'fullscreen' && !e.repeat) return toggleFullscreen();
   if (action === 'pause') {
     if (playing()) pauseGame();
     else if (current === 'pause') resumeGame();
     else if (inSubScreen()) closeSub();
+    else if (current === 'result') goHome();
     return;
   }
   if (!playing()) return; // leave keys alone while a menu (sliders, buttons) has focus
@@ -60,11 +64,12 @@ mouse.x = W / 2; mouse.y = H / 2;
 
 const frames = runFrames(real => { clock.advance(real); scenes.draw(); });
 // Switching tabs doesn't always fire blur; pause there too and drop the stale frame time
-document.addEventListener('visibilitychange', () => { if (document.hidden) pauseGame(); else frames.reset(); });
+// Leaving the tab also writes the suspend save, so closing it mid-run loses nothing
+document.addEventListener('visibilitychange', () => { if (document.hidden) { pauseGame(); suspendRun(); } else frames.reset(); });
+addEventListener('pagehide', suspendRun);
 scenes.replace(titleScene);
 
 // Dev-only handle for console/bot playtests; stripped from production builds.
-// ponytail: stopgap until the sim moves into DOM-free modules + Vitest (migration step 7)
 if (import.meta.env.DEV) {
   const live = { state: () => G.run?.over || scenes.top?.name, P: () => G.P, mobs: () => G.mobs, boss: () => G.boss, F: () => G.F,
                  floorIdx: () => G.floorIdx, portal: () => G.portal, run: () => G.run, clock: () => clock, scenes: () => scenes, cam: () => G.cam };

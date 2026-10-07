@@ -1,7 +1,7 @@
 // Title background and the "Link Start" intro tunnel.
 import { G } from '../world/state.ts';
 import { W, H } from '../world/constants.ts';
-import { settings } from '../core/store.ts';
+import { settings } from '../core/save.ts';
 import { clamp } from '../core/math.ts';
 import { ctx, FN } from './canvas.js';
 

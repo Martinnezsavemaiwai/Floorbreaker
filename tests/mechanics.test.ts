@@ -114,3 +114,29 @@ describe('clock', () => {
     expect(Math.round((G.run!.time - t) / STEP)).toBeLessThanOrEqual(8);
   });
 });
+
+describe('assist mode and suspend', () => {
+  it('assist damage scales hits taken and marks the run as assisted', async () => {
+    const { settings } = await import('../src/core/save.ts');
+    quietField();
+    settings.assistDamage = 0.5;
+    try {
+      hurtPlayer(40);
+      expect(G.P!.maxHp - G.P!.hp).toBe(20);
+      frames(10); // the hit's hit-stop eats the first few frames
+      expect(G.run!.assisted).toBe(true);
+    } finally { settings.assistDamage = 1; }
+  });
+
+  it('a suspended run resumes on the same floor with the same character', async () => {
+    const { snapshotRun, resumeRun } = await import('../src/world/floor.ts');
+    quietField(); gainXp(PLAYER.xpToNext(1) + PLAYER.xpToNext(2)); loadFloor(1); G.run!.kills = 12;
+    const snap = snapshotRun();
+    startRun(2); // a different session
+    resumeRun(snap);
+    expect(G.floorIdx).toBe(1);
+    expect(G.P!.lv).toBe(3);
+    expect(G.P!.hp).toBe(G.P!.maxHp);
+    expect(G.run!.kills).toBe(12);
+  });
+});

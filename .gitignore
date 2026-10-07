@@ -16,3 +16,6 @@ assets/NinjaAdventure/
 .DS_Store
 Thumbs.db
 *.log
+
+# Design-tool working files (critique snapshots, live-server state)
+.impeccable/

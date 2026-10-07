@@ -1,7 +1,7 @@
 // Juice: floating text, particles, rings, hit-stop and screen shake.
 import { G } from '../world/state.ts';
 import { clock } from '../core/app.ts';
-import { settings } from '../core/store.ts';
+import { settings } from '../core/save.ts';
 
 export function text(x, y, s, col, big) { G.texts.push({ x, y, s: String(s), col, big, t: 0.8 }); }
 export function burst(x, y, n, col, spd, life, size, shard) {
