@@ -1,6 +1,8 @@
 // Field mobs. Floors reference these by id (see floors.ts).
 // kind: 'beast' = 2-frame side sheet that flips, 'humanoid' = 4-direction character sheet.
 // ranged: keeps its distance and fires a dodgeable shot after the wind-up instead of lunging.
+// armor: normal hits do 25% and don't stagger; a heavy hit (combo finisher / Sword Skill) breaks it for `regen` s.
+// scale: sprite/body size (swarm mobs are small).
 export interface MobStats {
   name: string; img: string; white: string; kind: 'beast' | 'humanoid';
   hp: number; dmg: number; speed: number; wind: number; xp: number; col: number; // col = money dropped
@@ -8,6 +10,7 @@ export interface MobStats {
   respawn: number; chaseRange: number; wanderSpeed: number; wanderRange: number;
   knockback: { light: number; heavy: number };
   ranged?: { keep: number; range: number; shotSpeed: number; shotR: number; color: string };
+  armor?: { regen: number }; scale?: number;
 }
 
 const BASE = {
@@ -30,6 +33,19 @@ export const MOBS = {
     attackCd: 2, ranged: { keep: 180, range: 320, shotSpeed: 420, shotR: 8, color: '#ff9050' } },
   darkElfMage: { ...BASE, name: 'Dark Elf Mage', img: 'mageT', white: 'bossWhite', kind: 'humanoid', hp: 90, dmg: 20, speed: 115, wind: 0.7, xp: 60, col: 14,
     attackCd: 2.4, ranged: { keep: 190, range: 340, shotSpeed: 260, shotR: 11, color: '#b080ff' } },
+  // swarms (come in groups) and armored guardians
+  piglet: { ...BASE, name: 'Boar Piglet', img: 'boar', white: 'boarWhite', kind: 'beast', hp: 14, dmg: 5, speed: 175, wind: 0.25, xp: 6, col: 1,
+    radius: 10, scale: 0.65, respawn: 10 },
+  taurusGuardian: { ...BASE, name: 'Taurus Guardian', img: 'guardT', white: 'taurusWhite', kind: 'humanoid', hp: 260, dmg: 30, speed: 80, wind: 0.6, xp: 90, col: 18,
+    radius: 20, scale: 1.3, armor: { regen: 3 }, knockback: { light: 0, heavy: 300 }, respawn: 12 },
+  elfKnight: { ...BASE, name: 'Dark Elf Knight', img: 'knightT', white: 'bossWhite', kind: 'humanoid', hp: 360, dmg: 36, speed: 90, wind: 0.55, xp: 120, col: 24,
+    radius: 20, scale: 1.3, armor: { regen: 3 }, knockback: { light: 0, heavy: 300 }, respawn: 12 },
+  shadowPiglet: { ...BASE, name: 'Shadow Piglet', img: 'shadowPig', white: 'boarWhite', kind: 'beast', hp: 30, dmg: 9, speed: 185, wind: 0.25, xp: 12, col: 2,
+    radius: 10, scale: 0.65, respawn: 10 },
+  tideGuardian: { ...BASE, name: 'Tide Guardian', img: 'tideGuardT', white: 'taurusWhite', kind: 'humanoid', hp: 460, dmg: 42, speed: 90, wind: 0.55, xp: 150, col: 30,
+    radius: 20, scale: 1.3, armor: { regen: 2.5 }, knockback: { light: 0, heavy: 300 }, respawn: 12 },
+  crabling: { ...BASE, name: 'Tide Crabling', img: 'tidalBoar', white: 'boarWhite', kind: 'beast', hp: 45, dmg: 12, speed: 190, wind: 0.22, xp: 16, col: 3,
+    radius: 10, scale: 0.65, respawn: 10 },
   // floor 4 (Rovia, the water town)
   tidalBoar: { ...BASE, name: 'Tidal Boar', img: 'tidalBoar', white: 'boarWhite', kind: 'beast', hp: 200, dmg: 28, speed: 160, wind: 0.32, xp: 100, col: 16 },
   waterWraith: { ...BASE, name: 'Water Wraith', img: 'wraithT', white: 'playerWhite', kind: 'humanoid', hp: 120, dmg: 24, speed: 120, wind: 0.6, xp: 85, col: 18,

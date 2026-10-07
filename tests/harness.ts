@@ -49,8 +49,14 @@ export const snapshot = () => JSON.stringify({
 // stepping out of telegraphs. Same logic as the console bot used during development.
 export function createBot(levelGoals: number[]) {
   let phase: 'grind' | 'heal' | 'boss' = 'grind', floor = 0;
+  let last = { x: 0, y: 0 }, stuck = 0, detour = 0, side = 1; // walking straight into a tree: sidestep for a bit
   const walkTo = (tx: number, ty: number) => {
     const P = G.P!;
+    if (detour > 0) { detour--; [tx, ty] = [P.x - (ty - P.y) * side, P.y + (tx - P.x) * side]; }
+    else if (Math.hypot(P.x - last.x, P.y - last.y) < 0.5 && Math.hypot(tx - P.x, ty - P.y) > 30) {
+      if (++stuck > 60) { stuck = 0; detour = 40; side = -side; }
+    } else stuck = 0;
+    last = { x: P.x, y: P.y };
     keys.KeyD = tx > P.x + 5; keys.KeyA = tx < P.x - 5; keys.KeyS = ty > P.y + 5; keys.KeyW = ty < P.y - 5;
   };
   const away = (from: Point, k = 5) => walkTo(G.P!.x + (G.P!.x - from.x) * k + 1, G.P!.y + (G.P!.y - from.y) * k + 1);

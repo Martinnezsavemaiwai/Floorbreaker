@@ -372,3 +372,26 @@ describe('sword skills and memory shards', () => {
     meta.unlocked = ['sonicLeap']; meta.shards = 0;
   });
 });
+
+describe('armored and swarm mobs', () => {
+  beforeEach(quietField);
+
+  it('armor takes a quarter from normal hits, a heavy hit breaks it for full damage until it regrows', async () => {
+    const { hurtEnemy } = await import('../src/systems/combat.js');
+    const { MOBS } = await import('../src/data/mobs.ts');
+    const { makeMob } = await import('../src/world/floor.ts');
+    const m = makeMob(G.P!.x + 60, G.P!.y, false, { ...MOBS.taurusGuardian, hp: 9999 }); G.mobs.push(m);
+    hurtEnemy(m, 40, false); expect(m.hp).toBe(9999 - 10);
+    hurtEnemy(m, 40, true);  expect(m.hp).toBe(9999 - 50); // the breaking hit itself lands in full
+    expect(m.armorT).toBeGreaterThan(0);
+    hurtEnemy(m, 40, false); expect(m.hp).toBe(9999 - 90);
+    m.armorT = 0;
+    hurtEnemy(m, 40, false); expect(m.hp).toBe(9999 - 100);
+  });
+
+  it('swarm points spawn their whole group', () => {
+    const extras = G.F!.extras!.find(e => e.group)!;
+    const n = G.mobs.filter(m => m.def.name === 'Boar Piglet').length;
+    expect(n).toBe(extras.at.length * extras.group!);
+  });
+});

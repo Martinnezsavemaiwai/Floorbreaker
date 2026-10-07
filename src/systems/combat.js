@@ -27,12 +27,17 @@ export function gainXp(n) {
 export function hurtEnemy(e, d, big, crit = false) {
   if (e.hp <= 0) return;
   const { P, F, boss, run } = G;
+  const guarded = e !== boss && e.def.armor && e.armorT <= 0;
+  if (guarded && big) { // a heavy hit shatters the guard: full damage now and for the next few seconds
+    e.armorT = e.def.armor.regen; text(e.x, e.y - e.r - 26, 'BREAK!', '#9fd8ff', true);
+    ring(e.x, e.y, 10, 60, 0.3, '159,216,255'); emit('guardBreak');
+  } else if (guarded) { d = Math.max(1, Math.round(d * 0.25)); text(e.x, e.y - e.r - 26, 'GUARD', '#c8d0dc'); }
   e.hp -= d; e.hurt = 0.1; text(e.x, e.y - e.r - (e.z || 0), crit ? d + '!' : d, crit ? '#ffe14d' : big ? '#ffb347' : '#fff', big || crit); emit('hit', { big });
   const steal = mods().lifesteal; // every enemy hit comes from the player
   if (steal) P.hp = Math.min(P.maxHp, P.hp + steal);
   burst(e.x, e.y - (e.z || 0), big ? 14 : 7, '#fff3c4', 320, 0.25, 3, false);
   kick(big ? 0.09 : 0.045, big ? 6 : 2);
-  if (e !== boss) { knock(e, P, e.def.knockback[big ? 'heavy' : 'light']); if (big) e.wind = 0; } // Sword Skill staggers a winding-up mob
+  if (e !== boss) { knock(e, P, e.def.knockback[big ? 'heavy' : 'light']); if (big) e.wind = 0; } // heavy hits stagger a winding-up mob
   else if (F.boss.summon && !boss.summoned && rage()) {
     boss.summoned = true; emit('bossSummon');
     text(boss.x, boss.y - 130, `${F.boss.name.split(' ')[0]} เรียกลูกน้อง!`, '#ff7043', true);

@@ -10,7 +10,7 @@ export interface GameEvents {
   bossWake: void; bossSummon: void; bossWind: MoveName; bossImpact: void; bossCharge: void; bossDeath: void;
   portalOpen: void; floorLoaded: number;
   hint: { title: string; sub: string };
-  upgradePicked: string; finisher: void; roll: void; ending: void; bought: string; potion: void;
+  upgradePicked: string; finisher: void; roll: void; guardBreak: void; ending: void; bought: string; potion: void;
 }
 type Name = keyof GameEvents;
 

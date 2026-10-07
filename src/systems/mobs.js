@@ -15,7 +15,7 @@ export function updateMobs(dt) {
   for (const m of G.mobs) {
     const M = m.def, R = M.ranged, maxX = m.summoned ? WORLD.w : ROOM_X; // field mobs stay out of the boss room
     if (m.hp <= 0) { if ((m.dead -= dt) <= 0) Object.assign(m, makeMob(m.sx, m.sy, false, M)); continue; }
-    m.cd -= dt; m.hurt -= dt; m.lunge -= dt;
+    m.cd -= dt; m.hurt -= dt; m.lunge -= dt; m.armorT -= dt;
     applyKnock(m, dt, TOWN_X, maxX);
     const d = dist(m, P), chase = d < M.chaseRange && P.x > TOWN_X, wr = M.wanderRange;
     if (m.wind > 0) {

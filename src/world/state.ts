@@ -21,6 +21,7 @@ export interface Mob extends Point {
   sx: number; sy: number; wx: number; wy: number; r: number; hp: number; maxHp: number;
   cd: number; dead: number; hurt: number; face: number; side: number; sideDir: number;
   wind: number; lunge: number; kx: number; ky: number; summoned: boolean; def: MobStats;
+  armorT: number; // > 0 while an armored mob's guard is broken
 }
 export interface Shot extends Point { vx: number; vy: number; r: number; dmg: number; col: string; life: number }
 export interface Boss extends Point {

@@ -78,6 +78,7 @@ on('swing', SFX.swing);
 on('skill', SFX.skill);
 on('finisher', SFX.finisher);
 on('roll', SFX.roll);
+on('guardBreak', () => { SFX.shatter(); SFX.hit(true); });
 on('hit', ({ big }) => SFX.hit(big));
 on('mobDeath', SFX.shatter);
 on('bossDeath', () => { SFX.slam(); SFX.shatter(); playMusic('clear'); });

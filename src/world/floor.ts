@@ -19,7 +19,7 @@ function floorData(i: number): Floor {
 export const isLastFloor = () => G.floorIdx >= FLOORS.length - 1;
 
 export function makeMob(x: number, y: number, summoned = false, M = G.F!.mob): Mob {
-  return { x, y, sx: x, sy: y, wx: x, wy: y, r: M.radius, hp: M.hp, maxHp: M.hp, cd: 0, dead: 0, hurt: 0, face: 0,
+  return { x, y, sx: x, sy: y, wx: x, wy: y, r: M.radius, armorT: 0, hp: M.hp, maxHp: M.hp, cd: 0, dead: 0, hurt: 0, face: 0,
            side: 0, sideDir: 1, wind: 0, lunge: 0, kx: 0, ky: 0, summoned, def: M };
 }
 
@@ -27,6 +27,10 @@ export function loadFloor(i: number) {
   G.floorIdx = i; const F = G.F = floorData(i);
   G.WALLS = [...GATE, ...F.trees.map(([x, y, k]) => { const h = TREE_TYPES[k].hit; return { x: x + h[0], y: y + h[1], w: h[2], h: h[3] }; }), ...(F.ponds ?? [])];
   G.mobs = [...F.spawns.map(([x, y]) => makeMob(x, y)), ...F.rangedSpawns.map(([x, y]) => makeMob(x, y, false, F.ranged))];
+  for (const { mob, at, group = 1 } of F.extras ?? []) for (const [x, y] of at) for (let i = 0; i < group; i++) {
+    const a = (i / group) * Math.PI * 2, d = group > 1 ? 28 : 0; // a group stands in a small ring around its point
+    G.mobs.push(makeMob(x + Math.cos(a) * d, y + Math.sin(a) * d, false, MOBS[mob]));
+  }
   G.boss = { x: 1760, y: 600, z: 0, r: F.boss.r, hp: F.boss.hp, lag: F.boss.hp, maxHp: F.boss.hp, awake: false, cd: BOSS_RULES.firstMoveDelay,
              act: null, t: 0, tMax: 1, ang: 0, hurt: 0, hitP: false, summoned: false };
   Object.assign(G.P, { x: 200, y: 600, hp: G.P.maxHp, lag: G.P.maxHp, dash: 0, delay: 0, trail: [], kx: 0, ky: 0, inv: 0, buf: null });

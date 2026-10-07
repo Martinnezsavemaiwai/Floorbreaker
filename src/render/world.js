@@ -25,18 +25,20 @@ function drawMob(m) {
   const x = Math.round(m.x + jit + Math.cos(m.face) * hop), y = Math.round(m.y + Math.sin(m.face) * hop);
   // reduced-flash mode: no white/blink frames, the steady red glow + "!" carry the wind-up
   const flash = settings.flash && (m.hurt > 0 || (m.wind > 0 && Math.floor(time * 16) % 2 === 0));
-  const img = flash ? IMG[M.white] : IMG[M.img];
+  const img = flash ? IMG[M.white] : IMG[M.img], k = M.scale ?? 1;
   ctx.save();
   if (m.wind > 0 && m.hurt <= 0) { ctx.shadowColor = '#ff2020'; ctx.shadowBlur = 14; }
+  else if (M.armor && m.armorT <= 0) { ctx.shadowColor = '#9fd8ff'; ctx.shadowBlur = 10; } // steady blue rim = guard up
   if (M.kind === 'beast') {
-    const f = Math.floor(time * 6 + m.sx) % 2, s = 48; // sheet faces left
+    const f = Math.floor(time * 6 + m.sx) % 2, s = 48 * k; // sheet faces left
     ctx.translate(x, y); if (Math.cos(m.face) > 0) ctx.scale(-1, 1);
     ctx.drawImage(img, f * 16, 0, 16, 16, -s / 2, -s * 0.6, s, s);
   } else {
     const row = m.wind > 0 || m.lunge > 0 ? 4 : Math.floor(time * 8 + m.sx) % 4;
-    frame(img, dirCol(m.face), row, x, y, 3);
+    frame(img, dirCol(m.face), row, x, y, 3 * k);
   }
   ctx.restore();
+  if (M.armor) drawGuard(m, x, y - 30 * k - 14);
   if (m.wind > 0 && M.ranged) { // aim line toward the player, brighter as the shot gets close
     const P = G.P, k = 1 - m.wind / M.wind;
     ctx.save(); ctx.strokeStyle = `rgba(255,70,70,${0.3 + 0.6 * k})`; ctx.lineWidth = 3; ctx.setLineDash([8, 6]);
@@ -81,6 +83,20 @@ function drawMerchant() {
   ctx.textAlign = 'center'; ctx.font = `700 13px ${FT}`; ctx.lineJoin = 'round'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.8)';
   const tag = nearMerchant() ? `[${keyLabel('interact')}] ร้านค้า` : 'ร้านค้า';
   ctx.strokeText(tag, x, y - 34); ctx.fillStyle = nearMerchant() ? '#ffe14d' : '#fff'; ctx.fillText(tag, x, y - 34);
+}
+
+// Guard pip over armored mobs: a shield while it holds, a draining bar while it's broken
+function drawGuard(m, x, y) {
+  ctx.save();
+  if (m.armorT <= 0) {
+    ctx.fillStyle = '#cfe8ff'; ctx.strokeStyle = '#2b4a6a'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(x - 7, y - 7); ctx.lineTo(x + 7, y - 7); ctx.lineTo(x + 6, y + 2); ctx.lineTo(x, y + 8); ctx.lineTo(x - 6, y + 2); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+  } else {
+    ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(x - 14, y - 2, 28, 4);
+    ctx.fillStyle = '#9fd8ff'; ctx.fillRect(x - 14, y - 2, 28 * (1 - m.armorT / m.def.armor.regen), 4);
+  }
+  ctx.restore();
 }
 
 function drawShots() {
