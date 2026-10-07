@@ -11,7 +11,8 @@ import { updateGame, updateFx } from '../systems/index.js';
 import { drawWorld } from '../render/world.js';
 import { updateMenuBg, drawMenuBg, drawIntro, INTRO_TIME } from '../render/menu.js';
 import { initAudio, stopMusic, pauseMusic, resumeMusic, SFX } from '../audio/audio.js';
-import { screen, showPauseStats, confirmDialog } from '../ui/screens.js';
+import { screen, showPauseStats, showUpgradePicker, confirmDialog, $ } from '../ui/screens.js';
+import { rollOffer, applyUpgrade, hasPendingUpgrade } from '../systems/upgrades.js';
 
 let resume = null; // suspend data to continue from once the intro finishes
 
@@ -28,7 +29,11 @@ const introScene = {
 };
 const playScene = {
   name: 'play',
-  update(dt) { if (!G.run.over) updateGame(dt); updateFx(dt); }, // after death/clear the shatter FX keep playing
+  update(dt) {
+    if (!G.run.over) updateGame(dt);
+    updateFx(dt); // after death/clear the shatter FX keep playing
+    if (!G.run.over && hasPendingUpgrade()) scenes.push(upgradeScene);
+  },
   draw: drawWorld,
 };
 const pauseScene = {
@@ -37,7 +42,25 @@ const pauseScene = {
   exit() { screen(null); resumeMusic(); },
 };
 
-const liveRun = () => G.run && !G.run.over && (scenes.top === playScene || scenes.top === pauseScene);
+// Level-up picker: freezes play like pause; one pick per pending level, then back to the fight
+let offer = [];
+const upgradeScene = {
+  name: 'upgrade', blocksUpdate: true,
+  enter() { releaseAll(); offer = rollOffer(); showUpgradePicker(offer); },
+  exit() { screen(null); },
+};
+export const picking = () => scenes.top === upgradeScene;
+export function pickUpgrade(i) {
+  if (!picking() || !offer[i]) return;
+  applyUpgrade(offer[i]);
+  scenes.pop(); // play re-pushes the picker next step if another level is still pending
+}
+$('upgrade-cards').addEventListener('click', e => {
+  const card = /** @type {HTMLElement | null} */ (/** @type {Element} */ (e.target).closest('[data-pick]'));
+  if (card) pickUpgrade(+card.dataset.pick);
+});
+
+const liveRun = () => G.run && !G.run.over && (scenes.top === playScene || scenes.top === pauseScene || scenes.top === upgradeScene);
 export const playing = () => scenes.top === playScene && !G.run?.over; // in control of a live character
 
 export function newGame() {

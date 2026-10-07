@@ -20,7 +20,7 @@ import { cv } from './render/canvas.js';
 import { toggleMute } from './audio/audio.js';
 import { current, closeSub, inSubScreen, openSub, toast, bindActions, dialogOpen } from './ui/screens.js';
 import { resetKeys, downloadSave, pickImport } from './ui/settings.js';
-import { titleScene, playing, newGame, pauseGame, resumeGame, startIntro, continueRun, goHome, saveAndQuit, suspendRun } from './scenes/index.js';
+import { titleScene, playing, newGame, pauseGame, resumeGame, startIntro, continueRun, goHome, saveAndQuit, suspendRun, picking, pickUpgrade } from './scenes/index.js';
 
 function toggleFullscreen() {
   if (document.fullscreenElement) document.exitFullscreen();
@@ -39,6 +39,7 @@ bindActions({
 const GAME_ACTIONS = { attack, skill, mute };
 addEventListener('keydown', e => {
   if (dialogOpen()) return; // the confirm <dialog> handles its own keys (Esc = cancel)
+  if (picking() && /^(Digit|Numpad)[1-9]$/.test(e.code)) return pickUpgrade(+e.code.at(-1) - 1);
   const action = actionForKey(e.code);
   if (action === 'fullscreen' && !e.repeat) return toggleFullscreen();
   if (action === 'pause') {

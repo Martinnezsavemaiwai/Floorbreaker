@@ -81,6 +81,7 @@ on('playerHurt', SFX.hurt);
 on('dodge', SFX.dodge);
 on('playerDeath', () => { stopMusic(); SFX.death(); });
 on('levelUp', SFX.levelUp);
+on('upgradePicked', SFX.ui);
 on('mobWindup', SFX.windup);
 on('bossWake', () => { SFX.roar(); playMusic('boss'); });
 on('bossSummon', SFX.roar);

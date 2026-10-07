@@ -4,6 +4,7 @@ import { meta, saveMeta, loadSuspend } from '../core/save.ts';
 import { on } from '../core/events.ts';
 import { keyLabel } from '../core/input.ts';
 import { FLOORS } from '../data/floors.ts';
+import { UPGRADES } from '../data/upgrades.ts';
 import { SFX } from '../audio/audio.js';
 
 export const $ = id => /** @type {any} */ (document.getElementById(id)); // DOM ids come from index.html
@@ -41,7 +42,25 @@ function nextToast() {
 
 function statCards(el, items) { el.innerHTML = items.map(([k, v]) => `<div class="stat"><span>${k}</span><b>${v}</b></div>`).join(''); }
 const runStats = () => [['ชั้นที่ไปถึง', G.run.floor], ['เลเวล', G.P.lv], ['ล้มศัตรู', G.run.kills], ['เวลา', fmtTime(G.run.time)]];
-export const showPauseStats = () => statCards($('pause-stats'), runStats());
+const upgradeList = () => Object.entries(G.P.up).filter(([, k]) => k).map(([id, k]) => `${UPGRADES[id].name}${k > 1 ? ' ×' + k : ''}`).join(' · ');
+export function showPauseStats() {
+  statCards($('pause-stats'), runStats());
+  const list = upgradeList();
+  $('pause-upgrades').textContent = list ? 'อัปเกรด: ' + list : '';
+}
+
+// Level-up picker: one card per offered upgrade, with how many times it's been taken already
+export function showUpgradePicker(offer) {
+  $('upgrade-msg').textContent = `Lv.${G.P.lv} · เลือกอัปเกรด 1 อย่าง · กด 1–${offer.length} หรือคลิก`;
+  $('upgrade-cards').innerHTML = offer.map((id, i) => {
+    const u = UPGRADES[id], have = G.P.up[id] ?? 0;
+    const pips = Array.from({ length: u.max }, (_, k) => `<i class="${k < have ? 'got' : k === have ? 'next' : ''}"></i>`).join('');
+    return `<button class="card" data-pick="${i}" aria-label="${i + 1}: ${u.name} — ${u.desc} (${have}/${u.max})">
+      <kbd>${i + 1}</kbd><b>${u.name}</b><span>${u.desc}</span><span class="pips" aria-hidden="true">${pips}</span></button>`;
+  }).join('');
+  screen('upgrade');
+  $('upgrade-cards').querySelector('.card')?.focus();
+}
 
 // Title: best record + a Continue button when a suspended run exists
 function renderTitle() {

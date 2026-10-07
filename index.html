@@ -105,10 +105,18 @@
 <section id="pause" class="screen" aria-labelledby="pause-h">
   <div class="win"><header id="pause-h">หยุดเกม</header><div class="body">
     <div class="stats" id="pause-stats"></div>
+    <p class="hint" id="pause-upgrades"></p>
     <button class="btn primary" data-act="resume"><span class="ic"><svg class="ico"><use href="#i-play"/></svg></span>กลับเข้าเกม<kbd>Esc</kbd></button>
     <button class="btn" data-act="settings"><span class="ic"><svg class="ico"><use href="#i-sliders"/></svg></span>ตั้งค่า</button>
     <button class="btn" data-act="fullscreen"><span class="ic"><svg class="ico"><use href="#i-expand"/></svg></span>เต็มจอ<kbd>F</kbd></button>
     <button class="btn" data-act="saveQuit"><span class="ic"><svg class="ico"><use href="#i-save"/></svg></span>บันทึกแล้วออกไปหน้าแรก</button>
+  </div></div>
+</section>
+
+<section id="upgrade" class="screen" role="dialog" aria-labelledby="upgrade-h" aria-describedby="upgrade-msg">
+  <div class="win wide"><header id="upgrade-h" lang="en">Level Up</header><div class="body">
+    <p class="result-msg" id="upgrade-msg">เลือกอัปเกรด 1 อย่าง · กด 1 / 2 / 3 หรือคลิก</p>
+    <div class="cards" id="upgrade-cards"><!-- filled by ui/screens.js --></div>
   </div></div>
 </section>
 

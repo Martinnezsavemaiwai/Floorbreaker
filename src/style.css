@@ -51,8 +51,8 @@ canvas{display:block;width:min(100vw,150vh);height:auto;cursor:crosshair}
 .btn small{display:block;font:400 13px var(--font);color:inherit}
 .btn kbd{margin-left:auto}
 /* One focus treatment for every control: a dark ring that is not the hover look */
-:is(.btn,.bind,[role=tab],.corner-btn,select,input):focus-visible{outline:3px solid var(--focus);outline-offset:2px}
-:is(.btn,.bind,[role=tab],.corner-btn,select,input):focus:not(:focus-visible){outline:none}
+:is(.btn,.bind,.card,[role=tab],.corner-btn,select,input):focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+:is(.btn,.bind,.card,[role=tab],.corner-btn,select,input):focus:not(:focus-visible){outline:none}
 
 /* ---------- title ---------- */
 #title-screen{background:none;flex-direction:column;gap:28px;text-align:center}
@@ -143,3 +143,20 @@ dialog.dialog p{margin:0;font-size:15px;line-height:1.55}
 @keyframes pop{from{opacity:0;transform:scale(.97) translateY(6px)}}
 @keyframes toast{0%{opacity:0;transform:translate(-50%,-10px)}10%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0}}
 @media (prefers-reduced-motion:reduce){.screen.on,.win,#toast.on{animation-duration:.01s}.btn,.switch::after{transition:none}}
+
+/* ---------- level-up picker ---------- */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.card{display:grid;gap:6px;align-content:start;text-align:left;padding:14px;border-radius:12px;background:#fff;
+  border:1px solid var(--rule);border-bottom-width:3px;color:var(--ink);font:400 14px/1.5 var(--font);cursor:pointer;
+  transition:transform .12s var(--ease-out),border-color .12s}
+.card:hover{transform:translateY(-2px);border-color:var(--accent)}
+.card:active{transform:translateY(0)}
+.card kbd{justify-self:start}
+.card b{font:600 17px var(--font)}
+.card span{color:var(--ink-2)}
+.card .pips{display:flex;gap:4px;margin-top:2px}
+.pips i{width:14px;height:6px;border-radius:3px;background:var(--rule)}
+.pips i.got{background:var(--accent)}
+.pips i.next{background:var(--accent);opacity:.4;animation:pulse 1s ease-in-out infinite alternate}
+@keyframes pulse{to{opacity:.9}}
+@media (prefers-reduced-motion: reduce){.card{transition:none}.card:hover{transform:none}.pips i.next{animation:none}}
