@@ -12,6 +12,8 @@ const HINTS = [
   { id: 'attack', when: () => G.P.x > TOWN_X + 40, title: 'ฟันดาบ', sub: () => `คลิกซ้าย หรือกด ${keyLabel('attack')}` },
   { id: 'windup', when: () => G.mobs.some(m => m.wind > 0), title: 'ระวัง!', sub: () => 'มอนสเตอร์ขึ้น ! สีแดง = กำลังจะโจมตี ให้ถอยออกก่อน' },
   { id: 'skill', when: () => G.run.kills >= 1, title: 'Sword Skill: Sonic Leap', sub: () => `คลิกขวา หรือกด ${keyLabel('skill')} · ระหว่างพุ่งไม่โดนดาเมจ` },
+  { id: 'roll', when: () => G.P.x > TOWN_X && G.P.hp < G.P.maxHp, title: 'กลิ้งหลบ', sub: () => `กด ${keyLabel('dodge')} กลิ้งไปทางที่เดิน · ระหว่างกลิ้งไม่โดนดาเมจ` },
+  { id: 'combo', when: () => G.run.kills >= 3, title: 'คอมโบ 3 จังหวะ', sub: () => 'ฟันต่อเนื่อง จังหวะที่ 3 เป็นท่าปิดสีทอง แรงกว่าและกระเด็นไกล' },
   { id: 'heal', when: () => G.P.x > TOWN_X && G.P.hp < G.P.maxHp * 0.4, title: 'HP ต่ำ', sub: () => 'กลับเข้าเมือง (ซ้ายสุด) เพื่อฟื้น HP' },
   { id: 'shop', when: () => G.P.col >= 40, title: 'มี Col แล้ว', sub: () => `กลับเมืองไปหาพ่อค้า กด ${keyLabel('interact')} ซื้อ Potion (ดื่มด้วย ${keyLabel('potion')})` },
   { id: 'boss', when: () => G.boss.awake, title: 'ห้องบอส', sub: () => 'หลบวงสีแดงก่อนบอสฟาด · ประตูล็อกจนกว่าบอสจะตาย' },

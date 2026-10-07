@@ -1,7 +1,8 @@
 // Focused checks of individual mechanics, each in a quiet arena (mobs removed) on a fresh seeded run.
 import { describe, it, expect, beforeEach } from 'vitest';
 import { G, STEP, startRun, frame } from './harness.ts';
-import { attack, skill, hurtPlayer, startBossMove } from '../src/systems/index.js';
+import { attack, skill, roll, hurtPlayer, startBossMove } from '../src/systems/index.js';
+import { keys, mouse } from '../src/core/input.ts';
 import { gainXp } from '../src/systems/combat.js';
 import { loadFloor } from '../src/world/floor.ts';
 import { ROOM_X } from '../src/world/constants.ts';
@@ -280,5 +281,44 @@ describe('floor 4 boss volley', () => {
     const { hitWall } = await import('../src/world/physics.ts');
     const p = G.F!.ponds![0];
     expect(hitWall({ x: p.x + p.w / 2, y: p.y + p.h / 2, r: 14 })).toBe(true);
+  });
+});
+
+describe('combo and roll', () => {
+  beforeEach(quietField);
+
+  it('every 3rd chained swing is a finisher with a longer recovery', () => {
+    const chain = Math.ceil(PLAYER.attack.cd * 60) + 1; // press again right after the cooldown, inside the window
+    attack(); expect(G.P!.combo).toBe(0); frames(chain);
+    attack(); expect(G.P!.combo).toBe(1); frames(chain);
+    attack();
+    expect(G.P!.combo).toBe(2);
+    expect(G.P!.finisher).toBe(true);
+    expect(G.P!.atkCd).toBeCloseTo(PLAYER.attack.cd * PLAYER.combo.cdMult);
+  });
+
+  it('the chain resets after a pause longer than the window', () => {
+    attack(); frames(Math.ceil((PLAYER.attack.cd + PLAYER.combo.window) * 60) + 5);
+    attack();
+    expect(G.P!.combo).toBe(0);
+  });
+
+  it('the finisher hits harder than a normal swing', async () => {
+    const { MOBS } = await import('../src/data/mobs.ts');
+    const { makeMob } = await import('../src/world/floor.ts');
+    const m = makeMob(G.P!.x + 40, G.P!.y, false, { ...MOBS.frenzyBoar, hp: 9999 }); G.mobs.push(m);
+    mouse.x = m.x - G.cam.x; mouse.y = m.y - G.cam.y; frame(); // aim at the mob
+    const chain = Math.ceil(PLAYER.attack.cd * 60) + 10, hits: number[] = []; // + a few frames of hit-stop, still inside the window
+    for (let i = 0; i < 3; i++) { const hp = m.hp; attack(); hits.push(hp - m.hp); m.x = G.P!.x + 40; m.y = G.P!.y; m.kx = m.ky = 0; frames(chain); }
+    expect(hits[2]).toBeGreaterThan(Math.max(hits[0], hits[1]));
+  });
+
+  it('a roll moves the player and dodges damage for its duration, then cools down', () => {
+    const x = G.P!.x;
+    keys.KeyD = true; roll(); hurtPlayer(50);
+    expect(G.P!.hp).toBe(G.P!.maxHp);
+    frames(Math.ceil(PLAYER.roll.time * 60) + 1); keys.KeyD = false;
+    expect(G.P!.x).toBeGreaterThan(x + 80);
+    roll(); expect(G.P!.roll).toBeLessThanOrEqual(0); // still cooling down
   });
 });

@@ -12,6 +12,7 @@ export interface Player extends Point {
   kx: number; ky: number; hitSet: Set<Mob | Boss> | null; trail: (Point & { t: number })[];
   buf: { kind: 'attack' | 'skill'; t: number } | null;
   up: Record<string, number>; pendingUpgrades: number; // upgrade counts by id; picks waiting to be chosen
+  combo: number; comboT: number; finisher: boolean; roll: number; rollCd: number; rollAng: number; // sword chain step, dodge roll
   col: number; potions: number; scrolls: number;       // money, potions carried, Skill Scrolls bought (sets their price)
 }
 export interface Mob extends Point {

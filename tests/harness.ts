@@ -10,7 +10,7 @@ import { STEP } from '../src/core/loop.ts';
 import { seedRng } from '../src/core/rng.ts';
 import { keys, mouse, releaseAll } from '../src/core/input.ts';
 import { dist, clamp, type Point } from '../src/core/math.ts';
-import { updateGame, updateFx, attack, skill } from '../src/systems/index.js';
+import { updateGame, updateFx, attack, skill, roll } from '../src/systems/index.js';
 import { rollOffer, applyUpgrade, hasPendingUpgrade } from '../src/systems/upgrades.js';
 
 export { G, STEP };
@@ -71,7 +71,7 @@ export function createBot(levelGoals: number[]) {
       const tg = mobs.filter(m => m.hp > 0 && m.x > TOWN_X).sort((a, b) => dist(P, a) - dist(P, b))[0];
       if (!tg) return;
       aim(tg);
-      if (tg.wind > 0 && tg.wind < 0.2) return away(tg, 3);
+      if (tg.wind > 0 && tg.wind < 0.2) { away(tg, 3); if (dist(P, tg) < 80) roll(); return; }
       walkTo(tg.x, tg.y);
       if (dist(P, tg) < 60) { attack(); if (P.skillCd <= 0) skill(); }
       return;
@@ -80,8 +80,8 @@ export function createBot(levelGoals: number[]) {
     const adds = mobs.filter(m => m.hp > 0 && m.summoned).sort((a, b) => dist(P, a) - dist(P, b))[0];
     const act = boss.act; aim(boss);
     const spot = act === 'roots' && boss.spots!.find(s => dist(s, P) < 100);
-    if (spot) away(spot);
-    else if (act === 'slam' && dist(P, boss) < 170) away(boss);
+    if (spot) { away(spot); if (boss.t < 0.3) roll(); }
+    else if (act === 'slam' && dist(P, boss) < 170) { away(boss); if (boss.t < 0.3) roll(); }
     else if (act === 'leap' && dist(P, boss.to!) < 140) away(boss.to!);
     else if (act === 'volley' && dist(P, boss) < 260) away(boss);
     else if (act === 'charge') walkTo(P.x, P.y + (Math.sin(boss.ang) > 0 ? -200 : 200));

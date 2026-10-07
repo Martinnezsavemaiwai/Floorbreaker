@@ -14,6 +14,6 @@ export function updateGame(dt) {
   updateHints(dt);
 }
 export { updateFx } from './fx.js';
-export { attack, skill } from './player.js';
+export { attack, skill, roll } from './player.js';
 export { hurtPlayer } from './combat.js';
 export { startBossMove } from './boss.js';

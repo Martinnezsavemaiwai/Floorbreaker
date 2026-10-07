@@ -100,6 +100,7 @@ function renderHowTo() {
     [`${k('up')}${k('left')}${k('down')}${k('right')}`, 'เดิน · เมาส์ใช้เล็ง'],
     [`${k('attack')} / คลิกซ้าย`, 'ฟันดาบ'],
     [`${k('skill')} / คลิกขวา`, 'Sword Skill: Sonic Leap'],
+    [k('dodge'), 'กลิ้งหลบ · ระหว่างกลิ้งไม่โดนดาเมจ'],
     [k('potion'), 'ดื่ม Potion (ซื้อจากร้านในเมือง)'], [k('interact'), 'คุยกับพ่อค้า'],
     [k('pause'), 'หยุดเกม'], [k('mute'), 'ปิด/เปิดเสียง'], [k('fullscreen'), 'เต็มจอ'],
   ].map(([keys, what]) => `<span>${keys}</span><span>${what}</span>`).join('');

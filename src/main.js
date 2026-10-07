@@ -16,7 +16,7 @@ import { ready } from './core/assets.ts';
 import { keys, mouse, actionForKey, actionForButton, releaseAll, keyLabel } from './core/input.ts';
 import { drinkPotion } from './systems/shop.js';
 import { SHOP } from './data/shop.ts';
-import { attack, skill, hurtPlayer, startBossMove, updateGame, updateFx } from './systems/index.js';
+import { attack, skill, roll, hurtPlayer, startBossMove, updateGame, updateFx } from './systems/index.js';
 import { drawWorld } from './render/world.js';
 import { cv } from './render/canvas.js';
 import { toggleMute } from './audio/audio.js';
@@ -39,7 +39,7 @@ bindActions({
 });
 
 // Keyboard: physical keys -> actions (data/controls.ts + rebinding). Gameplay keys only count while a live character is in control.
-const GAME_ACTIONS = { attack, skill, mute, potion: drinkPotion, interact: openShop };
+const GAME_ACTIONS = { attack, skill, dodge: roll, mute, potion: drinkPotion, interact: openShop };
 addEventListener('keydown', e => {
   if (dialogOpen()) return; // the confirm <dialog> handles its own keys (Esc = cancel)
   if (picking() && /^(Digit|Numpad)[1-9]$/.test(e.code)) return pickUpgrade(+e.code.at(-1) - 1);
@@ -65,6 +65,7 @@ addEventListener('keydown', e => {
   }
   if (!playing()) return; // leave keys alone while a menu (sliders, buttons) has focus
   keys[e.code] = true;
+  if (action === 'dodge') e.preventDefault(); // Space must not also press a focused button or scroll
   if (GAME_ACTIONS[action] && !(action === 'mute' && e.repeat)) GAME_ACTIONS[action]();
 });
 addEventListener('keyup', e => { keys[e.code] = false; });

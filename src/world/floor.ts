@@ -38,7 +38,8 @@ function newPlayer() {
   // position/HP/transient fields are (re)set by loadFloor
   G.P = { r: PLAYER.radius, maxHp: PLAYER.hp, hp: PLAYER.hp, lag: PLAYER.hp, atk: PLAYER.atk, lv: 1, xp: 0, ang: 0, atkCd: 0, skillCd: 0,
           hurt: 0, swing: 0, swingDir: 1, hitSet: null, x: 0, y: 0, dash: 0, delay: 0, trail: [], kx: 0, ky: 0, inv: 0, buf: null,
-          up: {}, pendingUpgrades: 0, col: 0, potions: 0, scrolls: 0 };
+          up: {}, pendingUpgrades: 0, col: 0, potions: 0, scrolls: 0,
+          combo: 0, comboT: 0, finisher: false, roll: 0, rollCd: 0, rollAng: 0 };
 }
 export const assistOn = () => settings.assistDamage < 1 || settings.assistSpeed < 1;
 

@@ -5,6 +5,8 @@ export interface PlayerStats {
   xpToNext: (lv: number) => number;
   townRegen: number; invTime: number; inputBuffer: number;
   attack: { cd: number; swing: number; range: number; halfArc: number; dmgRand: number };
+  combo: { window: number; mult: number; range: number; halfArc: number; cdMult: number; lunge: number };
+  roll: { time: number; speed: number; cd: number };
   skill: { name: string; cd: number; dashTime: number; dashSpeed: number; delay: number; dmgMult: number; hitRadius: number };
   knockback: { light: number; heavy: number; heavyFrom: number };
 }
@@ -18,6 +20,10 @@ export const PLAYER = {
   invTime: 0.4,
   inputBuffer: 0.15, // an early attack/skill press is kept this long and fires as soon as it's allowed
   attack: { cd: 0.32, swing: 0.2, range: 55, halfArc: Math.PI * 0.4, dmgRand: 3 },
+  // every 3rd swing in a chain (next press within `window` s of the last one ending) is a finisher:
+  // more damage, a wider/longer arc, heavy knockback + stagger, a short step forward and a longer recovery
+  combo: { window: 0.45, mult: 1.6, range: 70, halfArc: Math.PI * 0.6, cdMult: 1.4, lunge: 260 },
+  roll: { time: 0.22, speed: 620, cd: 0.7 }, // dodge roll: i-frames for its whole duration
   skill: { name: 'Sonic Leap', cd: 3, dashTime: 0.18, dashSpeed: 900, delay: 0.5, dmgMult: 2.5, hitRadius: 35 },
   knockback: { light: 280, heavy: 520, heavyFrom: 20 }, // hits of heavyFrom+ damage knock harder
 } satisfies PlayerStats;

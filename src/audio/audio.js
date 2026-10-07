@@ -58,6 +58,8 @@ export const SFX = {
   shatter: () => [2093, 2637, 3136, 4186].forEach((f, i) => tone(f, 0.3, 'triangle', 0.08, f * 0.8, i * 0.035)),
   hurt: () => { tone(220, 0.22, 'square', 0.16, 80); noise(0.12, 0.25, 500); },
   dodge: () => tone(900, 0.12, 'sine', 0.12, 2200),
+  roll: () => noise(0.16, 0.2, 700, 1, 300),
+  finisher: () => { noise(0.2, 0.35, 1200, 1, 6000); tone(200, 0.18, 'sawtooth', 0.08, 700); },
   windup: () => tone(660, 0.06, 'square', 0.05),
   shot: () => { noise(0.18, 0.18, 2500, 2, 600); tone(520, 0.15, 'triangle', 0.06, 260); },
   slam: () => { tone(90, 0.5, 'sine', 0.6, 35); noise(0.45, 0.45, 300, 0.7, 80); },
@@ -74,6 +76,8 @@ export const SFX = {
 // ---------- game events -> sound ----------
 on('swing', SFX.swing);
 on('skill', SFX.skill);
+on('finisher', SFX.finisher);
+on('roll', SFX.roll);
 on('hit', ({ big }) => SFX.hit(big));
 on('mobDeath', SFX.shatter);
 on('bossDeath', () => { SFX.slam(); SFX.shatter(); playMusic('clear'); });

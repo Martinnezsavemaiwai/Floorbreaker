@@ -155,9 +155,10 @@ function drawPlayer() {
   // Swing arc that follows the blade tip
   if (P.swing > 0) {
     const start = P.ang - P.swingDir * 1.3;
-    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.shadowColor = '#bfe8ff'; ctx.shadowBlur = 18; ctx.lineCap = 'round';
-    ctx.strokeStyle = `rgba(220,240,255,${0.3 + P.swing / SWING * 0.7})`; ctx.lineWidth = 10;
-    ctx.beginPath(); ctx.arc(hx, hy, 40, Math.min(start, sa), Math.max(start, sa)); ctx.stroke();
+    const fin = P.finisher, a = 0.3 + P.swing / SWING * 0.7; // the combo finisher gets a wider, golden arc
+    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.shadowColor = fin ? '#ffcf6a' : '#bfe8ff'; ctx.shadowBlur = fin ? 26 : 18; ctx.lineCap = 'round';
+    ctx.strokeStyle = fin ? `rgba(255,215,130,${a})` : `rgba(220,240,255,${a})`; ctx.lineWidth = fin ? 16 : 10;
+    ctx.beginPath(); ctx.arc(hx, hy, fin ? 54 : 40, Math.min(start, sa), Math.max(start, sa)); ctx.stroke();
     ctx.restore();
   }
   const behind = Math.sin(sa) < -0.3; // blade pointing up = behind the body
@@ -167,7 +168,10 @@ function drawPlayer() {
   const row = P.swing > 0 || P.dash > 0 ? 4 : P.moving ? Math.floor(time * 10) % 4 : 0;
   const bob = P.moving && P.swing <= 0 ? Math.abs(Math.sin(time * 20)) * -2 : 0;
   if (P.inv > 0) ctx.globalAlpha = settings.flash && Math.floor(time * 20) % 2 ? 0.35 : 0.65; // i-frame blink (steady when flashing is off)
-  frame(P.hurt > 0.15 && settings.flash ? IMG.playerWhite : IMG.player, col, row, P.x, P.y + bob, 3);
+  if (P.roll > 0) { // roll: squashed, see-through, legs spinning fast
+    ctx.globalAlpha = 0.6; ctx.translate(P.x, P.y + 6); ctx.scale(1.1, 0.8); ctx.translate(-P.x, -P.y - 6);
+    frame(IMG.player, dirCol(P.rollAng), Math.floor(time * 30) % 4, P.x, P.y, 3);
+  } else frame(P.hurt > 0.15 && settings.flash ? IMG.playerWhite : IMG.player, col, row, P.x, P.y + bob, 3);
   ctx.restore();
   if (!behind) sword();
 }
