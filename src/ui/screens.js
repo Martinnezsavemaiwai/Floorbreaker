@@ -1,7 +1,7 @@
 // DOM overlay screens (title, how-to, pause, result) and the toast queue. Reads game state, never owns it.
 import { G } from '../world/state.ts';
 import { meta, saveMeta, loadSuspend } from '../core/save.ts';
-import { on } from '../core/events.ts';
+import { on, emit } from '../core/events.ts';
 import { keyLabel } from '../core/input.ts';
 import { FLOORS } from '../data/floors.ts';
 import { UPGRADES } from '../data/upgrades.ts';
@@ -118,7 +118,8 @@ function endRun({ cleared }) {
   // Only celebrate a real improvement: a first-ever death on floor 1 is not a "new record"
   $('newrec').hidden = !(better && (best || cleared || run.floor > 1));
   statCards($('result-stats'), runStats());
-  setTimeout(() => screen('result'), cleared ? 1400 : 1100);
+  // a clear plays the ending story first; its window opens the result when it closes
+  setTimeout(() => (cleared ? emit('ending') : screen('result')), cleared ? 1400 : 1100);
 }
 
 // Themed confirmation for irreversible actions. Resolves true only when the danger button is chosen;

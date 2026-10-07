@@ -91,8 +91,13 @@ on('floorLoaded', i => { const id = 'floor' + i; if (STORY[id] && !meta.storySee
 const storyScene = {
   name: 'story', blocksUpdate: true,
   enter() { releaseAll(); line = 0; showStory(); },
-  exit() { meta.storySeen.push(storyQueue.shift()); saveMeta(); screen(null); },
+  exit() {
+    const id = storyQueue.shift();
+    if (!meta.storySeen.includes(id)) { meta.storySeen.push(id); saveMeta(); }
+    screen(G.run?.over ? 'result' : null); // the ending hands over to the result screen
+  },
 };
+on('ending', () => { if (scenes.top === playScene) { storyQueue.push('ending'); scenes.push(storyScene); } });
 const showStory = () => { const lines = STORY[storyQueue[0]]; showStoryLine(lines[line], line, lines.length); };
 export const reading = () => scenes.top === storyScene;
 export function storyNext() {

@@ -172,3 +172,5 @@ dialog.dialog p{margin:0;font-size:15px;line-height:1.55}
 .story-foot .btn{width:auto}
 .credits{margin:4px 0 0;font-size:13px}
 .credits a{color:var(--focus)}
+/* banners never cover a menu window; the bottom story window leaves room for them */
+body:has(.screen.on:not(.story)) #toast{display:none}
