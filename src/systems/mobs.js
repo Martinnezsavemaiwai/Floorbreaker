@@ -5,6 +5,7 @@ import { move, applyKnock } from '../world/physics.ts';
 import { makeMob } from '../world/floor.ts';
 import { dist, rand } from '../core/math.ts';
 import { emit } from '../core/events.ts';
+import { rng } from '../core/rng.ts';
 import { hurtPlayer } from './combat.js';
 
 export function updateMobs(dt) {
@@ -19,7 +20,7 @@ export function updateMobs(dt) {
       if (m.wind <= 0) { m.lunge = M.lunge; m.cd = M.attackCd; if (d < m.r + P.r + M.reach) hurtPlayer(M.dmg, m); }
       continue;
     }
-    if (!chase && (Math.hypot(m.wx - m.x, m.wy - m.y) < 5 || Math.random() < dt * 0.3)) {
+    if (!chase && (Math.hypot(m.wx - m.x, m.wy - m.y) < 5 || rng() < dt * 0.3)) {
       m.wx = m.sx + rand(-wr, wr); m.wy = m.sy + rand(-wr, wr);
     }
     const tx = chase ? P.x : m.wx, ty = chase ? P.y : m.wy;
@@ -31,7 +32,7 @@ export function updateMobs(dt) {
       move(m, -Math.sin(m.face) * m.sideDir * sp * dt, Math.cos(m.face) * m.sideDir * sp * dt, TOWN_X);
     } else move(m, Math.cos(m.face) * sp * dt, Math.sin(m.face) * sp * dt, TOWN_X);
     if (Math.hypot(m.x - ox, m.y - oy) < sp * dt * 0.3) { // (nearly) blocked: sidestep for a moment
-      m.sideDir = siding ? -m.sideDir : (Math.random() < 0.5 ? 1 : -1); m.side = 0.5;
+      m.sideDir = siding ? -m.sideDir : (rng() < 0.5 ? 1 : -1); m.side = 0.5;
       if (!chase) { m.wx = m.sx + rand(-wr, wr); m.wy = m.sy + rand(-wr, wr); }
     }
   }
