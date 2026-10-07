@@ -19,6 +19,8 @@ export function sword(h) {
   const img = IMG.sword, w = h * img.width / img.height;
   ctx.drawImage(img, -w / 2, -h * 0.15, w, h);
 }
+// Soft oval shadow under an actor; k < 1 shrinks and fades it (the boss mid-leap)
 export function shadow(x, y, r, k = 1) {
-  ctx.globalAlpha = k; ctx.drawImage(IMG.shadow, x - r * 1.1 * k, y + r * 0.45, r * 2.2 * k, r * 1.2 * k); ctx.globalAlpha = 1;
+  ctx.fillStyle = `rgba(0,0,0,${0.32 * k})`;
+  ctx.beginPath(); ctx.ellipse(x, y + r * 1.05, r * 1.1 * k, r * 0.6 * k, 0, 0, 7); ctx.fill();
 }

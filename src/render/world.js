@@ -32,7 +32,8 @@ function drawMob(m) {
   if (M.kind === 'beast') {
     const f = Math.floor(time * 6 + m.sx) % 2, s = 48 * k; // sheet faces left
     ctx.translate(x, y); if (Math.cos(m.face) > 0) ctx.scale(-1, 1);
-    ctx.drawImage(img, f * 16, 0, 16, 16, -s / 2, -s * 0.6, s, s);
+    const c = img.height; // square frames, two side by side
+    ctx.drawImage(img, f * c, 0, c, c, -s / 2, -s * 0.6, s, s);
   } else {
     const row = m.wind > 0 || m.lunge > 0 ? 4 : Math.floor(time * 8 + m.sx) % 4;
     frame(img, dirCol(m.face), row, x, y, 3 * k);
@@ -70,7 +71,7 @@ function drawBoss() {
     return;
   }
   ctx.save(); if (rage()) { ctx.shadowColor = '#ffb300'; ctx.shadowBlur = 25; }
-  const img = b.hurt > 0 && settings.flash ? IMG.bossWhite : IMG[rage() ? F.boss.rageImg : F.boss.img];
+  const img = b.hurt > 0 && settings.flash ? IMG[F.boss.img + 'White'] : IMG[rage() ? F.boss.rageImg : F.boss.img];
   frame(img, dirCol(b.ang), attacking ? 4 : Math.floor(time * 5) % 4, b.x + jit, b.y - b.z, F.boss.scale);
   ctx.restore();
 }
@@ -79,7 +80,7 @@ function drawBoss() {
 function drawMerchant() {
   const { x, y } = MERCHANT;
   shadow(x, y, 14);
-  frame(IMG.merchantT, 0, Math.floor(G.time * 2) % 2 ? 0 : 2, x, y, 3);
+  frame(IMG.merchant, 0, Math.floor(G.time * 2) % 2 ? 0 : 2, x, y, 3);
   ctx.textAlign = 'center'; ctx.font = `700 13px ${FT}`; ctx.lineJoin = 'round'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.8)';
   const tag = nearMerchant() ? `[${keyLabel('interact')}] ร้านค้า` : 'ร้านค้า';
   ctx.strokeText(tag, x, y - 34); ctx.fillStyle = nearMerchant() ? '#ffe14d' : '#fff'; ctx.fillText(tag, x, y - 34);

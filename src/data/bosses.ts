@@ -32,11 +32,11 @@ export interface BossStats {
 
 export const BOSSES = {
   koboldLord: {
-    name: 'Kobold Lord', img: 'boss1', rageImg: 'boss1Rage', hp: 900, scale: 7, cd: [1.8, 1.1],
+    name: 'Kobold Lord', img: 'boss1', rageImg: 'boss1Rage', hp: 900, scale: 9, cd: [1.8, 1.1],
     moves: ['slam', 'charge'], rageMoves: ['slam', 'charge', 'leap'], dmg: { slam: 30, charge: 24, leap: 34, quake: 0 },
   },
   asterius: {
-    name: 'Asterius the Taurus King', img: 'boss2', rageImg: 'boss2Rage', hp: 1800, scale: 8, cd: [1.6, 1.0], summon: 2,
+    name: 'Asterius the Taurus King', img: 'boss2', rageImg: 'boss2Rage', hp: 1800, scale: 10, cd: [1.6, 1.0], summon: 2,
     moves: ['slam', 'charge', 'quake'], rageMoves: ['slam', 'charge', 'leap', 'quake'], dmg: { slam: 40, charge: 34, leap: 40, quake: 30 },
   },
   // The treant is a big tree sprite instead of a character sheet: slow, no charge/leap, roots erupt under you
@@ -46,7 +46,7 @@ export const BOSSES = {
   },
   // Floor 4: a water beast that fills the room with rings of water shots
   wythege: {
-    name: 'Wythege the Hippocampus', img: 'boss4', rageImg: 'boss4Rage', hp: 5600, bars: 5, scale: 8.5, cd: [1.5, 0.9], summon: 2,
+    name: 'Wythege the Hippocampus', img: 'boss4', rageImg: 'boss4Rage', hp: 5600, bars: 5, scale: 11, cd: [1.5, 0.9], summon: 2,
     moves: ['charge', 'volley', 'slam'], rageMoves: ['volley', 'charge', 'leap', 'quake', 'volley'],
     dmg: { slam: 66, charge: 56, leap: 66, quake: 50, volley: 40 },
   },
