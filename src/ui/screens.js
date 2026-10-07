@@ -7,6 +7,8 @@ import { FLOORS } from '../data/floors.ts';
 import { UPGRADES } from '../data/upgrades.ts';
 import { SHOP } from '../data/shop.ts';
 import { price, canBuy } from '../systems/shop.js';
+import { SKILLS } from '../data/skills.ts';
+import { awardShards, isUnlocked, unlockSkill, equipSkill } from '../systems/meta.js';
 import { SFX } from '../audio/audio.js';
 
 export const $ = id => /** @type {any} */ (document.getElementById(id)); // DOM ids come from index.html
@@ -19,11 +21,12 @@ export function screen(id) {
   for (const s of document.querySelectorAll('.screen')) s.classList.toggle('on', s.id === id);
   if (id === 'title-screen') { renderTitle(); clearToasts(); } // a run's banners don't belong on the title
   if (id === 'howto') renderHowTo();
+  if (id === 'skills') renderSkills();
   /** @type {HTMLElement | null} */ ($(id)?.querySelector('[role=tab][aria-selected=true], .btn.primary:not([hidden]), .btn, input'))?.focus({ preventScroll: true });
 }
 export const openSub = id => { backTo = current; screen(id); };
 export const closeSub = () => screen(backTo);
-export const inSubScreen = () => current === 'howto' || current === 'settings';
+export const inSubScreen = () => current === 'howto' || current === 'settings' || current === 'skills';
 
 // Toasts queue up so a floor banner and a tutorial hint never overwrite each other
 const queue = [];
@@ -83,6 +86,26 @@ export function showStoryLine(line, i, n) {
   if (current !== 'story') screen('story');
 }
 
+// Sword Skills: unlock with Memory Shards, pick the slot-2 skill for the next run
+function renderSkills(status = '') {
+  $('shards-have').textContent = `มี ${meta.shards} Memory Shard`;
+  $('skill-cards').innerHTML = Object.entries(SKILLS).map(([id, S]) => {
+    const own = isUnlocked(id), slot = id === 'sonicLeap' ? 'ช่อง 1 (ตายตัว)' : meta.loadout === id ? 'ช่อง 2 · ใช้อยู่' : null;
+    const state = slot ?? (own ? 'กดเพื่อใส่ช่อง 2' : `ปลดล็อก ${S.cost} Shard`);
+    const off = id === 'sonicLeap' || (!own && meta.shards < S.cost);
+    return `<button class="card${slot ? ' on' : ''}" data-skill="${id}" ${off ? 'aria-disabled="true"' : ''} aria-label="${S.name} — ${S.desc} — ${state}">
+      <b lang="en">${S.name}</b><span>${S.desc}</span><span class="price">${state}</span></button>`;
+  }).join('');
+  $('skills-status').textContent = status;
+}
+$('skill-cards').addEventListener('click', e => {
+  const id = /** @type {HTMLElement | null} */ (/** @type {Element} */ (e.target).closest('[data-skill]'))?.dataset.skill;
+  if (!id || id === 'sonicLeap') return;
+  if (isUnlocked(id)) { equipSkill(id); renderSkills(); }
+  else renderSkills(unlockSkill(id) ? `ปลดล็อก ${SKILLS[id].name} แล้ว · ใส่ช่อง 2 ให้แล้ว` : 'Shard ยังไม่พอ · เล่นต่อเพื่อสะสม');
+  SFX.ui();
+});
+
 // Title: best record + a Continue button when a suspended run exists
 function renderTitle() {
   const b = meta.best;
@@ -91,6 +114,7 @@ function renderTitle() {
   $('continue-btn').hidden = !s;
   if (s) $('continue-info').textContent = `${FLOORS[s.floorIdx].name} · Lv.${s.player.lv} · ${fmtTime(s.run.time)}`;
   $('start-btn').classList.toggle('primary', !s);
+  $('shards-info').textContent = `${meta.shards} Shard · ช่อง 2: ${meta.loadout ? SKILLS[meta.loadout]?.name ?? '—' : 'ว่าง'}`;
 }
 
 // How-to: key list from the current bindings
@@ -99,7 +123,8 @@ function renderHowTo() {
   $('howto-keys').innerHTML = [
     [`${k('up')}${k('left')}${k('down')}${k('right')}`, 'เดิน · เมาส์ใช้เล็ง'],
     [`${k('attack')} / คลิกซ้าย`, 'ฟันดาบ'],
-    [`${k('skill')} / คลิกขวา`, 'Sword Skill: Sonic Leap'],
+    [`${k('skill')} / คลิกขวา`, 'Sword Skill 1: Sonic Leap'],
+    [`${k('skill2')} / ปุ่มกลางเมาส์`, 'Sword Skill 2 (เลือกที่ Sword Skills หน้าแรก)'],
     [k('dodge'), 'กลิ้งหลบ · ระหว่างกลิ้งไม่โดนดาเมจ'],
     [k('potion'), 'ดื่ม Potion (ซื้อจากร้านในเมือง)'], [k('interact'), 'คุยกับพ่อค้า'],
     [k('pause'), 'หยุดเกม'], [k('mute'), 'ปิด/เปิดเสียง'], [k('fullscreen'), 'เต็มจอ'],
@@ -119,6 +144,8 @@ function endRun({ cleared }) {
   // Only celebrate a real improvement: a first-ever death on floor 1 is not a "new record"
   $('newrec').hidden = !(better && (best || cleared || run.floor > 1));
   statCards($('result-stats'), runStats());
+  const shards = awardShards(cleared);
+  $('result-shards').textContent = `+${shards} Memory Shard (รวม ${meta.shards}) · ใช้ปลดล็อก Sword Skill ที่หน้าแรก`;
   // a clear plays the ending story first; its window opens the result when it closes
   setTimeout(() => (cleared ? emit('ending') : screen('result')), cleared ? 1400 : 1100);
 }

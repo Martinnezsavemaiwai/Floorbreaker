@@ -322,3 +322,53 @@ describe('combo and roll', () => {
     roll(); expect(G.P!.roll).toBeLessThanOrEqual(0); // still cooling down
   });
 });
+
+describe('sword skills and memory shards', () => {
+  beforeEach(quietField);
+  const dummy = async (dx: number, dy: number) => {
+    const { MOBS } = await import('../src/data/mobs.ts');
+    const { makeMob } = await import('../src/world/floor.ts');
+    const m = makeMob(G.P!.x + dx, G.P!.y + dy, false, { ...MOBS.frenzyBoar, hp: 9999, speed: 0, wanderSpeed: 0 }); G.mobs.push(m); return m; // a training dummy that stays put
+  };
+  const aim = (x: number, y: number) => { mouse.x = x - G.cam.x; mouse.y = y - G.cam.y; frame(); };
+
+  it('slot 2 is empty by default and does nothing', () => {
+    expect(G.P!.skills).toEqual(['sonicLeap', null]);
+    skill(1);
+    expect(G.P!.skillCd[1]).toBe(0);
+  });
+
+  it('Horizontal Square hits all around, Vorpal Strike hits far down the aim line only', async () => {
+    const { SKILLS } = await import('../src/data/skills.ts');
+    const front = await dummy(0, -70), back = await dummy(0, 70);
+    G.P!.skills[1] = 'horizontal'; skill(1);
+    expect(front.hp).toBeLessThan(9999); expect(back.hp).toBeLessThan(9999);
+    expect(G.P!.skillCd[1]).toBeCloseTo(SKILLS.horizontal.cd);
+
+    const far = await dummy(160, 0), side = await dummy(0, -70); // side is beside the stab line
+    side.hp = 9999; aim(G.P!.x + 160, G.P!.y);
+    G.P!.skills[1] = 'vorpal'; G.P!.skillCd[1] = 0; G.P!.delay = 0;
+    skill(1); expect(far.hp).toBe(9999); // wind-up first
+    frames(Math.ceil(SKILLS.vorpal.windup * 60) + 20); // + the hit-stop left over from the spin
+    expect(far.hp).toBeLessThan(9999);
+    expect(side.hp).toBe(9999);
+  });
+
+  it('shards are earned per run, unlock a skill once and equip it for the next character', async () => {
+    const { meta } = await import('../src/core/save.ts');
+    const { awardShards, unlockSkill, equipSkill } = await import('../src/systems/meta.js');
+    const { SKILLS } = await import('../src/data/skills.ts');
+    meta.shards = 0; meta.unlocked = ['sonicLeap']; meta.loadout = null;
+    G.run!.kills = 40; G.run!.floor = 3;
+    expect(awardShards(false)).toBe(10 + 2 * 10);
+    expect(unlockSkill('vorpal')).toBe(false); // 30 < 60
+    expect(unlockSkill('horizontal')).toBe(true);
+    expect(meta.shards).toBe(30 - SKILLS.horizontal.cost);
+    expect(unlockSkill('horizontal')).toBe(false); // already owned
+    expect(meta.loadout).toBe('horizontal');
+    startRun(3);
+    expect(G.P!.skills).toEqual(['sonicLeap', 'horizontal']);
+    equipSkill('horizontal'); expect(meta.loadout).toBeNull();
+    meta.unlocked = ['sonicLeap']; meta.shards = 0;
+  });
+});

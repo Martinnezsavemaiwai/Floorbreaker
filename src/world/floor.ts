@@ -5,9 +5,10 @@ import { MOBS } from '../data/mobs.ts';
 import { BOSSES, BOSS_DEFAULTS, BOSS_RULES } from '../data/bosses.ts';
 import { FLOORS, TREE_TYPES } from '../data/floors.ts';
 import { PLAYER } from '../data/player.ts';
+import { SKILLS } from '../data/skills.ts';
 import { clock } from '../core/app.ts';
 import { emit } from '../core/events.ts';
-import { settings, type Suspend } from '../core/save.ts';
+import { settings, meta, type Suspend } from '../core/save.ts';
 
 // A floor with its mob/boss ids swapped for the actual stat objects (fails loudly on a typo'd id)
 function floorData(i: number): Floor {
@@ -34,9 +35,12 @@ export function loadFloor(i: number) {
   emit('floorLoaded', i);
 }
 
+// slot 2 only takes a real, non-Sonic-Leap skill id (a hand-edited save can't crash the run)
+const slot2 = (id: string | null | undefined) => (id && id in SKILLS && id !== 'sonicLeap' ? id : null);
 function newPlayer() {
   // position/HP/transient fields are (re)set by loadFloor
-  G.P = { r: PLAYER.radius, maxHp: PLAYER.hp, hp: PLAYER.hp, lag: PLAYER.hp, atk: PLAYER.atk, lv: 1, xp: 0, ang: 0, atkCd: 0, skillCd: 0,
+  G.P = { r: PLAYER.radius, maxHp: PLAYER.hp, hp: PLAYER.hp, lag: PLAYER.hp, atk: PLAYER.atk, lv: 1, xp: 0, ang: 0, atkCd: 0,
+          skills: ['sonicLeap', slot2(meta.loadout)], skillCd: [0, 0], spin: 0, thrust: 0, thrustAng: 0, beam: 0,
           hurt: 0, swing: 0, swingDir: 1, hitSet: null, x: 0, y: 0, dash: 0, delay: 0, trail: [], kx: 0, ky: 0, inv: 0, buf: null,
           up: {}, pendingUpgrades: 0, col: 0, potions: 0, scrolls: 0,
           combo: 0, comboT: 0, finisher: false, roll: 0, rollCd: 0, rollAng: 0 };
@@ -53,12 +57,13 @@ export function newRun() {
 // since mid-fight state (mob positions, boss phase) isn't stored.
 export function snapshotRun(): Suspend {
   const { P, run } = G;
-  return { floorIdx: G.floorIdx, player: { lv: P!.lv, xp: P!.xp, maxHp: P!.maxHp, atk: P!.atk, up: { ...P!.up }, pendingUpgrades: P!.pendingUpgrades,
+  return { floorIdx: G.floorIdx, player: { lv: P!.lv, xp: P!.xp, maxHp: P!.maxHp, atk: P!.atk, up: { ...P!.up }, pendingUpgrades: P!.pendingUpgrades, skill2: P!.skills[1],
     col: P!.col, potions: P!.potions, scrolls: P!.scrolls },
            run: { floor: run!.floor, kills: run!.kills, time: run!.time, assisted: !!run!.assisted } };
 }
 export function resumeRun(s: Suspend) {
-  newPlayer(); Object.assign(G.P!, s.player, { up: { ...s.player.up } });
+  newPlayer(); const { skill2, ...player } = s.player;
+  Object.assign(G.P!, player, { up: { ...s.player.up }, skills: ['sonicLeap', slot2(skill2)] });
   G.run = { ...s.run };
   loadFloor(s.floorIdx);
 }

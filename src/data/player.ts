@@ -7,7 +7,6 @@ export interface PlayerStats {
   attack: { cd: number; swing: number; range: number; halfArc: number; dmgRand: number };
   combo: { window: number; mult: number; range: number; halfArc: number; cdMult: number; lunge: number };
   roll: { time: number; speed: number; cd: number };
-  skill: { name: string; cd: number; dashTime: number; dashSpeed: number; delay: number; dmgMult: number; hitRadius: number };
   knockback: { light: number; heavy: number; heavyFrom: number };
 }
 
@@ -24,6 +23,6 @@ export const PLAYER = {
   // more damage, a wider/longer arc, heavy knockback + stagger, a short step forward and a longer recovery
   combo: { window: 0.45, mult: 1.6, range: 70, halfArc: Math.PI * 0.6, cdMult: 1.4, lunge: 260 },
   roll: { time: 0.22, speed: 620, cd: 0.7 }, // dodge roll: i-frames for its whole duration
-  skill: { name: 'Sonic Leap', cd: 3, dashTime: 0.18, dashSpeed: 900, delay: 0.5, dmgMult: 2.5, hitRadius: 35 },
+  // Sword Skills live in skills.ts
   knockback: { light: 280, heavy: 520, heavyFrom: 20 }, // hits of heavyFrom+ damage knock harder
 } satisfies PlayerStats;

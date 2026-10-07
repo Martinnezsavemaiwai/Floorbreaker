@@ -4,6 +4,7 @@ import { W, H, WORLD, TOWN_X, ROOM_X, DOOR, TORCHES } from '../world/constants.t
 import { PLAYER } from '../data/player.ts';
 import { MOVES } from '../data/bosses.ts';
 import { MERCHANT } from '../data/shop.ts';
+import { SKILLS } from '../data/skills.ts';
 import { keyLabel } from '../core/input.ts';
 import { nearMerchant } from '../systems/shop.js';
 import { IMG } from '../core/assets.ts';
@@ -125,9 +126,31 @@ function drawTelegraph() {
   ctx.restore();
 }
 
+// Horizontal Square: a golden ring sweeping round; Vorpal Strike: aim line while winding up, then the stab beam
+function drawSkillFx(P) {
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
+  if (P.spin > 0) {
+    const R = SKILLS.horizontal.radius, k = 1 - P.spin / 0.25;
+    ctx.shadowColor = '#ffcf6a'; ctx.shadowBlur = 20; ctx.strokeStyle = `rgba(255,215,130,${1 - k * 0.6})`; ctx.lineWidth = 14;
+    ctx.beginPath(); ctx.arc(P.x, P.y, R * (0.6 + 0.4 * k), P.ang, P.ang + Math.PI * 2 * Math.min(1, k * 1.6)); ctx.stroke();
+  }
+  const V = SKILLS.vorpal, cx = Math.cos(P.thrustAng), cy = Math.sin(P.thrustAng);
+  if (P.thrust > 0) {
+    ctx.strokeStyle = `rgba(255,140,90,${0.4 + 0.5 * (1 - P.thrust / V.windup)})`; ctx.lineWidth = 3; ctx.setLineDash([10, 6]);
+    ctx.beginPath(); ctx.moveTo(P.x, P.y); ctx.lineTo(P.x + cx * V.length, P.y + cy * V.length); ctx.stroke();
+  }
+  if (P.beam > 0) {
+    ctx.shadowColor = '#ff9a5a'; ctx.shadowBlur = 24; ctx.strokeStyle = `rgba(255,200,140,${P.beam / 0.18})`; ctx.lineWidth = V.width * 0.7;
+    ctx.beginPath(); ctx.moveTo(P.x, P.y); ctx.lineTo(P.x + cx * V.length, P.y + cy * V.length); ctx.stroke();
+  }
+  ctx.restore();
+}
+
 function swordAngle(P) {
   if (P.swing > 0) { const k = 1 - P.swing / SWING, e = 1 - (1 - k) ** 3; return P.ang + P.swingDir * (-1.3 + 2.6 * e); }
   if (P.dash > 0) return P.ang;
+  if (P.thrust > 0 || P.beam > 0) return P.thrustAng; // blade pointed down the stab line
+  if (P.spin > 0) return P.ang + Math.PI * 2 * (1 - P.spin / 0.25);
   if (P.delay > 0) return P.ang + P.swingDir * 1.4; // follow-through pose after the skill
   return P.ang + P.swingDir * -0.5 + Math.sin(G.time * 3) * 0.05;
 }
@@ -145,7 +168,8 @@ function drawPlayer() {
     ctx.restore();
   }
   shadow(P.x, P.y, P.r);
-  const skillFx = P.delay > 0 || P.dash > 0, col = dirCol(P.ang), sa = swordAngle(P);
+  drawSkillFx(P);
+  const skillFx = P.delay > 0 || P.dash > 0 || P.thrust > 0, col = dirCol(P.ang), sa = swordAngle(P);
   const hx = P.x + Math.cos(P.ang) * 6, hy = P.y + 4 + Math.sin(P.ang) * 4; // hand
   const sword = () => {
     ctx.save(); ctx.translate(hx, hy); ctx.rotate(sa - Math.PI / 2); // sprite has the grip on top, blade pointing down

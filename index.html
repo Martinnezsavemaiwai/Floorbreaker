@@ -11,6 +11,7 @@
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
     <symbol id="i-play" viewBox="0 0 24 24"><path fill="currentColor" d="M8 5.5v13l10.5-6.5z"/></symbol>
+    <symbol id="i-sword" viewBox="0 0 24 24"><path d="M19.5 4.5 10 14M19.5 4.5h-3.5M19.5 4.5V8M7 12.5l4.5 4.5M8.5 15.5 5 19"/></symbol>
     <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.4a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.9M12 17h.01"/></symbol>
     <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
     <symbol id="i-expand" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol>
@@ -36,11 +37,23 @@
       <span class="ic"><svg class="ico"><use href="#i-play"/></svg></span>
       <span class="lbl"><span lang="en">Link Start</span><small>สร้างตัวละครใหม่ · ตายแล้วหายถาวร</small></span>
     </button>
+    <button class="btn" data-act="skills"><span class="ic"><svg class="ico"><use href="#i-sword"/></svg></span><span class="lbl"><span lang="en">Sword Skills</span><small id="shards-info"></small></span></button>
     <button class="btn" data-act="howto"><span class="ic"><svg class="ico"><use href="#i-help"/></svg></span>วิธีเล่น</button>
     <button class="btn" data-act="settings"><span class="ic"><svg class="ico"><use href="#i-sliders"/></svg></span>ตั้งค่า</button>
     <p class="record" id="record"></p>
   </nav>
   <button class="corner-btn" data-act="fullscreen" aria-label="เต็มจอ (ปุ่ม F)"><svg class="ico"><use href="#i-expand"/></svg>เต็มจอ</button>
+</section>
+
+<section id="skills" class="screen" aria-labelledby="skills-h">
+  <div class="win wide"><header id="skills-h">Sword Skills</header><div class="body">
+    <p class="hint">ช่อง 1 เป็น Sonic Leap เสมอ · ช่อง 2 ใส่ได้ 1 ท่าจากที่ปลดล็อกแล้ว (มีผลรอบถัดไป) · ปลดล็อกด้วย Memory Shard ที่ได้ตอนจบแต่ละรอบ</p>
+    <p class="result-msg" id="shards-have"></p>
+    <div class="cards" id="skill-cards"><!-- filled by ui/screens.js --></div>
+    <p class="status" id="skills-status" role="status"></p>
+  </div>
+  <footer class="win-foot"><button class="btn ghost" data-act="back"><span class="ic"><svg class="ico"><use href="#i-back"/></svg></span>กลับ<kbd>Esc</kbd></button></footer>
+  </div>
 </section>
 
 <section id="howto" class="screen" aria-labelledby="howto-h">
@@ -145,6 +158,7 @@
     <p class="result-title" id="result-title" lang="en"></p>
     <p class="result-msg" id="result-msg"></p>
     <span class="newrec" id="newrec" hidden>สถิติใหม่</span>
+    <p class="hint" id="result-shards"></p>
     <div class="stats" id="result-stats"></div>
     <button class="btn primary" data-act="start"><span class="ic"><svg class="ico"><use href="#i-play"/></svg></span>สร้างตัวละครใหม่</button>
     <button class="btn" data-act="home"><span class="ic"><svg class="ico"><use href="#i-home"/></svg></span>หน้าแรก<kbd>Esc</kbd></button>

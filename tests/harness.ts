@@ -73,7 +73,7 @@ export function createBot(levelGoals: number[]) {
       aim(tg);
       if (tg.wind > 0 && tg.wind < 0.2) { away(tg, 3); if (dist(P, tg) < 80) roll(); return; }
       walkTo(tg.x, tg.y);
-      if (dist(P, tg) < 60) { attack(); if (P.skillCd <= 0) skill(); }
+      if (dist(P, tg) < 60) { attack(); if (P.skillCd[0] <= 0) skill(); }
       return;
     }
     if (P.x < ROOM_X + 80) return walkTo(ROOM_X + 100, 600);
@@ -85,9 +85,9 @@ export function createBot(levelGoals: number[]) {
     else if (act === 'leap' && dist(P, boss.to!) < 140) away(boss.to!);
     else if (act === 'volley' && dist(P, boss) < 260) away(boss);
     else if (act === 'charge') walkTo(P.x, P.y + (Math.sin(boss.ang) > 0 ? -200 : 200));
-    else if (act === 'wave' && Math.abs(dist(boss, P) - boss.waveR!) < 70 && dist(boss, P) > boss.waveR! && P.skillCd <= 0) skill();
+    else if (act === 'wave' && Math.abs(dist(boss, P) - boss.waveR!) < 70 && dist(boss, P) > boss.waveR! && P.skillCd[0] <= 0) skill();
     else if (adds && dist(P, adds) < 120) { aim(adds); walkTo(adds.x, adds.y); attack(); }
-    else { walkTo(boss.x, boss.y); if (dist(P, boss) < boss.r + 50) { attack(); if (P.skillCd <= 0) skill(); } }
+    else { walkTo(boss.x, boss.y); if (dist(P, boss) < boss.r + 50) { attack(); if (P.skillCd[0] <= 0) skill(); } }
   };
 }
 

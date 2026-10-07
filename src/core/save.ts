@@ -34,11 +34,13 @@ const BestSchema = z.object({
   kills: z.number().int().min(0), cleared: z.boolean(), assisted: z.boolean().default(false),
 });
 const MetaSchema = z.object({ best: BestSchema.nullable().default(null), hintsSeen: z.array(z.string()).default([]),
+  shards: z.number().int().min(0).default(0), unlocked: z.array(z.string()).default(['sonicLeap']), loadout: z.string().nullable().default(null), // Sword Skill meta
   storySeen: z.array(z.string()).default([]) });
 const SuspendSchema = z.object({
   floorIdx: z.number().int().min(0).max(FLOORS.length - 1),
   player: z.object({ lv: z.number().int().min(1), xp: z.number().min(0), maxHp: z.number().positive(), atk: z.number().positive(),
     up: z.record(z.string(), z.number().int().min(0)).default({}), pendingUpgrades: z.number().int().min(0).default(0),
+    skill2: z.string().nullable().default(null),
     col: z.number().int().min(0).default(0), potions: z.number().int().min(0).default(0), scrolls: z.number().int().min(0).default(0) }),
   run: z.object({ floor: z.number().int().min(1), kills: z.number().int().min(0), time: z.number().min(0), assisted: z.boolean().default(false) }),
 });

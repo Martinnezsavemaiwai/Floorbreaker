@@ -47,9 +47,9 @@ describe('fixed timestep', () => {
     for (const m of G.mobs) { m.hp = 0; m.dead = 1e9; }
     mouse.x = 2000; mouse.y = 320; keys.KeyD = true;
     const steps = () => Math.round(G.run!.time / STEP);
-    while (steps() < 120) { if (steps() === 30 && P.skillCd <= 0) skill(); frame(frameDt()); }
+    while (steps() < 120) { if (steps() === 30 && P.skillCd[0] <= 0) skill(); frame(frameDt()); }
     keys.KeyD = false;
-    return { x: P.x.toFixed(3), skillCd: P.skillCd.toFixed(3), dash: P.dash.toFixed(3) };
+    return { x: P.x.toFixed(3), skillCd: P.skillCd[0].toFixed(3), dash: P.dash.toFixed(3) };
   };
 
   it('gameplay is identical at 60, 144 and 30 Hz and with uneven frame times', () => {

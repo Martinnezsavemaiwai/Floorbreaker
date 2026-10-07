@@ -22,7 +22,7 @@ describe('loading', () => {
   it('starts from defaults with empty storage', async () => {
     const s = await boot();
     expect(s.settings).toMatchObject({ music: 60, sfx: 80, hints: true, assistDamage: 1, assistSpeed: 1, bindings: {} });
-    expect(s.meta).toEqual({ best: null, hintsSeen: [], storySeen: [] });
+    expect(s.meta).toEqual({ best: null, hintsSeen: [], shards: 0, unlocked: ['sonicLeap'], loadout: null, storySeen: [] });
     expect(s.loadSuspend()).toBeNull();
   });
 
@@ -60,7 +60,7 @@ describe('loading', () => {
 });
 
 describe('suspend + export/import', () => {
-  const suspend = { floorIdx: 1, player: { lv: 7, xp: 40, maxHp: 220, atk: 28, up: { keenEdge: 2 }, pendingUpgrades: 1, col: 120, potions: 2, scrolls: 1 }, run: { floor: 2, kills: 41, time: 300, assisted: false } };
+  const suspend = { floorIdx: 1, player: { lv: 7, xp: 40, maxHp: 220, atk: 28, up: { keenEdge: 2 }, pendingUpgrades: 1, skill2: 'vorpal', col: 120, potions: 2, scrolls: 1 }, run: { floor: 2, kills: 41, time: 300, assisted: false } };
 
   it('round-trips a suspended run and clears it', async () => {
     const s = await boot();
@@ -71,7 +71,7 @@ describe('suspend + export/import', () => {
   });
 
   it('loads a suspend written before upgrades and Col existed', async () => {
-    const { up, pendingUpgrades, col, potions, scrolls, ...oldPlayer } = suspend.player;
+    const { up, pendingUpgrades, skill2, col, potions, scrolls, ...oldPlayer } = suspend.player;
     const s = await boot({ 'saoy.suspend': JSON.stringify({ v: 1, savedAt: '', data: { ...suspend, player: oldPlayer } }) });
     expect(s.loadSuspend()?.player).toMatchObject({ up: {}, col: 0, potions: 0 });
   });

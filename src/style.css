@@ -174,3 +174,5 @@ dialog.dialog p{margin:0;font-size:15px;line-height:1.55}
 .credits a{color:var(--focus)}
 /* banners never cover a menu window; the bottom story window leaves room for them */
 body:has(.screen.on:not(.story)) #toast{display:none}
+.card.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.card.on[aria-disabled=true]{opacity:1;cursor:default}

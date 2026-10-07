@@ -2,13 +2,16 @@
 import { G, rage } from '../world/state.ts';
 import { W, H, WORLD, TOWN_X, ROOM_X, DOOR } from '../world/constants.ts';
 import { PLAYER } from '../data/player.ts';
+import { SKILLS } from '../data/skills.ts';
 import { IMG } from '../core/assets.ts';
 import { on } from '../core/events.ts';
 import { keyLabel } from '../core/input.ts';
 import { clamp } from '../core/math.ts';
 import { ctx, FN, FT } from './canvas.js';
 
-const A = PLAYER.attack, SK = PLAYER.skill;
+const A = PLAYER.attack;
+// slot icon per skill: blade angle and glow colour
+const ICON = { attack: [Math.PI / 4, null], sonicLeap: [-Math.PI / 4, '#5fc3ff'], horizontal: [Math.PI / 2, '#ffcf6a'], vorpal: [0, '#ff8a5a'] };
 
 // SAO-style slanted HP bar with a white "damage lag" segment
 function slant(x, y, w, h) {
@@ -83,12 +86,17 @@ function drawFlask(x, y, full) {
 }
 
 function drawSkillSlots() {
-  const P = G.P, s = 56, gap = 12, x0 = W / 2 - (3 * s + 2 * gap) / 2, y = H - s - 18;
+  const P = G.P, s = 56, gap = 18, y = H - s - 18;
+  const skill = (slot, action) => {
+    const id = P.skills[slot], S = SKILLS[id], cd = P.skillCd[slot];
+    return { key: keyLabel(action), label: S.short, cd: Math.max(0, cd) / S.cd, glow: cd <= 0, secs: cd, icon: id };
+  };
   const slots = [
-    { key: keyLabel('attack'), label: 'ฟัน', cd: Math.max(0, P.atkCd) / A.cd, glow: false },
-    { key: keyLabel('skill'), label: SK.name, cd: Math.max(0, P.skillCd) / SK.cd, glow: P.skillCd <= 0, secs: P.skillCd },
+    { key: keyLabel('attack'), label: 'ฟัน', cd: Math.max(0, P.atkCd) / A.cd, glow: false, icon: 'attack' },
+    skill(0, 'skill'), ...(P.skills[1] ? [skill(1, 'skill2')] : []),
     { key: keyLabel('potion'), label: `Potion ×${P.potions}`, cd: 0, glow: false, potion: true },
   ];
+  const x0 = W / 2 - (slots.length * s + (slots.length - 1) * gap) / 2;
   slots.forEach((sl, i) => {
     const x = x0 + i * (s + gap), cx = x + s / 2, cy = y + s / 2;
     ctx.save();
@@ -97,8 +105,9 @@ function drawSkillSlots() {
     if (sl.glow) { ctx.beginPath(); ctx.roundRect(x, y, s, s, 12); ctx.strokeStyle = '#f39a1d'; ctx.lineWidth = 2; ctx.stroke(); }
     if (sl.potion) drawFlask(cx, cy + 4, P.potions > 0);
     else {
-      ctx.save(); ctx.translate(cx, cy + 2); ctx.rotate(i ? -Math.PI / 4 : Math.PI / 4);
-      if (i) { ctx.shadowColor = '#5fc3ff'; ctx.shadowBlur = 10; }
+      const [rot, glow] = ICON[sl.icon];
+      ctx.save(); ctx.translate(cx, cy + 2); ctx.rotate(rot);
+      if (glow) { ctx.shadowColor = glow; ctx.shadowBlur = 10; }
       ctx.drawImage(IMG.sword, -7, -16, 14, 28); ctx.restore();
     }
     if (sl.cd > 0) { // radial cooldown sweep

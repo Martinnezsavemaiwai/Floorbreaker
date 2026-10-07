@@ -1,21 +1,22 @@
-// Player actions and movement: 3-hit sword combo, Sword Skill dash -> post-motion delay, dodge roll, input buffer, town regen.
+// Player actions and movement: 3-hit sword combo, two Sword Skill slots (-> post-motion delay), dodge roll, input buffer, town regen.
 import { G } from '../world/state.ts';
 import { TOWN_X } from '../world/constants.ts';
 import { move, applyKnock } from '../world/physics.ts';
 import { loadFloor } from '../world/floor.ts';
 import { PLAYER } from '../data/player.ts';
+import { SKILLS } from '../data/skills.ts';
 import { dist, rand } from '../core/math.ts';
 import { emit } from '../core/events.ts';
 import { moveVector, mouse } from '../core/input.ts';
-import { text, burst } from './fx.js';
+import { text, burst, ring, kick } from './fx.js';
 import { targets, hurtEnemy } from './combat.js';
 import { mods } from './upgrades.js';
 import { rng } from '../core/rng.ts';
 
-const A = PLAYER.attack, SK = PLAYER.skill, C = PLAYER.combo, RL = PLAYER.roll;
-const free = () => G.P.delay <= 0 && G.P.dash <= 0 && G.P.roll <= 0;
+const A = PLAYER.attack, SK = SKILLS.sonicLeap, C = PLAYER.combo, RL = PLAYER.roll;
+const free = () => G.P.delay <= 0 && G.P.dash <= 0 && G.P.roll <= 0 && G.P.thrust <= 0;
 const canAttack = () => G.P.atkCd <= 0 && free();
-const canSkill = () => G.P.skillCd <= 0 && free();
+const canSkill = slot => !!G.P.skills[slot] && G.P.skillCd[slot] <= 0 && free();
 const live = () => G.P && !G.run.over;
 
 // A player hit: critical roll (only drawn when the upgrade exists, so plain runs keep their RNG sequence)
@@ -53,21 +54,40 @@ export function roll() {
   P.roll = RL.time; P.rollCd = RL.cd; P.combo = 0; P.comboT = 0; P.buf = null;
   burst(P.x, P.y + 10, 8, '#c8b89a', 140, 0.35, 4, false); emit('roll');
 }
-export function skill() {
+const skillDmg = (S, m) => Math.round((G.P.atk + m.atkBonus) * S.dmgMult * m.skillDmg);
+export function skill(slot = 0) {
   if (!live()) return;
-  const P = G.P;
-  if (!canSkill()) { P.buf = { kind: 'skill', t: PLAYER.inputBuffer }; return; }
-  P.skillCd = SK.cd * mods().skillCd; P.dash = SK.dashTime; P.hitSet = new Set(); emit('skill');
-  text(P.x, P.y - 30, SK.name + '!', '#ffb347', true);
+  const P = G.P, id = P.skills[slot];
+  if (!id) return;
+  if (!canSkill(slot)) { P.buf = { kind: 'skill', slot, t: PLAYER.inputBuffer }; return; }
+  const S = SKILLS[id], m = mods();
+  P.skillCd[slot] = S.cd * m.skillCd; P.combo = 0; P.comboT = 0; emit('skill');
+  text(P.x, P.y - 30, S.name + '!', '#ffb347', true);
+  if (id === 'sonicLeap') { P.dash = SK.dashTime; P.hitSet = new Set(); }
+  else if (id === 'horizontal') { // one full turn: everything in reach gets hit once
+    const H = SKILLS.horizontal;
+    for (const e of targets()) if (dist(P, e) < H.radius + e.r) hit(e, skillDmg(H, m), true, m);
+    P.spin = 0.25; P.delay = H.delay; ring(P.x, P.y, 20, H.radius, 0.3, '255,215,130'); kick(0.05, 6);
+  } else { P.thrust = SKILLS.vorpal.windup; P.thrustAng = P.ang; } // vorpal: rooted wind-up, the stab lands when it runs out
+}
+// Vorpal Strike: everything inside the long, narrow box along the locked aim
+function stab() {
+  const P = G.P, V = SKILLS.vorpal, m = mods(), cx = Math.cos(P.thrustAng), cy = Math.sin(P.thrustAng);
+  for (const e of targets()) {
+    const dx = e.x - P.x, dy = e.y - P.y, along = dx * cx + dy * cy, side = Math.abs(dx * -cy + dy * cx);
+    if (along > -e.r && along < V.length + e.r && side < V.width / 2 + e.r) hit(e, skillDmg(V, m), true, m);
+  }
+  P.beam = 0.18; P.delay = V.delay; kick(0.07, 10);
+  burst(P.x + cx * V.length, P.y + cy * V.length, 14, '#ffd27a', 300, 0.35, 4, false);
 }
 
 // Returns true when the player stepped into the portal and a new floor was loaded (skip the rest of this step)
 export function updatePlayer(dt) {
   const P = G.P;
-  P.atkCd -= dt; P.skillCd -= dt; P.hurt -= dt; P.swing -= dt; P.inv -= dt; P.comboT -= dt; P.rollCd -= dt;
+  P.atkCd -= dt; P.skillCd[0] -= dt; P.skillCd[1] -= dt; P.spin -= dt; P.beam -= dt; P.hurt -= dt; P.swing -= dt; P.inv -= dt; P.comboT -= dt; P.rollCd -= dt;
   if (P.buf) {
     const b = P.buf;
-    if ((b.kind === 'attack' ? canAttack : canSkill)()) { P.buf = null; b.kind === 'attack' ? attack() : skill(); }
+    if (b.kind === 'attack' ? canAttack() : canSkill(b.slot)) { P.buf = null; b.kind === 'attack' ? attack() : skill(b.slot); }
     else if ((b.t -= dt) <= 0) P.buf = null;
   }
   P.lag = P.lag > P.hp ? Math.max(P.hp, P.lag - 50 * dt) : P.hp;
@@ -79,9 +99,12 @@ export function updatePlayer(dt) {
     P.trail.push({ x: P.x, y: P.y, t: 0.25 });
     for (const e of targets()) if (!P.hitSet.has(e) && dist(P, e) < e.r + SK.hitRadius) {
       const m = mods();
-      P.hitSet.add(e); hit(e, Math.round((P.atk + m.atkBonus) * SK.dmgMult * m.skillDmg), true, m);
+      P.hitSet.add(e); hit(e, skillDmg(SK, m), true, m);
     }
     if (P.dash <= 0) P.delay = SK.delay;
+  } else if (P.thrust > 0) {
+    P.thrust -= dt; P.moving = false;
+    if (P.thrust <= 0) stab();
   } else if (P.roll > 0) {
     P.roll -= dt;
     move(P, Math.cos(P.rollAng) * RL.speed * dt, Math.sin(P.rollAng) * RL.speed * dt);

@@ -33,13 +33,13 @@ const mute = () => toast(toggleMute() ? 'ปิดเสียงแล้ว' :
 
 bindActions({
   start: () => ready.then(startIntro), continue: () => ready.then(continueRun),
-  howto: () => openSub('howto'), settings: () => openSub('settings'), back: closeSub,
+  howto: () => openSub('howto'), skills: () => openSub('skills'), settings: () => openSub('settings'), back: closeSub,
   resume: resumeGame, saveQuit: saveAndQuit, home: goHome, fullscreen: toggleFullscreen,
   resetKeys, exportSave: downloadSave, importSave: pickImport, closeShop, storyNext, storySkip,
 });
 
 // Keyboard: physical keys -> actions (data/controls.ts + rebinding). Gameplay keys only count while a live character is in control.
-const GAME_ACTIONS = { attack, skill, dodge: roll, mute, potion: drinkPotion, interact: openShop };
+const GAME_ACTIONS = { attack, skill: () => skill(0), skill2: () => skill(1), dodge: roll, mute, potion: drinkPotion, interact: openShop };
 addEventListener('keydown', e => {
   if (dialogOpen()) return; // the confirm <dialog> handles its own keys (Esc = cancel)
   if (picking() && /^(Digit|Numpad)[1-9]$/.test(e.code)) return pickUpgrade(+e.code.at(-1) - 1);
@@ -74,7 +74,11 @@ cv.addEventListener('mousemove', e => {
   const r = cv.getBoundingClientRect();
   mouse.x = (e.clientX - r.left) * W / r.width; mouse.y = (e.clientY - r.top) * H / r.height;
 });
-cv.addEventListener('mousedown', e => { const a = actionForButton(e.button); if (a && playing()) GAME_ACTIONS[a](); });
+cv.addEventListener('mousedown', e => {
+  const a = actionForButton(e.button);
+  if (a) e.preventDefault(); // middle button = Sword Skill 2, not autoscroll
+  if (a && playing()) GAME_ACTIONS[a]();
+});
 cv.addEventListener('contextmenu', e => e.preventDefault());
 mouse.x = W / 2; mouse.y = H / 2;
 
