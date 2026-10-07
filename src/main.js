@@ -10,6 +10,8 @@ import { PLAYER } from './data/player.js';
 import { MOBS } from './data/mobs.js';
 import { BOSSES, BOSS_DEFAULTS, BOSS_RULES, MOVES } from './data/bosses.js';
 import { FLOORS, TREE_TYPES as TREE } from './data/floors.js';
+import { createClock, runFrames } from './core/loop.js';
+import { createSceneStack } from './core/scenes.js';
 
 const cv = document.getElementById('c'), ctx = cv.getContext('2d');
 const W = cv.width, H = cv.height, WORLD = { w: 2000, h: 1200 }, TOWN_X = 400, ROOM_X = 1500;
@@ -18,8 +20,11 @@ const GATE = [{ x: ROOM_X, y: 0, w: 40, h: 540 }, { x: ROOM_X, y: 660, w: 40, h:
 const DOOR = { x: ROOM_X, y: 540, w: 40, h: 120 };
 const TORCHES = [[1570, 80], [1570, 1120], [1960, 80], [1960, 1120], [1570, 470], [1570, 730]];
 const keys = {}, mouse = { x: W / 2, y: H / 2 }, cam = { x: 0, y: 0 };
-// state: menu -> intro (Link Start tunnel) -> play <-> paused -> dead | win
-let state = 'menu', P, mobs, boss, texts, parts, rings, doorClosed, portal, last, stop = 0, shake = 0, time = 0, introT = 0;
+// Flow lives in the scene stack (title -> intro -> play, pause pushed on top); run.over marks a finished run
+let P, mobs, boss, texts, parts, rings, doorClosed, portal, shake = 0, time = 0, introT = 0;
+const scenes = createSceneStack();
+const clock = createClock(dt => { time += dt; scenes.update(dt); });
+const playing = () => scenes.top === playScene && !run?.over; // in control of a live character
 let floorIdx = 0, F, WALLS = [], run;
 const SWING = PLAYER.attack.swing;
 // A floor with its mob/boss ids swapped for the actual stat objects (fails loudly on a typo'd id)
@@ -66,19 +71,15 @@ function endRun(cleared) {
   $('newrec').hidden = !better; statCards($('result-stats'), runStats()); renderRecord();
   setTimeout(() => screen('result'), cleared ? 1400 : 1100);
 }
-function pauseGame() {
-  if (state !== 'play') return;
-  state = 'paused'; for (const k in keys) keys[k] = false; music?.pause();
-  statCards($('pause-stats'), runStats()); screen('pause');
-}
-function resumeGame() { state = 'play'; screen(null); music?.play().catch(() => {}); }
+function pauseGame() { if (playing()) scenes.push(pauseScene); }
+function resumeGame() { if (scenes.top === pauseScene) scenes.pop(); }
 function openSub(id) { backTo = current; screen(id); }
 function toggleFullscreen() {
   if (document.fullscreenElement) document.exitFullscreen();
   else document.documentElement.requestFullscreen?.().catch(() => {});
 }
-function startIntro() { initAudio(); screen(null); stopMusic(); state = 'intro'; introT = 0; SFX.linkStart(); }
-function goHome() { state = 'menu'; P = null; stopMusic(); renderRecord(); screen('title-screen'); }
+function startIntro() { initAudio(); scenes.replace(introScene); }
+function goHome() { scenes.replace(titleScene); }
 const ACTIONS = {
   start: () => ready.then(startIntro), howto: () => openSub('howto'), settings: () => openSub('settings'),
   back: () => screen(backTo), resume: resumeGame, quit: goHome, home: goHome, fullscreen: toggleFullscreen,
@@ -289,7 +290,7 @@ function loadFloor(i) {
   boss = { x: 1760, y: 600, z: 0, r: F.boss.r, hp: F.boss.hp, lag: F.boss.hp, maxHp: F.boss.hp, awake: false, cd: BOSS_RULES.firstMoveDelay, act: null,
            t: 0, tMax: 1, ang: 0, hurt: 0, hitP: false, summoned: false };
   Object.assign(P, { x: 200, y: 600, hp: P.maxHp, lag: P.maxHp, dash: 0, delay: 0, trail: [], kx: 0, ky: 0, inv: 0, buf: null });
-  texts = []; parts = []; rings = []; doorClosed = false; portal = null; stop = 0; shake = 0;
+  texts = []; parts = []; rings = []; doorClosed = false; portal = null; clock.hitStop = 0; shake = 0;
   if (run) run.floor = Math.max(run.floor, i + 1);
   toast(`${F.name} · ${F.town}`, `บอสชั้นนี้: ${F.boss.name}`);
   playMusic(i);
@@ -297,7 +298,8 @@ function loadFloor(i) {
 function newGame() {
   P = { r: PLAYER.radius, maxHp: PLAYER.hp, atk: PLAYER.atk, lv: 1, xp: 0, ang: 0, atkCd: 0, skillCd: 0, hurt: 0, swing: 0, swingDir: 1, hitSet: null };
   run = { floor: 1, kills: 0, time: 0 };
-  loadFloor(0); state = 'play';
+  loadFloor(0);
+  if (scenes.top !== playScene) scenes.replace(playScene);
 }
 
 function hitWall(e) {
@@ -328,7 +330,7 @@ function burst(x, y, n, col, spd, life, size, shard) {
   }
 }
 function ring(x, y, r0, r1, life, col) { rings.push({ x, y, r0, r1, life, t: life, col }); }
-function kick(hitstop, shakeAmt) { stop = Math.max(stop, hitstop); if (settings.shake) shake = Math.max(shake, shakeAmt); }
+function kick(hitstop, shakeAmt) { clock.hitStop = Math.max(clock.hitStop, hitstop); if (settings.shake) shake = Math.max(shake, shakeAmt); }
 
 function gainXp(n) {
   P.xp += n; text(P.x, P.y - 30, '+' + n + ' XP', '#7fd4ff');
@@ -362,7 +364,7 @@ function hurtEnemy(e, d, big) {
       portal = { x: boss.x, y: boss.y }; SFX.portal();
       toast(`Congratulations! ${F.name} Cleared`, 'เดินเข้าประตูมิติสีฟ้าเพื่อขึ้นชั้นถัดไป', 4.5);
     } else {
-      state = 'win';
+      run.over = 'win';
       endRun(true);
     }
   } else {
@@ -371,7 +373,7 @@ function hurtEnemy(e, d, big) {
   }
 }
 function hurtPlayer(d, from) {
-  if (state !== 'play') return;
+  if (run.over) return;
   if (P.dash > 0) { text(P.x, P.y - 24, 'DODGE', '#7fd4ff'); SFX.dodge(); return; } // Sword Skill dash = i-frames
   if (P.inv > 0) return; // brief invulnerability after a hit, so a mob crowd can't chain-stun you
   const heavy = d >= PLAYER.knockback.heavyFrom;
@@ -379,7 +381,7 @@ function hurtPlayer(d, from) {
   if (from) knock(P, from, PLAYER.knockback[heavy ? 'heavy' : 'light']);
   burst(P.x, P.y, 10, '#ff5252', 220, 0.35, 4, false); kick(0.05, d >= 20 ? 10 : 5);
   if (P.hp <= 0) {
-    P.hp = 0; state = 'dead'; stopMusic(); SFX.death();
+    P.hp = 0; run.over = 'dead'; stopMusic(); SFX.death();
     burst(P.x, P.y, 40, '#8fe3ff', 260, 1.4, 9, true);
     endRun(false);
   }
@@ -391,7 +393,7 @@ const A = PLAYER.attack, SK = PLAYER.skill;
 const canAttack = () => P.atkCd <= 0 && P.delay <= 0 && P.dash <= 0;
 const canSkill = () => P.skillCd <= 0 && P.delay <= 0 && P.dash <= 0;
 function attack() {
-  if (state !== 'play') return;
+  if (!playing()) return;
   if (!canAttack()) { P.buf = { kind: 'attack', t: PLAYER.inputBuffer }; return; }
   P.atkCd = A.cd; P.swing = SWING; P.swingDir = -P.swingDir; SFX.swing();
   for (const e of targets()) {
@@ -402,7 +404,7 @@ function attack() {
   }
 }
 function skill() {
-  if (state !== 'play') return;
+  if (!playing()) return;
   if (!canSkill()) { P.buf = { kind: 'skill', t: PLAYER.inputBuffer }; return; }
   P.skillCd = SK.cd; P.dash = SK.dashTime; P.hitSet = new Set(); SFX.skill();
   text(P.x, P.y - 30, SK.name + '!', '#ffb347', true);
@@ -850,7 +852,10 @@ function drawHud() { drawPlayerPanel(); drawBossBar(); drawSkillSlots(); drawMin
 
 // Title background: drifting crystal shards around a slowly turning ring (Aincrad's silhouette)
 const shards = Array.from({ length: 46 }, () => ({ x: Math.random() * W, y: Math.random() * H, s: 3 + Math.random() * 9, v: 8 + Math.random() * 26, r: Math.random() * 6 }));
-function drawMenuBg(dt) {
+function updateMenuBg(dt) {
+  for (const p of shards) { p.y -= p.v * dt; p.r += dt; if (p.y < -20) { p.y = H + 20; p.x = Math.random() * W; } }
+}
+function drawMenuBg() {
   const g = ctx.createRadialGradient(W / 2, H * 0.42, 40, W / 2, H / 2, W * 0.75);
   g.addColorStop(0, '#1d3654'); g.addColorStop(1, '#05070c'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
   ctx.save(); ctx.translate(W / 2, H * 0.42); ctx.rotate(time * 0.05);
@@ -858,7 +863,6 @@ function drawMenuBg(dt) {
   ctx.restore();
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   for (const p of shards) {
-    p.y -= p.v * dt; p.r += dt; if (p.y < -20) { p.y = H + 20; p.x = Math.random() * W; }
     ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.globalAlpha = 0.25 + 0.25 * Math.sin(time + p.x);
     ctx.fillStyle = '#8fe3ff'; ctx.beginPath(); ctx.moveTo(0, -p.s); ctx.lineTo(p.s * 0.45, 0); ctx.lineTo(0, p.s); ctx.lineTo(-p.s * 0.45, 0); ctx.fill();
     ctx.restore();
@@ -917,29 +921,43 @@ function draw() {
   drawHud();
 }
 
-// One simulation step (hit-stop freezes everything, pause freezes everything but drawing)
-function tick(dt) {
-  if (stop > 0) stop -= dt;
-  else if (state !== 'paused') { if (state === 'play') update(dt); updateFx(dt); }
-}
-function loop(t) {
-  const dt = Math.min((t - (last ?? t)) / 1000, 0.05); last = t; time += dt;
-  if (state === 'intro') { introT += dt; drawIntro(); if (introT > 1.9) newGame(); }
-  else if (P) { tick(dt); draw(); }
-  else drawMenuBg(dt);
-  requestAnimationFrame(loop);
-}
+// ---------- scenes ----------
+const INTRO_TIME = 1.9;
+const titleScene = {
+  name: 'menu',
+  enter() { P = null; run = null; stopMusic(); renderRecord(); screen('title-screen'); },
+  update: updateMenuBg, draw: drawMenuBg,
+};
+const introScene = {
+  name: 'intro',
+  enter() { screen(null); stopMusic(); introT = 0; SFX.linkStart(); },
+  update(dt) { introT += dt; if (introT > INTRO_TIME) newGame(); },
+  draw: drawIntro,
+};
+const playScene = {
+  name: 'play',
+  update(dt) { if (!run.over) update(dt); updateFx(dt); }, // after death/clear the shatter FX keep playing
+  draw,
+};
+const pauseScene = {
+  name: 'paused', blocksUpdate: true, // Play keeps drawing underneath, frozen
+  enter() { for (const k in keys) keys[k] = false; music?.pause(); statCards($('pause-stats'), runStats()); screen('pause'); },
+  exit() { screen(null); music?.play().catch(() => {}); },
+};
+
+const frames = runFrames(real => { clock.advance(real); scenes.draw(); });
+scenes.replace(titleScene);
 
 // e.code = physical key, so controls work with a Thai keyboard layout too
 addEventListener('keydown', e => {
   if (e.code === 'KeyF' && !e.repeat) { toggleFullscreen(); return; }
   if (e.code === 'Escape' || e.code === 'KeyP') {
-    if (state === 'play') pauseGame();
+    if (playing()) pauseGame();
     else if (current === 'pause') resumeGame();
     else if (current === 'howto' || current === 'settings') screen(backTo);
     return;
   }
-  if (state !== 'play') return; // leave keys alone while a menu (sliders, buttons) has focus
+  if (!playing()) return; // leave keys alone while a menu (sliders, buttons) has focus
   keys[e.code] = true;
   if (e.code === 'KeyJ') attack(); if (e.code === 'KeyK') skill();
   if (e.code === 'KeyM' && !e.repeat) toggleMute();
@@ -947,22 +965,21 @@ addEventListener('keydown', e => {
 addEventListener('keyup', e => { keys[e.code] = false; });
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; pauseGame(); });
 // Switching tabs doesn't always fire blur; pause there too and drop the stale frame time
-document.addEventListener('visibilitychange', () => { if (document.hidden) pauseGame(); else last = undefined; });
+document.addEventListener('visibilitychange', () => { if (document.hidden) pauseGame(); else frames.reset(); });
 cv.addEventListener('mousemove', e => {
   const r = cv.getBoundingClientRect();
   mouse.x = (e.clientX - r.left) * W / r.width; mouse.y = (e.clientY - r.top) * H / r.height;
 });
 cv.addEventListener('mousedown', e => { if (e.button === 0) attack(); if (e.button === 2) skill(); });
 cv.addEventListener('contextmenu', e => e.preventDefault());
-requestAnimationFrame(loop);
 
 // Dev-only handle for console/bot playtests (module scope hides these); stripped from production builds.
 // ponytail: stopgap until the sim moves into DOM-free modules + Vitest (migration step 7)
 if (import.meta.env.DEV) {
-  const live = { state: () => state, P: () => P, mobs: () => mobs, boss: () => boss, F: () => F, floorIdx: () => floorIdx,
-                 portal: () => portal, run: () => run, stop: () => stop };
+  const live = { state: () => run?.over || scenes.top?.name, P: () => P, mobs: () => mobs, boss: () => boss, F: () => F,
+                 floorIdx: () => floorIdx, portal: () => portal, run: () => run, clock: () => clock, scenes: () => scenes };
   window.__saoy = Object.defineProperties(
-    { tick, update, updateFx, draw, newGame, loadFloor, attack, skill, hurtPlayer, hitWall, startBossMove, keys, mouse, cam, ready,
+    { tick: dt => clock.advance(dt), update, updateFx, draw, newGame, loadFloor, attack, skill, hurtPlayer, hitWall, startBossMove, keys, mouse, cam, ready,
       consts: { W, H, WORLD, TOWN_X, ROOM_X } },
     Object.fromEntries(Object.entries(live).map(([k, get]) => [k, { get }])));
 }
