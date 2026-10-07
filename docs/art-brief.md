@@ -126,47 +126,16 @@ the legs in the opposite position. [STYLE]
 | `crab.png` | Tide Crabling (ฝูงชั้น 4) | a small orange crab with big claws |
 
 ### 2.5 บอสต้นไม้ (ชั้น 3)
-`treant.png` **64×48** ภาพเดียว (เกมทำให้โยกและพองเอง)
-```
-A giant evil tree monster seen from a top-down 3/4 view: thick twisted trunk with an angry carved face,
-glowing yellow eyes, dark green leafy crown, roots spreading at the base. Fits a 64x48 pixel canvas. [STYLE]
-```
+ย้ายไปอยู่ใน [prompts-scene.md](prompts-scene.md) (`treant.png`) เพราะใช้ใบไม้สไตล์เดียวกับต้นไม้ในฉาก
 
 ## 3. ฉากและ tile
 
-**ขนาด tile 16×16** (เกมขยาย ×3) ทุกชิ้นต้องต่อกันได้ไร้รอย (seamless)
+**ใช้ [prompts-scene.md](prompts-scene.md)** มี prompt ครบทุกชิ้นแล้ว (พื้น 4 ชั้น, ถนน, พื้นเมือง, ห้องบอส, ต้นไม้,
+หย่อมดิน, ของตกแต่ง, น้ำพุ, บอสต้นไม้, หมอก)
+แผน tile 16 px แบบเดิมถูกเลิกใช้ เพราะ ChatGPT วาด tile ขนาดเป๊ะที่ต่อกันไร้รอยได้ไม่ดี
+เปลี่ยนเป็น texture ใหญ่ที่ปูซ้ำได้ + ชิ้นแยกบนพื้นบานเย็น
 
-```
-A seamless tileable 16x16 pixel [TILE] tile for a top-down RPG, shown as a 4x4 repeat so the seams are
-visible. [STYLE minus the magenta background line]
-```
-
-| ไฟล์ (ใหม่) | จำนวน | [TILE] / รายละเอียด |
-|---|---|---|
-| `grass-a.png` | 1 พื้น + 4 ลาย | bright green grass (ชั้น 1, 3) — แบบเรียบ 1 + แบบมีดอก/หิน/กอหญ้าเล็ก 4 |
-| `grass-b.png` | 1 พื้น + 4 ลาย | lush blue-green grass (ชั้น 2, 4) |
-| `dirt-a.png`, `dirt-b.png` | ชุด 3×3 (9 ช่อง) ต่อ palette | dirt path patch with grass edges: 4 corners, 4 edges, 1 center (ใช้ทำถนนและหย่อมดิน) |
-| `town.png` | 5 | warm beige cobblestone town plaza tiles |
-| `bossroom.png` | 5 | dark grey stone brick dungeon floor tiles |
-| `water.png` (ไม่บังคับ) | ชุด 3×3 | canal water with a stone rim (ตอนนี้วาดด้วยโค้ด) |
-
-**ต้นไม้และของตกแต่ง** (พื้นสีบานเย็น)
-| ไฟล์ | ขนาด | prompt สั้น |
-|---|---|---|
-| `tree-big.png` | 64×48 | a wide round leafy oak tree, top-down 3/4 view |
-| `tree-small.png` | 32×32 | a small round bush-like tree |
-| `tuft-1.png`, `tuft-2.png` | 16×16 | a small grass tuft / a cluster of tiny flowers |
-| `fountain.png` (ไม่บังคับ) | 64×64 | a round stone town fountain with blue water (ตอนนี้วาดด้วยโค้ด) |
-| `fog.png` | 320×176 | soft wispy white fog clouds, seamless tileable, transparent background (ภาพนี้ไม่ต้องเป็น pixel) |
-
-**ของชิ้นเล็ก**
-| ไฟล์ | ขนาด | หมายเหตุ |
-|---|---|---|
-| `sword.png` | 7×12 | ดาบในมือ: **ด้ามอยู่บน ใบดาบชี้ลง** "a slim silver straight sword, hilt at the top, blade pointing down" |
-| `shadow.png` | 12×8 | วงรีเงาสีดำโปร่ง 50% ใต้ตัวละคร (วาดเองใน 10 วินาทีง่ายกว่า) |
-
-**ทำไว้หลังได้ภาพ:** ตอนนี้โค้ดอ่าน tile จากไฟล์ใหญ่ของ Ninja Adventure (`floor.png`, `interior.png`, `village.png`) ตามพิกัด
-พอได้ไฟล์แยกข้างบน ผมจะเปลี่ยน [src/render/terrain.js](../src/render/terrain.js) ให้อ่านไฟล์ใหม่ (งานเล็ก)
+ดาบ (`sword.png`) ทำแล้ว · เงาใต้ตัววาดด้วยโค้ดแล้ว ไม่ต้องใช้ภาพ
 
 ## 4. UI และหน้าตาเกม
 
