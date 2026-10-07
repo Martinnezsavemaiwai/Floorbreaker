@@ -77,6 +77,12 @@ export function renderShop(status = '') {
   $('shop-status').textContent = status;
 }
 
+// Story window: one line at a time, the speaker as the title
+export function showStoryLine(line, i, n) {
+  $('story-who').textContent = line.who; $('story-text').textContent = line.text; $('story-page').textContent = `${i + 1} / ${n}`;
+  if (current !== 'story') screen('story');
+}
+
 // Title: best record + a Continue button when a suspended run exists
 function renderTitle() {
   const b = meta.best;

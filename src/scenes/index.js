@@ -11,8 +11,10 @@ import { updateGame, updateFx } from '../systems/index.js';
 import { drawWorld } from '../render/world.js';
 import { updateMenuBg, drawMenuBg, drawIntro, INTRO_TIME } from '../render/menu.js';
 import { initAudio, stopMusic, pauseMusic, resumeMusic, SFX } from '../audio/audio.js';
-import { screen, showPauseStats, showUpgradePicker, renderShop, confirmDialog, $ } from '../ui/screens.js';
+import { screen, showPauseStats, showUpgradePicker, renderShop, showStoryLine, confirmDialog, $ } from '../ui/screens.js';
 import { nearMerchant, buy } from '../systems/shop.js';
+import { STORY } from '../data/story.ts';
+import { meta, saveMeta } from '../core/save.ts';
 import { SHOP } from '../data/shop.ts';
 import { rollOffer, applyUpgrade, hasPendingUpgrade } from '../systems/upgrades.js';
 
@@ -20,7 +22,7 @@ let resume = null; // suspend data to continue from once the intro finishes
 
 export const titleScene = {
   name: 'menu',
-  enter() { G.P = null; G.run = null; stopMusic(); screen('title-screen'); },
+  enter() { G.P = null; G.run = null; storyQueue.length = 0; stopMusic(); screen('title-screen'); },
   update: updateMenuBg, draw: drawMenuBg,
 };
 const introScene = {
@@ -34,7 +36,9 @@ const playScene = {
   update(dt) {
     if (!G.run.over) updateGame(dt);
     updateFx(dt); // after death/clear the shatter FX keep playing
-    if (!G.run.over && hasPendingUpgrade()) scenes.push(upgradeScene);
+    if (G.run.over) return;
+    if (storyQueue.length) scenes.push(storyScene);
+    else if (hasPendingUpgrade()) scenes.push(upgradeScene);
   },
   draw: drawWorld,
 };
@@ -80,7 +84,24 @@ $('shop-items').addEventListener('click', e => {
   if (card) buyItem(card.dataset.buy);
 });
 
-const liveRun = () => G.run && !G.run.over && (scenes.top === playScene || scenes.top === pauseScene || scenes.top === upgradeScene || scenes.top === shopScene);
+// Story: a floor's beat plays once per save, the first time that floor loads (queued, shown on the next play step)
+const storyQueue = [];
+let line = 0;
+on('floorLoaded', i => { const id = 'floor' + i; if (STORY[id] && !meta.storySeen.includes(id)) storyQueue.push(id); });
+const storyScene = {
+  name: 'story', blocksUpdate: true,
+  enter() { releaseAll(); line = 0; showStory(); },
+  exit() { meta.storySeen.push(storyQueue.shift()); saveMeta(); screen(null); },
+};
+const showStory = () => { const lines = STORY[storyQueue[0]]; showStoryLine(lines[line], line, lines.length); };
+export const reading = () => scenes.top === storyScene;
+export function storyNext() {
+  if (!reading()) return;
+  if (++line < STORY[storyQueue[0]].length) showStory(); else scenes.pop();
+}
+export function storySkip() { if (reading()) scenes.pop(); }
+
+const liveRun = () => G.run && !G.run.over && (scenes.top === playScene || scenes.top === pauseScene || scenes.top === upgradeScene || scenes.top === shopScene || scenes.top === storyScene);
 export const playing = () => scenes.top === playScene && !G.run?.over; // in control of a live character
 
 export function newGame() {

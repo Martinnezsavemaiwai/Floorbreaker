@@ -7,6 +7,7 @@ import { overlaps } from '../src/core/math.ts';
 import { TOWN_X, ROOM_X, DOOR } from '../src/world/constants.ts';
 import { FLOORS } from '../src/data/floors.ts';
 import { MOVES } from '../src/data/bosses.ts';
+import { STORY } from '../src/data/story.ts';
 
 describe.each(FLOORS.map((f, i) => [f.name, i] as const))('%s', (_name, i) => {
   beforeAll(() => { startRun(1); loadFloor(i); });
@@ -16,6 +17,11 @@ describe.each(FLOORS.map((f, i) => [f.name, i] as const))('%s', (_name, i) => {
     expect(G.F!.ranged.ranged, 'the ranged slot holds a ranged mob').toBeDefined();
     expect(G.mobs.filter(m => m.def === G.F!.ranged)).toHaveLength(FLOORS[i].rangedSpawns.length);
     expect(G.F!.boss.hp).toBeGreaterThan(0);
+  });
+
+  it('has a story beat with non-empty lines', () => {
+    expect(STORY['floor' + i]?.length).toBeGreaterThan(0);
+    for (const l of STORY['floor' + i]) expect(l.who && l.text).toBeTruthy();
   });
 
   it('every boss move has timing data', () => {

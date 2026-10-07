@@ -1,8 +1,8 @@
-// Smoke test: the real page boots, Link Start reaches gameplay, input works, pause opens, no errors.
+// Smoke test: the real page boots, Link Start reaches gameplay, the prologue pages and skips, input works, pause opens, no errors.
 // Not a pixel comparison (canvas output varies by GPU) — it checks state through the dev-only __saoy hook.
 import { test, expect } from '@playwright/test';
 
-test('title -> Link Start -> play -> pause, with no console errors', async ({ page }) => {
+test('title -> Link Start -> story -> play -> pause, with no console errors', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', e => errors.push(e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
@@ -12,7 +12,14 @@ test('title -> Link Start -> play -> pause, with no console errors', async ({ pa
   await page.getByRole('button', { name: 'Link Start' }).click();
 
   // the intro tunnel runs ~2s, then the play scene takes over
-  await page.waitForFunction(() => (window as any).__saoy?.state === 'play', null, { timeout: 10_000 });
+  // a fresh save opens the floor 1 prologue: Enter turns the page, Esc skips the rest
+  await expect(page.locator('#story')).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator('#story-page')).toHaveText(/^1 \//);
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#story-page')).toHaveText(/^2 \//);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#story')).toBeHidden();
+  await page.waitForFunction(() => (window as any).__saoy?.state === 'play');
 
   // the canvas actually draws the world (not a blank/black frame)
   const lit = await page.evaluate(() => {

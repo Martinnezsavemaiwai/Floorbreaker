@@ -22,7 +22,7 @@ describe('loading', () => {
   it('starts from defaults with empty storage', async () => {
     const s = await boot();
     expect(s.settings).toMatchObject({ music: 60, sfx: 80, hints: true, assistDamage: 1, assistSpeed: 1, bindings: {} });
-    expect(s.meta).toEqual({ best: null, hintsSeen: [] });
+    expect(s.meta).toEqual({ best: null, hintsSeen: [], storySeen: [] });
     expect(s.loadSuspend()).toBeNull();
   });
 

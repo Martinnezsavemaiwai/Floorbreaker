@@ -33,7 +33,8 @@ const BestSchema = z.object({
   floor: z.number().int().min(1), lv: z.number().int().min(1), time: z.number().min(0),
   kills: z.number().int().min(0), cleared: z.boolean(), assisted: z.boolean().default(false),
 });
-const MetaSchema = z.object({ best: BestSchema.nullable().default(null), hintsSeen: z.array(z.string()).default([]) });
+const MetaSchema = z.object({ best: BestSchema.nullable().default(null), hintsSeen: z.array(z.string()).default([]),
+  storySeen: z.array(z.string()).default([]) });
 const SuspendSchema = z.object({
   floorIdx: z.number().int().min(0).max(FLOORS.length - 1),
   player: z.object({ lv: z.number().int().min(1), xp: z.number().min(0), maxHp: z.number().positive(), atk: z.number().positive(),

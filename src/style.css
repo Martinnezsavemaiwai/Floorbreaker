@@ -163,3 +163,10 @@ dialog.dialog p{margin:0;font-size:15px;line-height:1.55}
 .card[aria-disabled=true]{opacity:.55;cursor:not-allowed}
 .card[aria-disabled=true]:hover{transform:none;border-color:var(--rule)}
 .card .price{font:800 15px var(--font-num);color:var(--accent-ink)}
+
+/* ---------- story: dialogue window along the bottom, the world stays visible ---------- */
+.screen.story{align-items:flex-end;padding-bottom:calc(16px + 4vh);background:linear-gradient(transparent 55%,rgba(5,7,12,.55))}
+.story-text{margin:0;font-size:17px;line-height:1.7;color:var(--ink);min-height:3.4em}
+.story-foot{display:flex;align-items:center;gap:8px}
+.story-foot .hint{margin:0 auto 0 0;font-family:var(--font-num)}
+.story-foot .btn{width:auto}

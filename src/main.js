@@ -23,7 +23,7 @@ import { toggleMute } from './audio/audio.js';
 import { current, closeSub, inSubScreen, openSub, toast, bindActions, dialogOpen } from './ui/screens.js';
 import { resetKeys, downloadSave, pickImport } from './ui/settings.js';
 import { titleScene, playing, newGame, pauseGame, resumeGame, startIntro, continueRun, goHome, saveAndQuit, suspendRun, picking, pickUpgrade,
-  shopping, openShop, closeShop, buyItem } from './scenes/index.js';
+  shopping, openShop, closeShop, buyItem, reading, storyNext, storySkip } from './scenes/index.js';
 
 function toggleFullscreen() {
   if (document.fullscreenElement) document.exitFullscreen();
@@ -35,7 +35,7 @@ bindActions({
   start: () => ready.then(startIntro), continue: () => ready.then(continueRun),
   howto: () => openSub('howto'), settings: () => openSub('settings'), back: closeSub,
   resume: resumeGame, saveQuit: saveAndQuit, home: goHome, fullscreen: toggleFullscreen,
-  resetKeys, exportSave: downloadSave, importSave: pickImport, closeShop,
+  resetKeys, exportSave: downloadSave, importSave: pickImport, closeShop, storyNext, storySkip,
 });
 
 // Keyboard: physical keys -> actions (data/controls.ts + rebinding). Gameplay keys only count while a live character is in control.
@@ -44,6 +44,12 @@ addEventListener('keydown', e => {
   if (dialogOpen()) return; // the confirm <dialog> handles its own keys (Esc = cancel)
   if (picking() && /^(Digit|Numpad)[1-9]$/.test(e.code)) return pickUpgrade(+e.code.at(-1) - 1);
   const action = actionForKey(e.code);
+  if (reading()) { // Enter / Space / attack advance (handled here, so the focused button doesn't click too); Esc skips
+    if (e.repeat) return;
+    if (['Enter', 'NumpadEnter', 'Space'].includes(e.code) || action === 'attack' || action === 'interact') { e.preventDefault(); storyNext(); }
+    else if (action === 'pause') storySkip();
+    return;
+  }
   if (shopping()) { // number keys buy, Esc / interact leaves
     if (/^(Digit|Numpad)[1-9]$/.test(e.code)) buyItem(Object.keys(SHOP)[+e.code.at(-1) - 1]);
     else if ((action === 'pause' || action === 'interact') && !e.repeat) closeShop();
