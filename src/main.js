@@ -6,6 +6,10 @@ import '@fontsource/exo-2/500.css';
 import '@fontsource/exo-2/700.css';
 import '@fontsource/exo-2/800.css';
 import './style.css';
+import { PLAYER } from './data/player.js';
+import { MOBS } from './data/mobs.js';
+import { BOSSES, BOSS_DEFAULTS, BOSS_RULES, MOVES } from './data/bosses.js';
+import { FLOORS, TREE_TYPES as TREE } from './data/floors.js';
 
 const cv = document.getElementById('c'), ctx = cv.getContext('2d');
 const W = cv.width, H = cv.height, WORLD = { w: 2000, h: 1200 }, TOWN_X = 400, ROOM_X = 1500;
@@ -13,49 +17,17 @@ const ROOM = { x0: ROOM_X + 40, x1: WORLD.w, y0: 0, y1: WORLD.h };
 const GATE = [{ x: ROOM_X, y: 0, w: 40, h: 540 }, { x: ROOM_X, y: 660, w: 40, h: 540 }];
 const DOOR = { x: ROOM_X, y: 540, w: 40, h: 120 };
 const TORCHES = [[1570, 80], [1570, 1120], [1960, 80], [1960, 1120], [1570, 470], [1570, 730]];
-// Trees from village.png: sprite source rect, draw scale, and the solid box (relative to the drawn sprite)
-const TREE = {
-  big: { src: [0, 96, 64, 48], s: 2, hit: [20, 30, 88, 56] },
-  small: { src: [64, 96, 32, 32], s: 2.5, hit: [14, 22, 52, 50] },
-};
-
-// ---------- floors ----------
-const FLOORS = [
-  {
-    name: 'Floor 1', town: 'Town of Beginnings', grass: 0, roomTint: null, torch: '255,150,60',
-    trees: [[660, 220, 'big'], [930, 780, 'big'], [1200, 380, 'small'], [800, 420, 'small'], [560, 860, 'small'], [1320, 720, 'small'], [1100, 1020, 'big']],
-    spawns: [[600, 200], [650, 900], [900, 450], [1050, 250], [1100, 700], [1300, 950], [1350, 200], [800, 1050]],
-    mob: { name: 'Frenzy Boar', img: 'boar', white: 'boarWhite', kind: 'beast', hp: 45, dmg: 10, speed: 140, wind: 0.35, xp: 25 },
-    boss: { name: 'Kobold Lord', img: 'boss1', rageImg: 'boss1Rage', hp: 900, scale: 7, cd: [1.8, 1.1],
-            moves: ['slam', 'charge'], rageMoves: ['slam', 'charge', 'leap'], dmg: { slam: 30, charge: 24, leap: 34, quake: 0 } },
-  },
-  {
-    name: 'Floor 2', town: 'Urbus', grass: 11, roomTint: 'rgba(70,0,110,.3)', torch: '150,110,255',
-    trees: [[520, 120, 'big'], [760, 300, 'small'], [980, 140, 'big'], [1250, 260, 'small'], [640, 760, 'big'], [880, 920, 'small'],
-            [1150, 800, 'big'], [1340, 1000, 'small'], [480, 1000, 'small'], [1080, 420, 'small']],
-    spawns: [[650, 250], [900, 300], [1150, 200], [700, 450], [1300, 450], [600, 880], [1000, 720], [1250, 700], [1000, 1050]],
-    mob: { name: 'Taurus Soldier', img: 'taurusT', white: 'taurusWhite', kind: 'humanoid', hp: 90, dmg: 16, speed: 125, wind: 0.4, xp: 45 },
-    boss: { name: 'Asterius the Taurus King', img: 'boss2', rageImg: 'boss2Rage', hp: 1800, scale: 8, cd: [1.6, 1.0], summon: 2,
-            moves: ['slam', 'charge', 'quake'], rageMoves: ['slam', 'charge', 'leap', 'quake'], dmg: { slam: 40, charge: 34, leap: 40, quake: 30 } },
-  },
-  {
-    name: 'Floor 3', town: 'Zumfut', grass: 0, roomTint: 'rgba(0,60,30,.3)', fieldTint: 'rgba(10,20,45,.35)', fog: true, torch: '120,255,150',
-    trees: [[460, 60, 'big'], [700, 180, 'small'], [880, 60, 'big'], [1120, 200, 'small'], [1300, 80, 'small'], [520, 330, 'small'],
-            [980, 360, 'big'], [1260, 380, 'small'], [460, 700, 'big'], [720, 800, 'small'], [900, 700, 'small'], [1100, 760, 'big'],
-            [1340, 820, 'small'], [560, 980, 'small'], [820, 1020, 'big'], [1240, 1040, 'small']],
-    spawns: [[640, 120], [1020, 120], [800, 300], [1180, 320], [650, 470], [1150, 480], [620, 880], [1000, 900], [1300, 700], [1000, 1100]],
-    mob: { name: 'Dark Elf Warrior', img: 'elfT', white: 'bossWhite', kind: 'humanoid', hp: 140, dmg: 22, speed: 135, wind: 0.35, xp: 70 },
-    // The treant is a big tree sprite instead of a character sheet: slow, no charge/leap, roots erupt under you
-    boss: { name: 'Nerius the Evil Treant', tree: true, img: 'village', rageImg: 'treeRage', hp: 3200, bars: 5, r: 70, speed: [35, 50], cd: [1.5, 0.9], summon: 3,
-            moves: ['slam', 'roots', 'quake'], rageMoves: ['roots', 'roots', 'quake', 'slam'], dmg: { slam: 55, roots: 45, quake: 40 } },
-  },
-];
-
 const keys = {}, mouse = { x: W / 2, y: H / 2 }, cam = { x: 0, y: 0 };
 // state: menu -> intro (Link Start tunnel) -> play <-> paused -> dead | win
 let state = 'menu', P, mobs, boss, texts, parts, rings, doorClosed, portal, last, stop = 0, shake = 0, time = 0, introT = 0;
-let floorIdx = 0, F = FLOORS[0], WALLS = [], run;
-const SWING = 0.2;
+let floorIdx = 0, F, WALLS = [], run;
+const SWING = PLAYER.attack.swing;
+// A floor with its mob/boss ids swapped for the actual stat objects (fails loudly on a typo'd id)
+function floorData(i) {
+  const f = FLOORS[i], mob = MOBS[f.mob], boss = BOSSES[f.boss];
+  if (!mob || !boss) throw new Error(`${f.name}: unknown mob "${f.mob}" or boss "${f.boss}"`);
+  return { ...f, mob, boss: { ...BOSS_DEFAULTS, ...boss } };
+}
 
 // ---------- settings, records & screens ----------
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -129,7 +101,7 @@ const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const lerp = (a, b, k) => a + (b - a) * k;
 const pick = a => a[Math.floor(Math.random() * a.length)];
-const rage = () => boss.hp < boss.maxHp / 2;
+const rage = () => boss.hp < boss.maxHp * BOSS_RULES.rageAt;
 
 // ---------- sprites (Ninja Adventure, CC0, pixel-boy) ----------
 // Character sheets: 16x16 frames, columns = down/up/left/right, rows 0-3 walk, row 4 attack.
@@ -306,15 +278,15 @@ function paintFloor() {
 // ---------- game state ----------
 function mob(x, y, summoned = false) {
   const M = F.mob;
-  return { x, y, sx: x, sy: y, wx: x, wy: y, r: 16, hp: M.hp, maxHp: M.hp, cd: 0, dead: 0, hurt: 0, face: 0,
+  return { x, y, sx: x, sy: y, wx: x, wy: y, r: M.radius, hp: M.hp, maxHp: M.hp, cd: 0, dead: 0, hurt: 0, face: 0,
            side: 0, sideDir: 1, wind: 0, lunge: 0, kx: 0, ky: 0, summoned };
 }
 function loadFloor(i) {
-  floorIdx = i; F = FLOORS[i];
+  floorIdx = i; F = floorData(i);
   WALLS = [...GATE, ...F.trees.map(([x, y, k]) => { const h = TREE[k].hit; return { x: x + h[0], y: y + h[1], w: h[2], h: h[3] }; })];
   paintFloor(); paintMinimap();
   mobs = F.spawns.map(([x, y]) => mob(x, y));
-  boss = { x: 1760, y: 600, z: 0, r: F.boss.r || 40, hp: F.boss.hp, lag: F.boss.hp, maxHp: F.boss.hp, awake: false, cd: 2, act: null,
+  boss = { x: 1760, y: 600, z: 0, r: F.boss.r, hp: F.boss.hp, lag: F.boss.hp, maxHp: F.boss.hp, awake: false, cd: BOSS_RULES.firstMoveDelay, act: null,
            t: 0, tMax: 1, ang: 0, hurt: 0, hitP: false, summoned: false };
   Object.assign(P, { x: 200, y: 600, hp: P.maxHp, lag: P.maxHp, dash: 0, delay: 0, trail: [], kx: 0, ky: 0, inv: 0, buf: null });
   texts = []; parts = []; rings = []; doorClosed = false; portal = null; stop = 0; shake = 0;
@@ -323,7 +295,7 @@ function loadFloor(i) {
   playMusic(i);
 }
 function newGame() {
-  P = { r: 14, maxHp: 100, atk: 10, lv: 1, xp: 0, ang: 0, atkCd: 0, skillCd: 0, hurt: 0, swing: 0, swingDir: 1, hitSet: null };
+  P = { r: PLAYER.radius, maxHp: PLAYER.hp, atk: PLAYER.atk, lv: 1, xp: 0, ang: 0, atkCd: 0, skillCd: 0, hurt: 0, swing: 0, swingDir: 1, hitSet: null };
   run = { floor: 1, kills: 0, time: 0 };
   loadFloor(0); state = 'play';
 }
@@ -360,8 +332,8 @@ function kick(hitstop, shakeAmt) { stop = Math.max(stop, hitstop); if (settings.
 
 function gainXp(n) {
   P.xp += n; text(P.x, P.y - 30, '+' + n + ' XP', '#7fd4ff');
-  while (P.xp >= P.lv * 50) {
-    P.xp -= P.lv * 50; P.lv++; P.maxHp += 20; P.atk += 3; P.hp = P.maxHp;
+  while (P.xp >= PLAYER.xpToNext(P.lv)) {
+    P.xp -= PLAYER.xpToNext(P.lv); P.lv++; P.maxHp += PLAYER.perLevel.hp; P.atk += PLAYER.perLevel.atk; P.hp = P.maxHp;
     text(P.x, P.y - 50, 'LEVEL UP!', '#ffd54a', true); SFX.levelUp();
     burst(P.x, P.y, 30, '#ffd54a', 220, 0.8, 5, true); ring(P.x, P.y, 10, 90, 0.5, '255,213,74');
   }
@@ -371,7 +343,7 @@ function hurtEnemy(e, d, big) {
   e.hp -= d; e.hurt = 0.1; text(e.x, e.y - e.r - (e.z || 0), d, big ? '#ffb347' : '#fff', big); SFX.hit(big);
   burst(e.x, e.y - (e.z || 0), big ? 14 : 7, '#fff3c4', 320, 0.25, 3, false);
   kick(big ? 0.09 : 0.045, big ? 6 : 2);
-  if (e !== boss) { knock(e, P, big ? 480 : 260); if (big) e.wind = 0; } // Sword Skill staggers a winding-up mob
+  if (e !== boss) { knock(e, P, F.mob.knockback[big ? 'heavy' : 'light']); if (big) e.wind = 0; } // Sword Skill staggers a winding-up mob
   else if (F.boss.summon && !boss.summoned && rage()) {
     boss.summoned = true; SFX.roar(); text(boss.x, boss.y - 130, `${F.boss.name.split(' ')[0]} เรียกลูกน้อง!`, '#ff7043', true);
     for (let i = 0; i < F.boss.summon; i++) {
@@ -385,7 +357,7 @@ function hurtEnemy(e, d, big) {
     burst(e.x, e.y, 90, '#8fe3ff', 420, 1.6, 12, true); burst(e.x, e.y, 40, '#ffd54a', 300, 1.4, 8, true);
     ring(e.x, e.y, 20, 260, 0.8, '143,227,255');
     for (const m of mobs) if (m.summoned && m.hp > 0) { m.hp = 0; m.dead = Infinity; burst(m.x, m.y, 20, '#8fe3ff', 260, 0.9, 8, true); }
-    gainXp(F.mob.xp * 6);
+    gainXp(F.mob.xp * BOSS_RULES.xpMult);
     if (floorIdx < FLOORS.length - 1) {
       portal = { x: boss.x, y: boss.y }; SFX.portal();
       toast(`Congratulations! ${F.name} Cleared`, 'เดินเข้าประตูมิติสีฟ้าเพื่อขึ้นชั้นถัดไป', 4.5);
@@ -394,7 +366,7 @@ function hurtEnemy(e, d, big) {
       endRun(true);
     }
   } else {
-    e.dead = e.summoned ? Infinity : 6; gainXp(F.mob.xp); SFX.shatter(); run.kills++;
+    e.dead = e.summoned ? Infinity : F.mob.respawn; gainXp(F.mob.xp); SFX.shatter(); run.kills++;
     burst(e.x, e.y, 26, '#8fe3ff', 260, 0.9, 9, true); ring(e.x, e.y, 5, 50, 0.3, '143,227,255');
   }
 }
@@ -402,8 +374,9 @@ function hurtPlayer(d, from) {
   if (state !== 'play') return;
   if (P.dash > 0) { text(P.x, P.y - 24, 'DODGE', '#7fd4ff'); SFX.dodge(); return; } // Sword Skill dash = i-frames
   if (P.inv > 0) return; // brief invulnerability after a hit, so a mob crowd can't chain-stun you
-  P.hp -= d; P.hurt = 0.25; P.inv = INV_TIME; text(P.x, P.y - 20, '-' + d, '#ff5252', d >= 20); SFX.hurt();
-  if (from) knock(P, from, d >= 20 ? 520 : 280);
+  const heavy = d >= PLAYER.knockback.heavyFrom;
+  P.hp -= d; P.hurt = 0.25; P.inv = PLAYER.invTime; text(P.x, P.y - 20, '-' + d, '#ff5252', heavy); SFX.hurt();
+  if (from) knock(P, from, PLAYER.knockback[heavy ? 'heavy' : 'light']);
   burst(P.x, P.y, 10, '#ff5252', 220, 0.35, 4, false); kick(0.05, d >= 20 ? 10 : 5);
   if (P.hp <= 0) {
     P.hp = 0; state = 'dead'; stopMusic(); SFX.death();
@@ -414,29 +387,28 @@ function hurtPlayer(d, from) {
 
 // ---------- combat ----------
 const targets = () => [...mobs, boss].filter(e => e.hp > 0 && (e !== boss || boss.awake));
-// Input buffer: a press that arrives a little early (still on cooldown / mid-skill) fires as soon as it's allowed
-// Bot full runs: no i-frames 1/4 wins, 0.6s 5/6, 0.4s 7/8 — i-frames mostly stop simultaneous multi-hits
-const BUFFER = 0.15, INV_TIME = 0.4;
+const A = PLAYER.attack, SK = PLAYER.skill;
 const canAttack = () => P.atkCd <= 0 && P.delay <= 0 && P.dash <= 0;
 const canSkill = () => P.skillCd <= 0 && P.delay <= 0 && P.dash <= 0;
 function attack() {
   if (state !== 'play') return;
-  if (!canAttack()) { P.buf = { kind: 'attack', t: BUFFER }; return; }
-  P.atkCd = 0.32; P.swing = SWING; P.swingDir = -P.swingDir; SFX.swing();
+  if (!canAttack()) { P.buf = { kind: 'attack', t: PLAYER.inputBuffer }; return; }
+  P.atkCd = A.cd; P.swing = SWING; P.swingDir = -P.swingDir; SFX.swing();
   for (const e of targets()) {
-    if (dist(P, e) > 55 + e.r) continue;
+    if (dist(P, e) > A.range + e.r) continue;
     let a = Math.atan2(e.y - P.y, e.x - P.x) - P.ang;
     a = Math.atan2(Math.sin(a), Math.cos(a));
-    if (Math.abs(a) <= Math.PI * 0.4) hurtEnemy(e, P.atk + rand(0, 3));
+    if (Math.abs(a) <= A.halfArc) hurtEnemy(e, P.atk + rand(0, A.dmgRand));
   }
 }
 function skill() {
   if (state !== 'play') return;
-  if (!canSkill()) { P.buf = { kind: 'skill', t: BUFFER }; return; }
-  P.skillCd = 3; P.dash = 0.18; P.hitSet = new Set(); SFX.skill();
-  text(P.x, P.y - 30, 'Sonic Leap!', '#ffb347', true);
+  if (!canSkill()) { P.buf = { kind: 'skill', t: PLAYER.inputBuffer }; return; }
+  P.skillCd = SK.cd; P.dash = SK.dashTime; P.hitSet = new Set(); SFX.skill();
+  text(P.x, P.y - 30, SK.name + '!', '#ffb347', true);
 }
-const bossDmg = k => Math.round(F.boss.dmg[k] * (rage() ? 1.25 : 1));
+const bossDmg = k => Math.round(F.boss.dmg[k] * (rage() ? BOSS_RULES.rageDmgMult : 1));
+const wind = mv => MOVES[mv].wind[rage() ? 1 : 0];
 function endBossAct() { boss.act = null; boss.cd = F.boss.cd[rage() ? 1 : 0]; boss.z = 0; }
 function bossAct(act, t) { boss.act = act; boss.t = boss.tMax = t; boss.hitP = false; }
 function startBossMove(mv) {
@@ -445,12 +417,11 @@ function startBossMove(mv) {
   if (mv === 'leap') {
     boss.from = { x: boss.x, y: boss.y };
     boss.to = { x: clamp(P.x, ROOM.x0 + boss.r, WORLD.w - boss.r), y: clamp(P.y, boss.r, WORLD.h - boss.r) };
-    bossAct('leap', fast ? 0.8 : 1);
   } else if (mv === 'roots') { // spikes under the player plus random spots around the room
     boss.spots = [{ x: P.x, y: P.y }];
-    for (let i = 0; i < (fast ? 8 : 4); i++) boss.spots.push({ x: rand(ROOM.x0 + 40, WORLD.w - 40), y: rand(40, WORLD.h - 40) });
-    bossAct('roots', fast ? 0.75 : 0.95);
-  } else bossAct(mv, mv === 'quake' ? 0.9 : fast ? 0.6 : 0.9);
+    for (let i = 0; i < MOVES.roots.extraSpots[fast ? 1 : 0]; i++) boss.spots.push({ x: rand(ROOM.x0 + 40, WORLD.w - 40), y: rand(40, WORLD.h - 40) });
+  }
+  bossAct(mv, wind(mv));
 }
 
 function updateBoss(dt) {
@@ -462,7 +433,7 @@ function updateBoss(dt) {
   boss.hurt -= dt;
   if (!boss.act) {
     boss.cd -= dt;
-    const a = Math.atan2(P.y - boss.y, P.x - boss.x), sp = (F.boss.speed || [65, 95])[rage() ? 1 : 0];
+    const a = Math.atan2(P.y - boss.y, P.x - boss.x), sp = F.boss.speed[rage() ? 1 : 0];
     boss.ang = a;
     if (dist(boss, P) > boss.r + P.r) move(boss, Math.cos(a) * sp * dt, Math.sin(a) * sp * dt, ROOM.x0);
     if (boss.cd <= 0) startBossMove(pick(rage() ? F.boss.rageMoves : F.boss.moves));
@@ -471,37 +442,39 @@ function updateBoss(dt) {
   boss.t -= dt;
   if (boss.act === 'dash') {
     const ox = boss.x, oy = boss.y;
-    move(boss, Math.cos(boss.ang) * 760 * dt, Math.sin(boss.ang) * 760 * dt, ROOM.x0);
+    const sp = MOVES.charge.speed;
+    move(boss, Math.cos(boss.ang) * sp * dt, Math.sin(boss.ang) * sp * dt, ROOM.x0);
     if (Math.random() < 0.6) burst(boss.x, boss.y + boss.r * 0.7, 1, '#8a6a4a', 60, 0.4, 6, false);
     if (!boss.hitP && dist(boss, P) < boss.r + P.r) { boss.hitP = true; hurtPlayer(bossDmg('charge'), boss); }
     if (boss.t <= 0 || (boss.x === ox && boss.y === oy)) { endBossAct(); kick(0, 6); }
   } else if (boss.act === 'leap') {
     const k = 1 - boss.t / boss.tMax, e = k * k * (3 - 2 * k);
-    boss.x = lerp(boss.from.x, boss.to.x, e); boss.y = lerp(boss.from.y, boss.to.y, e); boss.z = Math.sin(k * Math.PI) * 160;
+    boss.x = lerp(boss.from.x, boss.to.x, e); boss.y = lerp(boss.from.y, boss.to.y, e); boss.z = Math.sin(k * Math.PI) * MOVES.leap.height;
     if (boss.t <= 0) {
       boss.x = boss.to.x; boss.y = boss.to.y;
       ring(boss.x, boss.y, 30, 120, 0.35, '255,80,80'); burst(boss.x, boss.y, 36, '#9a7a5a', 320, 0.6, 7, false); kick(0.08, 18); SFX.slam();
-      if (dist(boss, P) < 110 + P.r) hurtPlayer(bossDmg('leap'), boss);
+      if (dist(boss, P) < MOVES.leap.radius + P.r) hurtPlayer(bossDmg('leap'), boss);
       endBossAct();
     }
   } else if (boss.act === 'wave') {
-    boss.waveR += 380 * dt;
-    if (!boss.hitP && Math.abs(dist(boss, P) - boss.waveR) < 22) { boss.hitP = true; hurtPlayer(bossDmg('quake'), boss); }
-    if (boss.waveR > 520) endBossAct();
+    const Q = MOVES.quake;
+    boss.waveR += Q.speed * dt;
+    if (!boss.hitP && Math.abs(dist(boss, P) - boss.waveR) < Q.width) { boss.hitP = true; hurtPlayer(bossDmg('quake'), boss); }
+    if (boss.waveR > Q.maxR) endBossAct();
   } else if (boss.t <= 0) {
     if (boss.act === 'slam') {
       ring(boss.x, boss.y, 40, 140, 0.35, '255,80,80'); burst(boss.x, boss.y, 30, '#9a7a5a', 300, 0.6, 7, false); kick(0.06, 14); SFX.slam();
-      if (dist(boss, P) < 130 + P.r) hurtPlayer(bossDmg('slam'), boss);
+      if (dist(boss, P) < MOVES.slam.radius + P.r) hurtPlayer(bossDmg('slam'), boss);
       endBossAct();
     } else if (boss.act === 'roots') {
       for (const s of boss.spots) {
         burst(s.x, s.y, 14, '#7a5a30', 260, 0.5, 7, false); ring(s.x, s.y, 10, 60, 0.3, '120,200,90');
-        if (!boss.hitP && dist(s, P) < 60 + P.r) { boss.hitP = true; hurtPlayer(bossDmg('roots'), s); }
+        if (!boss.hitP && dist(s, P) < MOVES.roots.radius + P.r) { boss.hitP = true; hurtPlayer(bossDmg('roots'), s); }
       }
       kick(0.04, 10); SFX.slam(); endBossAct();
     } else if (boss.act === 'quake') {
-      kick(0.05, 16); SFX.slam(); boss.act = 'wave'; boss.waveR = 40; boss.hitP = false;
-    } else { bossAct('dash', 0.45); SFX.charge(); }
+      kick(0.05, 16); SFX.slam(); boss.act = 'wave'; boss.waveR = MOVES.quake.startR; boss.hitP = false;
+    } else { bossAct('dash', MOVES.charge.dashTime); SFX.charge(); }
   }
 }
 
@@ -519,12 +492,12 @@ function update(dt) {
   // Player: Sword Skill dash -> post-motion delay -> normal movement
   if (P.dash > 0) {
     P.dash -= dt;
-    move(P, Math.cos(P.ang) * 900 * dt, Math.sin(P.ang) * 900 * dt);
+    move(P, Math.cos(P.ang) * SK.dashSpeed * dt, Math.sin(P.ang) * SK.dashSpeed * dt);
     P.trail.push({ x: P.x, y: P.y, t: 0.25 });
-    for (const e of targets()) if (!P.hitSet.has(e) && dist(P, e) < e.r + 35) {
-      P.hitSet.add(e); hurtEnemy(e, Math.round(P.atk * 2.5), true);
+    for (const e of targets()) if (!P.hitSet.has(e) && dist(P, e) < e.r + SK.hitRadius) {
+      P.hitSet.add(e); hurtEnemy(e, Math.round(P.atk * SK.dmgMult), true);
     }
-    if (P.dash <= 0) P.delay = 0.5;
+    if (P.dash <= 0) P.delay = SK.delay;
   } else {
     P.ang = Math.atan2(mouse.y + cam.y - P.y, mouse.x + cam.x - P.x);
     applyKnock(P, dt);
@@ -533,11 +506,11 @@ function update(dt) {
       const dx = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
       const dy = (keys.KeyS || keys.ArrowDown ? 1 : 0) - (keys.KeyW || keys.ArrowUp ? 1 : 0);
       const l = Math.hypot(dx, dy) || 1;
-      move(P, dx / l * 220 * dt, dy / l * 220 * dt);
+      move(P, dx / l * PLAYER.speed * dt, dy / l * PLAYER.speed * dt);
       P.moving = dx || dy;
     }
   }
-  if (P.x < TOWN_X) P.hp = Math.min(P.maxHp, P.hp + 15 * dt);
+  if (P.x < TOWN_X) P.hp = Math.min(P.maxHp, P.hp + PLAYER.townRegen * dt);
   if (portal && dist(P, portal) < 40) { loadFloor(floorIdx + 1); return; }
 
   // Mobs: wander, chase outside town, wind up (telegraph) then lunge
@@ -545,26 +518,26 @@ function update(dt) {
     if (m.hp <= 0) { if ((m.dead -= dt) <= 0) Object.assign(m, mob(m.sx, m.sy)); continue; }
     m.cd -= dt; m.hurt -= dt; m.lunge -= dt;
     applyKnock(m, dt, TOWN_X);
-    const d = dist(m, P), chase = d < 260 && P.x > TOWN_X;
+    const M = F.mob, d = dist(m, P), chase = d < M.chaseRange && P.x > TOWN_X, wr = M.wanderRange;
     if (m.wind > 0) {
       m.face = Math.atan2(P.y - m.y, P.x - m.x); m.wind -= dt;
-      if (m.wind <= 0) { m.lunge = 0.15; m.cd = 1; if (d < m.r + P.r + 24) hurtPlayer(F.mob.dmg, m); }
+      if (m.wind <= 0) { m.lunge = M.lunge; m.cd = M.attackCd; if (d < m.r + P.r + M.reach) hurtPlayer(M.dmg, m); }
       continue;
     }
     if (!chase && (Math.hypot(m.wx - m.x, m.wy - m.y) < 5 || Math.random() < dt * 0.3)) {
-      m.wx = m.sx + rand(-80, 80); m.wy = m.sy + rand(-80, 80);
+      m.wx = m.sx + rand(-wr, wr); m.wy = m.sy + rand(-wr, wr);
     }
     const tx = chase ? P.x : m.wx, ty = chase ? P.y : m.wy;
     m.face = Math.atan2(ty - m.y, tx - m.x);
-    if (chase && d <= m.r + P.r + 8) { if (m.cd <= 0) { m.wind = F.mob.wind; SFX.windup(); } continue; }
-    const sp = chase ? F.mob.speed : 50, ox = m.x, oy = m.y, siding = m.side > 0;
+    if (chase && d <= m.r + P.r + M.attackRange) { if (m.cd <= 0) { m.wind = M.wind; SFX.windup(); } continue; }
+    const sp = chase ? M.speed : M.wanderSpeed, ox = m.x, oy = m.y, siding = m.side > 0;
     if (siding) { // walking around an obstacle
       m.side -= dt;
       move(m, -Math.sin(m.face) * m.sideDir * sp * dt, Math.cos(m.face) * m.sideDir * sp * dt, TOWN_X);
     } else move(m, Math.cos(m.face) * sp * dt, Math.sin(m.face) * sp * dt, TOWN_X);
     if (Math.hypot(m.x - ox, m.y - oy) < sp * dt * 0.3) { // (nearly) blocked: sidestep for a moment
       m.sideDir = siding ? -m.sideDir : (Math.random() < 0.5 ? 1 : -1); m.side = 0.5;
-      if (!chase) { m.wx = m.sx + rand(-80, 80); m.wy = m.sy + rand(-80, 80); }
+      if (!chase) { m.wx = m.sx + rand(-wr, wr); m.wy = m.sy + rand(-wr, wr); }
     }
   }
 
@@ -589,7 +562,7 @@ function shadow(x, y, r, k = 1) {
 function drawMob(m) {
   shadow(m.x, m.y, m.r);
   // wind-up: shake + red flash; lunge: hop toward the target
-  const jit = m.wind > 0 ? Math.sin(time * 70) * 2 : 0, hop = m.lunge > 0 ? Math.sin((m.lunge / 0.15) * Math.PI) * 12 : 0;
+  const jit = m.wind > 0 ? Math.sin(time * 70) * 2 : 0, hop = m.lunge > 0 ? Math.sin((m.lunge / F.mob.lunge) * Math.PI) * 12 : 0;
   const x = Math.round(m.x + jit + Math.cos(m.face) * hop), y = Math.round(m.y + Math.sin(m.face) * hop);
   // reduced-flash mode: no white/blink frames, the steady red glow + "!" carry the wind-up
   const flash = settings.flash && (m.hurt > 0 || (m.wind > 0 && Math.floor(time * 16) % 2 === 0));
@@ -639,18 +612,18 @@ function drawTelegraph() {
   ctx.save();
   ctx.strokeStyle = `rgba(255,60,60,${0.5 + pulse * 0.4})`; ctx.lineWidth = 3; ctx.fillStyle = 'rgba(255,40,40,.28)';
   if (boss.act === 'slam') {
-    ctx.beginPath(); ctx.arc(boss.x, boss.y, 130, 0, 7); ctx.stroke();
-    ctx.beginPath(); ctx.arc(boss.x, boss.y, 130 * p, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(boss.x, boss.y, MOVES.slam.radius, 0, 7); ctx.stroke();
+    ctx.beginPath(); ctx.arc(boss.x, boss.y, MOVES.slam.radius * p, 0, 7); ctx.fill();
   } else if (boss.act === 'charge') {
     ctx.translate(boss.x, boss.y); ctx.rotate(boss.ang);
-    ctx.strokeRect(0, -boss.r, 340, boss.r * 2); ctx.fillRect(0, -boss.r, 340 * p, boss.r * 2);
+    ctx.strokeRect(0, -boss.r, MOVES.charge.length, boss.r * 2); ctx.fillRect(0, -boss.r, MOVES.charge.length * p, boss.r * 2);
   } else if (boss.act === 'leap') {
-    ctx.beginPath(); ctx.arc(boss.to.x, boss.to.y, 110, 0, 7); ctx.stroke();
-    ctx.beginPath(); ctx.arc(boss.to.x, boss.to.y, 110 * p, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(boss.to.x, boss.to.y, MOVES.leap.radius, 0, 7); ctx.stroke();
+    ctx.beginPath(); ctx.arc(boss.to.x, boss.to.y, MOVES.leap.radius * p, 0, 7); ctx.fill();
   } else if (boss.act === 'roots') {
     for (const s of boss.spots) {
-      ctx.beginPath(); ctx.arc(s.x, s.y, 60, 0, 7); ctx.stroke();
-      ctx.beginPath(); ctx.arc(s.x, s.y, 60 * p, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.arc(s.x, s.y, MOVES.roots.radius, 0, 7); ctx.stroke();
+      ctx.beginPath(); ctx.arc(s.x, s.y, MOVES.roots.radius * p, 0, 7); ctx.fill();
     }
   } else if (boss.act === 'quake') {
     ctx.strokeStyle = `rgba(200,80,255,${0.5 + pulse * 0.5})`; ctx.lineWidth = 6;
@@ -802,7 +775,7 @@ function drawPlayerPanel() {
 function drawBossBar() {
   if (!boss.awake || boss.hp <= 0) return;
   // SAO bosses show several stacked HP bars: one drains at a time, pips count the ones left
-  const bars = F.boss.bars || 4, seg = boss.maxHp / bars, left = Math.ceil(boss.hp / seg);
+  const bars = F.boss.bars, seg = boss.maxHp / bars, left = Math.ceil(boss.hp / seg);
   const frac = (boss.hp - (left - 1) * seg) / seg, lag = boss.lag > left * seg ? 1 : (boss.lag - (left - 1) * seg) / seg;
   const w = 440, x = (W - w) / 2, y = H - 118; // bottom centre, above the skill slots
   ctx.textAlign = 'center'; ctx.font = `700 14px ${FN}`; ctx.lineJoin = 'round';
@@ -817,8 +790,8 @@ function drawBossBar() {
 function drawSkillSlots() {
   const s = 56, gap = 12, x0 = W / 2 - s - gap / 2, y = H - s - 18;
   const slots = [
-    { key: 'J', label: 'ฟัน', cd: Math.max(0, P.atkCd) / 0.32, glow: false },
-    { key: 'K', label: 'Sonic Leap', cd: Math.max(0, P.skillCd) / 3, glow: P.skillCd <= 0, secs: P.skillCd },
+    { key: 'J', label: 'ฟัน', cd: Math.max(0, P.atkCd) / A.cd, glow: false },
+    { key: 'K', label: SK.name, cd: Math.max(0, P.skillCd) / SK.cd, glow: P.skillCd <= 0, secs: P.skillCd },
   ];
   slots.forEach((sl, i) => {
     const x = x0 + i * (s + gap), cx = x + s / 2, cy = y + s / 2;
