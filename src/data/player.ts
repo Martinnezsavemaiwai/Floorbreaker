@@ -11,7 +11,7 @@ export interface PlayerStats {
 
 export const PLAYER = {
   hp: 100, atk: 10, radius: 14, speed: 220,
-  perLevel: { hp: 20, atk: 3 },
+  perLevel: { hp: 14, atk: 2 }, // lowered from 20/3 when level-up picks arrived; bot runs (12 seeds): 9 wins fully levelled, 1 under-levelled
   xpToNext: lv => lv * 50,
   townRegen: 15,     // HP per second inside the safe zone
   // i-frames after a hit. Bot full runs: none 1/4 wins, 0.6s 5/6, 0.4s 7/8 — they mostly stop simultaneous multi-hits
