@@ -5,5 +5,6 @@ export default defineConfig({
   base: './',
   server: { port: 5173 },
   // Headless sims run in Node: the game logic must not touch the DOM
-  test: { include: ['tests/**/*.test.ts'], environment: 'node' },
+  // testTimeout: the first cold run spends most of its time importing and can pass the 5 s default
+  test: { include: ['tests/**/*.test.ts'], environment: 'node', testTimeout: 20000 },
 });
