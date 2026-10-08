@@ -1,6 +1,6 @@
 // Player actions and movement: 3-hit sword combo, two Blade Art slots (-> post-motion delay), dodge roll, input buffer, town regen.
 import { G } from '../world/state.ts';
-import { TOWN_X } from '../world/constants.ts';
+import { TOWN_X, ROOM_X } from '../world/constants.ts';
 import { move, applyKnock } from '../world/physics.ts';
 import { loadFloor } from '../world/floor.ts';
 import { PLAYER } from '../data/player.ts';
@@ -97,6 +97,13 @@ function stab() {
   burst(P.x + cx * V.length, P.y + cy * V.length, 14, '#ffd27a', 300, 0.35, 4, false);
 }
 
+// A dash or roll stops at the boss door while the boss sleeps: entering (and getting locked in) takes a deliberate walk
+function dashMove(P, dx, dy) {
+  const x0 = P.x;
+  move(P, dx, dy);
+  if (!G.boss.awake && P.x > ROOM_X && x0 <= ROOM_X) P.x = ROOM_X;
+}
+
 // Returns true when the player stepped into the portal and a new floor was loaded (skip the rest of this step)
 export function updatePlayer(dt) {
   const P = G.P;
@@ -111,7 +118,7 @@ export function updatePlayer(dt) {
 
   if (P.dash > 0) {
     P.dash -= dt;
-    move(P, Math.cos(P.ang) * SK.dashSpeed * dt, Math.sin(P.ang) * SK.dashSpeed * dt);
+    dashMove(P, Math.cos(P.ang) * SK.dashSpeed * dt, Math.sin(P.ang) * SK.dashSpeed * dt);
     P.trail.push({ x: P.x, y: P.y, t: 0.25 });
     for (const e of targets()) if (!P.hitSet.has(e) && dist(P, e) < e.r + SK.hitRadius) {
       const m = mods();
@@ -123,7 +130,7 @@ export function updatePlayer(dt) {
     if (P.thrust <= 0) stab();
   } else if (P.roll > 0) {
     P.roll -= dt;
-    move(P, Math.cos(P.rollAng) * RL.speed * dt, Math.sin(P.rollAng) * RL.speed * dt);
+    dashMove(P, Math.cos(P.rollAng) * RL.speed * dt, Math.sin(P.rollAng) * RL.speed * dt);
     P.moving = true;
   } else {
     // aim: right stick, else the walking direction (pad, or the "move" setting), else the mouse

@@ -52,6 +52,20 @@ describe('player', () => {
     expect(G.P!.atkCd).toBeLessThan(0); // no surprise swing happened
   });
 
+  it('a dash or roll at the doorway never carries you into the boss room (you have to walk in)', () => {
+    // floors 1 and 3 have a ranged mob standing right in front of the door: dashing at it used to lock you in with the boss
+    G.cam.x = 0; G.cam.y = 0;
+    for (const move of [() => skill(), () => { keys.KeyD = true; roll(); keys.KeyD = false; }]) {
+      quietField(); G.P!.x = ROOM_X - 70; G.P!.y = 600; mouse.x = ROOM_X + 400; mouse.y = 600;
+      move(); frames(40);
+      expect(G.boss!.awake).toBe(false);
+      expect(G.P!.x).toBeLessThanOrEqual(ROOM_X);
+    }
+    // walking in still wakes the boss and locks the door, as before
+    quietField(); G.P!.x = ROOM_X - 20; G.P!.y = 600; keys.KeyD = true; frames(60); keys.KeyD = false;
+    expect(G.boss!.awake).toBe(true);
+  });
+
   it('levels up at xpToNext and gains the per-level stats', () => {
     gainXp(PLAYER.xpToNext(1));
     expect(G.P!.lv).toBe(2);
