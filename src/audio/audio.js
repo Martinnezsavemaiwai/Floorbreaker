@@ -1,9 +1,9 @@
-// Music: Ninja Adventure tracks (CC0). SFX: synthesized with Web Audio (the GitHub pack ships no sound effects).
+// Music: our own BeepBox songs (scripts/make_music.mjs renders them to looping MP3s). SFX: synthesized with Web Audio.
 // Gameplay never calls sounds directly — the bottom of this file maps game events to SFX and music.
 import { settings } from '../core/save.ts';
 import { on } from '../core/events.ts';
 
-const MUSIC = { 0: 'theme_plain', 1: 'theme_swamp', 2: 'theme_dream', 3: 'theme_swamp', boss: 'theme_lost_village', clear: 'theme_dream' };
+const MUSIC = { 0: 'floor1', 1: 'floor2', 2: 'floor3', 3: 'floor4', boss: 'boss', clear: 'clear', title: 'title' };
 const tracks = {};
 let AC, master, music = null, muted = false;
 

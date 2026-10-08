@@ -23,7 +23,7 @@ import { SHOP } from './data/shop.ts';
 import { attack, skill, roll, hurtPlayer, startBossMove, updateGame, updateFx } from './systems/index.js';
 import { drawWorld } from './render/world.js';
 import { cv } from './render/canvas.js';
-import { toggleMute } from './audio/audio.js';
+import { toggleMute, initAudio, playMusic } from './audio/audio.js';
 import { $, current, closeSub, inSubScreen, openSub, toast, bindActions, dialogOpen } from './ui/screens.js';
 import { resetKeys, downloadSave, pickImport } from './ui/settings.js';
 import { titleScene, playing, newGame, pauseGame, resumeGame, startIntro, continueRun, goHome, saveAndQuit, suspendRun, picking, pickUpgrade,
@@ -119,6 +119,10 @@ const frames = runFrames(real => { for (const b of pollPad()) padPress(b); clock
 document.addEventListener('visibilitychange', () => { if (document.hidden) { pauseGame(); suspendRun(); } else frames.reset(); });
 addEventListener('pagehide', suspendRun);
 scenes.replace(titleScene);
+// Browsers only allow sound after a user gesture: start audio (and the title music) on the first click or key
+const unlockAudio = () => { initAudio(); if (current === 'title-screen') playMusic('title'); };
+addEventListener('pointerdown', unlockAudio, { once: true });
+addEventListener('keydown', unlockAudio, { once: true });
 
 // Dev-only handle for console/bot playtests; stripped from production builds.
 if (import.meta.env.DEV) {

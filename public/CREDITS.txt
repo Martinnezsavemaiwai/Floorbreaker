@@ -3,8 +3,8 @@ Sword Art On You — credits
 All sprites, scenery and textures: original art for this game (generated with ChatGPT, processed with
 scripts/import_art.py). Source images are in art-src/.
 
-Music: Ninja Adventure Asset Pack by Pixel-boy and AAA — CC0 1.0 (public domain)
-  https://pixel-boy.itch.io/ninja-adventure-asset-pack
+Music: original songs for this game, written in BeepBox (https://www.beepbox.co, MIT-licensed synth) and
+rendered with scripts/make_music.mjs. Editable sources: art-src/music.txt (BeepBox links) and art-src/music/*.json.
 
 Fonts (SIL Open Font License 1.1, full texts in licenses/):
   Kanit — Copyright 2020 The Kanit Project Authors (https://github.com/cadsondemak/kanit)

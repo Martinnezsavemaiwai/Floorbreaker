@@ -10,7 +10,7 @@ import { on } from '../core/events.ts';
 import { updateGame, updateFx } from '../systems/index.js';
 import { drawWorld } from '../render/world.js';
 import { updateMenuBg, drawMenuBg, drawIntro, INTRO_TIME } from '../render/menu.js';
-import { initAudio, stopMusic, pauseMusic, resumeMusic, SFX } from '../audio/audio.js';
+import { initAudio, stopMusic, playMusic, pauseMusic, resumeMusic, SFX } from '../audio/audio.js';
 import { screen, showPauseStats, showUpgradePicker, renderShop, showStoryLine, confirmDialog, $ } from '../ui/screens.js';
 import { nearMerchant, buy } from '../systems/shop.js';
 import { STORY } from '../data/story.ts';
@@ -22,7 +22,7 @@ let resume = null; // suspend data to continue from once the intro finishes
 
 export const titleScene = {
   name: 'menu',
-  enter() { G.P = null; G.run = null; storyQueue.length = 0; stopMusic(); screen('title-screen'); },
+  enter() { G.P = null; G.run = null; storyQueue.length = 0; playMusic('title'); screen('title-screen'); }, // silent until the first click/key (autoplay rules)
   update: updateMenuBg, draw: drawMenuBg,
 };
 const introScene = {
