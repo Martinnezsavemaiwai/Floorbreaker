@@ -1,7 +1,7 @@
-// Sprites (Ninja Adventure, CC0, pixel-boy).
-// Characters and mobs are our own art (art-src/ -> scripts/import_art.py). Character sheets: 4 columns
+// Sprites and scenery: our own art (art-src/ -> scripts/import_art.py).
+// Character sheets: 4 columns
 // (down/up/left/right) x 7 rows (0-3 walk, 4 attack) of square cells sized so each draws 1:1.
-// Beasts: 2 side-view frames facing left. The terrain and the treant (village.png) are still from the pack.
+// Beasts: 2 side-view frames facing left. Scenery: tileable textures and loose pieces (see render/terrain.js).
 export const IMG: Record<string, HTMLImageElement | HTMLCanvasElement> = {};
 
 // 'source-in' = flat silhouette, 'multiply' = recolor keeping the pixel shading
@@ -14,12 +14,14 @@ export function tinted(img: HTMLImageElement, mode: GlobalCompositeOperation, co
 }
 // rage forms of the bosses: the same art pushed toward red/orange
 const TINTS: Record<string, Record<string, string>> = {
-  village: { treeRage: '#ff7050' }, boss1: { boss1Rage: '#ffb070' }, boss2: { boss2Rage: '#ff8a8a' }, boss4: { boss4Rage: '#c0a0ff' },
+  treant: { treantRage: '#ff7050' }, boss1: { boss1Rage: '#ffb070' }, boss2: { boss2Rage: '#ff8a8a' }, boss4: { boss4Rage: '#c0a0ff' },
 };
 const SPRITES = ['player', 'merchant', 'slinger', 'taurus', 'javelin', 'guardian', 'elf', 'mage', 'knight', 'wraith', 'tideguard',
-  'boss1', 'boss2', 'boss4', 'boar', 'piglet', 'shadowpig', 'tidalboar', 'crab'];
+  'boss1', 'boss2', 'boss4', 'boar', 'piglet', 'shadowpig', 'tidalboar', 'crab', 'treant'];
+const SCENERY = ['ground-1', 'ground-2', 'ground-3', 'ground-4', 'road', 'town', 'bossroom', 'wall', 'water',
+  'tree-big', 'tree-dark', 'tree-small', 'fountain', 'patches-1', 'patches-2', 'patches-3', ...Array.from({ length: 8 }, (_, i) => `deco-${i + 1}`)];
 const loadImg = (n: string) => { const i = new Image(); i.src = `assets/${n}.png`; return i.decode().then(() => i); };
-export const ready = Promise.all([...SPRITES, 'sword', 'floor', 'interior', 'village', 'fog'].map(n => loadImg(n).then(img => {
+export const ready = Promise.all([...SPRITES, ...SCENERY, 'sword', 'fog'].map(n => loadImg(n).then(img => {
   IMG[n] = img; IMG[n + 'White'] = tinted(img, 'source-in', '#fff');
   for (const [k, col] of Object.entries(TINTS[n] || {})) IMG[k] = tinted(img, 'multiply', col);
 })));

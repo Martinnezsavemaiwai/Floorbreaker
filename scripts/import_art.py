@@ -8,7 +8,12 @@ character: poses in a 4-column grid (columns = down, up, left, right). Either a 
   Packed into the layout the game reads: 4 x 7 square cells (rows 1-4 walk, row 5 attack, rows 6-7 empty).
   attack=False fills row 5 with the standing pose (the player: the game draws its sword separately).
 beast: two side-view frames facing left -> a 2-cell strip.
-item: one drawing cropped to its outline, `size` = height in px.
+item: one drawing cropped to its outline, `size` = its longer side in px.
+pieces: several separate drawings in one image (read left to right, top to bottom) -> <name>-1.png, -2.png...
+  all scaled by the same factor so the largest is `size` px on its longer side.
+texture: a full-frame tileable texture -> a `size` px square (or `size` px tall strip with `wide`), edges
+  blended so it repeats without a seam.
+fog: white mist on black -> white with the brightness as transparency (soft, not pixel art).
 
 `size` for characters/beasts is the cell size: pick 16 x the scale the game draws that sprite at, so it shows
 1:1 (48 for normal mobs at x3, 62 for the x1.3 guardians, 31 for x0.65 swarms, 16 x boss scale for bosses).
@@ -30,6 +35,14 @@ SPRITES = {
     'boar': ('beast', 48, {}), 'tidalboar': ('beast', 48, {}),
     'piglet': ('beast', 31, {}), 'shadowpig': ('beast', 31, {}), 'crab': ('beast', 31, {}),
     'sword': ('item', 42, {}),
+    # scenery
+    'ground-1': ('texture', 192, {}), 'ground-2': ('texture', 192, {}), 'ground-3': ('texture', 192, {}),
+    'ground-4': ('texture', 192, {}), 'town': ('texture', 192, {}), 'bossroom': ('texture', 192, {}),
+    'wall': ('texture', 192, {}), 'water': ('texture', 192, {}), 'road': ('texture', 160, {'wide': True, 'clear_green': True}),
+    'tree-big': ('item', 128, {}), 'tree-dark': ('item', 128, {}), 'tree-small': ('item', 80, {}),
+    'fountain': ('item', 132, {}), 'treant': ('item', 224, {}),
+    'patches': ('pieces', 150, {}), 'deco': ('pieces', 40, {}),
+    'fog': ('fog', 640, {}),
 }
 
 
@@ -127,18 +140,74 @@ def beast(src, dst, cell):
     print(f'{dst}: 2 frames from {src}')
 
 
-def item(src, dst, h):
+def item(src, dst, size):
     img = cut_out(Image.open(src))
     img = img.crop(img.getchannel('A').getbbox())
-    w = max(1, round(img.width * h / img.height))
-    snap(img.resize((w, h), Image.Resampling.BOX)).save(dst)
-    print(f'{dst}: {w}x{h} from {src}')
+    snap(scaled(img, (0, 0, img.width, img.height), size / max(img.size))).save(dst)
+    print(f'{dst}: {Image.open(dst).size} from {src}')
+
+
+def pieces(src, dst, size):
+    img = cut_out(Image.open(src))
+    boxes = [b for row in grid(blobs(img), cols=99) for b in row]
+    rows, cur = [], []  # group into rows: a new row starts when a box begins below the current row's bottom
+    for b in sorted(boxes, key=lambda b: b[1]):
+        if cur and b[1] > max(c[3] for c in cur): rows.append(cur); cur = []
+        cur.append(b)
+    boxes = [b for r in rows + [cur] for b in sorted(r, key=lambda b: b[0])]
+    k = size / max(max(b[2] - b[0], b[3] - b[1]) for b in boxes)
+    for i, box in enumerate(boxes, 1):
+        part = scaled(img, box, k)
+        snap(part.crop(part.getchannel('A').getbbox())).save(dst.replace('.png', f'-{i}.png'))
+    print(f'{dst}: {len(boxes)} pieces from {src}')
+
+
+def seamless(img, wide):
+    """Hide the wrap-around seam: near the edges, fade to a copy rolled by half (whose edges are the image's
+    middle, so they wrap cleanly); the middle keeps the original."""
+    w, h = img.size
+    rolled = Image.new(img.mode, img.size)
+    dx, dy = w // 2, (0 if wide else h // 2)  # a road strip only repeats left to right
+    for ox, oy in ((0, 0), (-w, 0), (0, -h), (-w, -h)):
+        rolled.paste(img, (dx + ox, dy + oy))
+    mask = Image.new('L', img.size)
+    m = mask.load()
+    for y in range(h):
+        for x in range(w):
+            ex = abs(x - w / 2) / (w / 2)
+            ey = 0 if wide else abs(y - h / 2) / (h / 2)
+            m[x, y] = int(255 * max(0, (max(ex, ey) - 0.7) / 0.3))  # only the outer 15% each side blends
+    return Image.composite(rolled, img, mask)
+
+
+def texture(src, dst, size, wide=False, clear_green=False):
+    img = Image.open(src).convert('RGB')
+    w = round(size * img.width / img.height) if wide else size
+    img = snap(seamless(img.resize((w, size), Image.Resampling.BOX), wide).convert('RGBA'))
+    if clear_green:  # the road's grass verges become transparent, so the dirt lies on any floor's own grass
+        px = img.load()
+        for y in range(img.height):
+            for x in range(img.width):
+                r, g, b, a = px[x, y]
+                edge = y < img.height * 0.18 or y > img.height * 0.82  # verge rows: drop stray flower pixels too
+                if edge or (g > r + 12 and g > b): px[x, y] = (0, 0, 0, 0)
+    img.save(dst)
+    print(f'{dst}: {w}x{size} texture from {src}')
+
+
+def fog(src, dst, width):
+    img = Image.open(src).convert('L')
+    img = seamless(img.resize((width, round(width * img.height / img.width)), Image.Resampling.LANCZOS), False)
+    out = Image.new('RGBA', img.size, (255, 255, 255, 0))
+    out.putalpha(img)
+    out.save(dst)
+    print(f'{dst}: {out.size} fog from {src}')
 
 
 def build(name):
     kind, size, opt = SPRITES[name]
     src, dst = f'art-src/{opt.pop("src", name)}.png', f'public/assets/{name}.png'
-    {'character': character, 'beast': beast, 'item': item}[kind](src, dst, size, **opt)
+    {'character': character, 'beast': beast, 'item': item, 'pieces': pieces, 'texture': texture, 'fog': fog}[kind](src, dst, size, **opt)
 
 
 if __name__ == '__main__':

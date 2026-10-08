@@ -41,7 +41,7 @@ export const BOSSES = {
   },
   // The treant is a big tree sprite instead of a character sheet: slow, no charge/leap, roots erupt under you
   nerius: {
-    name: 'Nerius the Evil Treant', tree: true, img: 'village', rageImg: 'treeRage', hp: 3200, bars: 5, r: 70, speed: [35, 50], cd: [1.5, 0.9], summon: 3,
+    name: 'Nerius the Evil Treant', tree: true, img: 'treant', rageImg: 'treantRage', hp: 3200, bars: 5, r: 70, speed: [35, 50], cd: [1.5, 0.9], summon: 3,
     moves: ['slam', 'roots', 'quake'], rageMoves: ['roots', 'roots', 'quake', 'slam'], dmg: { slam: 55, roots: 45, quake: 40 },
   },
   // Floor 4: a water beast that fills the room with rings of water shots

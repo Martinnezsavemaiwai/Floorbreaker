@@ -58,15 +58,12 @@ function drawBoss() {
   if (F.boss.tree) { ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(b.x, b.y + b.r * 0.55, b.r * 1.4, b.r * 0.45, 0, 0, 7); ctx.fill(); }
   else shadow(b.x, b.y, b.r, 1 - b.z / 320);
   const jit = winding || b.act === 'roots' ? Math.sin(time * 60) * 3 : 0;
-  if (F.boss.tree) { // big tree from village.png that sways, swells while winding up, and glows red with rage
-    const s = 3.5, w = 64 * s, h = 48 * s, swell = winding || b.act === 'roots' ? 1 + 0.06 * Math.sin(time * 20) : 1;
+  if (F.boss.tree) { // the treant sways, swells while winding up, and glows red with rage
+    const swell = winding || b.act === 'roots' ? 1 + 0.06 * Math.sin(time * 20) : 1;
     ctx.save(); ctx.translate(b.x + jit, b.y + b.r * 0.6); ctx.rotate(Math.sin(time * 1.6) * 0.04); ctx.scale(swell, 1 / swell);
     if (rage()) { ctx.shadowColor = '#ff4020'; ctx.shadowBlur = 30; }
-    const img = b.hurt > 0 && settings.flash ? IMG.villageWhite : IMG[rage() ? F.boss.rageImg : F.boss.img];
-    ctx.drawImage(img, 0, 96, 64, 48, -w / 2, -h, w, h);
-    ctx.restore();
-    ctx.save(); ctx.shadowColor = '#ff3020'; ctx.shadowBlur = 12; ctx.fillStyle = '#ffdd33';
-    for (const dx of [-18, 18]) { ctx.beginPath(); ctx.arc(b.x + dx + jit, b.y - 40, 5, 0, 7); ctx.fill(); } // glowing eyes
+    const img = b.hurt > 0 && settings.flash ? IMG.treantWhite : IMG[rage() ? F.boss.rageImg : F.boss.img];
+    ctx.drawImage(img, -img.width / 2, -img.height);
     ctx.restore();
     return;
   }
@@ -274,9 +271,9 @@ function drawFx() {
   }
   ctx.globalAlpha = 1;
 }
-function drawFog() { // two drifting layers of the pack's fog texture over the field
+function drawFog() { // two drifting layers of the fog texture over the field
   ctx.save(); ctx.beginPath(); ctx.rect(TOWN_X, 0, ROOM_X - TOWN_X, WORLD.h); ctx.clip();
-  for (const [speed, alpha] of [[14, 0.16], [-22, 0.1]]) {
+  for (const [speed, alpha] of [[14, 0.3], [-22, 0.18]]) {
     ctx.globalAlpha = alpha; const fw = 960, fh = 528, ox = ((G.time * speed) % fw + fw) % fw;
     for (let x = TOWN_X - fw + ox; x < ROOM_X; x += fw) for (let y = 0; y < WORLD.h; y += fh) ctx.drawImage(IMG.fog, x, y, fw, fh);
   }
