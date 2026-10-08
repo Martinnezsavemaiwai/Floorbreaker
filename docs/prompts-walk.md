@@ -19,7 +19,7 @@
 
 ---
 
-## slinger.png · Kobold Slinger (ชั้น 1)
+## slinger.png · Houndfang Slinger (ชั้น 1)
 ```
 Using the attached character exactly (same colors, same proportions, same green hood, same sling and pouches),
 draw a sprite sheet grid of exactly 4 columns and 5 rows (20 poses), evenly spaced with clear empty space
@@ -144,7 +144,7 @@ light from the top-left, no anti-aliasing, no gradients, no text, no grid lines.
 Solid flat #FF00FF magenta background.
 ```
 
-## boss1.png · Grask the Kobold Warlord (บอสชั้น 1)
+## boss1.png · Grask the Houndfang Warlord (บอสชั้น 1)
 ```
 Using the attached character exactly (same red-furred kobold chieftain, same bone club, same leather war harness
 and skull decorations), draw a sprite sheet grid of exactly 4 columns and 5 rows (20 poses), evenly spaced with

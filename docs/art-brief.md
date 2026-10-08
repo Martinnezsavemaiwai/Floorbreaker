@@ -93,7 +93,7 @@ Keep the character centered in each cell with the feet near the bottom. [STYLE]
 |---|---|---|
 | `player.png` | ผู้เล่น | a young swordsman with short silver hair tied back, navy-blue short coat with light-cyan trim, white scarf, brown boots, holding a slim straight one-handed sword |
 | `merchant.png` | พ่อค้าในเมือง (ใช้แค่ท่ายืนหันหน้า) | a plump cheerful traveling merchant with an orange apron, a big backpack full of bottles, and a round cloth hat |
-| `slinger.png` | Kobold Slinger (ชั้น 1 ยิงไกล) | a small dog-faced goblin in a green hood with a leather sling |
+| `slinger.png` | Houndfang Slinger (ชั้น 1 ยิงไกล) | a small dog-faced goblin in a green hood with a leather sling |
 | `taurus.png` | Taurus Soldier (ชั้น 2) | a muscular bull-headed warrior in bronze chest armor holding a short axe |
 | `javelin.png` | Taurus Javelineer (ชั้น 2 ยิงไกล) | a lean bull-headed warrior in light red leather armor carrying a quiver of javelins |
 | `guardian.png` | Taurus Guardian (ชั้น 2 เกราะ) | a huge bull-headed warrior in heavy steel plate armor with a tall tower shield |
@@ -102,7 +102,7 @@ Keep the character centered in each cell with the feet near the bottom. [STYLE]
 | `knight.png` | Dark Elf Knight (ชั้น 3 เกราะ) | a dark elf knight in black and violet plate armor with a kite shield |
 | `wraith.png` | Water Wraith (ชั้น 4 ยิงไกล) | a translucent aqua water spirit in a tattered hooded robe, glowing eyes |
 | `tideguard.png` | Tide Guardian (ชั้น 4 เกราะ) | a fish-man warrior in coral and shell armor with a round shell shield |
-| `boss1.png` | Grask the Kobold Warlord (บอสชั้น 1) | a large kobold chieftain with red fur, a bone club and a leather war harness |
+| `boss1.png` | Grask the Houndfang Warlord (บอสชั้น 1) | a large kobold chieftain with red fur, a bone club and a leather war harness |
 | `boss2.png` | Bullgard (บอสชั้น 2) | a giant bull king warrior with a golden crown, a huge double axe, and a purple cape |
 | `boss4.png` | Marisca (บอสชั้น 4) | a hippocampus sea beast standing upright: horse head and front body, fish tail, teal scales, fin mane |
 

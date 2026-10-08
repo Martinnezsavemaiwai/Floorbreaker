@@ -27,7 +27,7 @@ export interface FloorDef {
 export const FLOORS: FloorDef[] = [
   {
     name: 'Floor 1', town: 'Firstlight', ground: 1, roomTint: null, torch: '255,150,60',
-    mob: 'frenzyBoar', boss: 'koboldLord', ranged: 'koboldSlinger',
+    mob: 'frenzyBoar', boss: 'houndfangLord', ranged: 'houndfangSlinger',
     trees: [[660, 220, 'big'], [930, 780, 'big'], [1200, 380, 'small'], [800, 420, 'small'], [560, 860, 'small'], [1320, 720, 'small'], [1100, 1020, 'big']],
     spawns: [[600, 200], [650, 900], [900, 450], [1050, 250], [1100, 700], [1300, 950], [1350, 200], [800, 1050]],
     rangedSpawns: [[1000, 560], [1400, 560], [700, 650]],

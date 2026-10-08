@@ -27,7 +27,7 @@ export const MOBS = {
   taurusSoldier: { ...BASE, name: 'Taurus Soldier', img: 'taurus', white: 'taurusWhite', kind: 'humanoid', hp: 90, dmg: 16, speed: 125, wind: 0.4, xp: 45, col: 8 },
   darkElf: { ...BASE, name: 'Dark Elf Warrior', img: 'elf', white: 'elfWhite', kind: 'humanoid', hp: 140, dmg: 22, speed: 135, wind: 0.35, xp: 70, col: 12 },
   // ranged support mobs, one per floor
-  koboldSlinger: { ...BASE, name: 'Kobold Slinger', img: 'slinger', white: 'slingerWhite', kind: 'humanoid', hp: 30, dmg: 8, speed: 110, wind: 0.6, xp: 20, col: 6,
+  houndfangSlinger: { ...BASE, name: 'Houndfang Slinger', img: 'slinger', white: 'slingerWhite', kind: 'humanoid', hp: 30, dmg: 8, speed: 110, wind: 0.6, xp: 20, col: 6,
     attackCd: 2.2, ranged: { keep: 170, range: 300, shotSpeed: 320, shotR: 7, color: '#d8b070' } },
   taurusJavelineer: { ...BASE, name: 'Taurus Javelineer', img: 'javelin', white: 'javelinWhite', kind: 'humanoid', hp: 60, dmg: 14, speed: 115, wind: 0.55, xp: 40, col: 10,
     attackCd: 2, ranged: { keep: 180, range: 320, shotSpeed: 420, shotR: 8, color: '#ff9050' } },

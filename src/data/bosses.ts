@@ -32,8 +32,8 @@ export interface BossStats {
 }
 
 export const BOSSES = {
-  koboldLord: {
-    name: 'Grask the Kobold Warlord', img: 'boss1', rageImg: 'boss1Rage', hp: 900, scale: 9, cd: [1.8, 1.1],
+  houndfangLord: {
+    name: 'Grask the Houndfang Warlord', img: 'boss1', rageImg: 'boss1Rage', hp: 900, scale: 9, cd: [1.8, 1.1],
     moves: ['slam', 'charge'], rageMoves: ['slam', 'charge', 'leap'], dmg: { slam: 30, charge: 24, leap: 34, quake: 0 },
   },
   asterius: {
