@@ -419,3 +419,35 @@ describe('facing where you walk', () => {
     expect(G.P!.ang).toBe(0);
   });
 });
+
+describe('boss portal', () => {
+  beforeEach(() => {
+    quietField();
+    for (const m of G.mobs) { m.hp = 0; m.dead = 1e9; }
+    G.P!.x = ROOM_X + 100; G.P!.y = 600; frame(); // wake the floor 1 boss
+  });
+
+  it('standing on the boss when it dies does not pull you through; walking back in after it opens does', async () => {
+    const { hurtEnemy } = await import('../src/systems/combat.js');
+    G.P!.x = G.boss!.x; G.P!.y = G.boss!.y;
+    hurtEnemy(G.boss!, 99999, false);
+    expect(G.portal).not.toBeNull();
+    frames(Math.ceil(BOSS_RULES.portalDelay * 60) + 30);
+    expect(G.floorIdx).toBe(0);                         // still on floor 1: never left the portal
+    G.P!.x += 80; frame();                              // step out...
+    G.P!.x -= 80; frames(10);                           // ...and back in
+    expect(G.floorIdx).toBe(1);
+  });
+
+  it('cannot be entered before it finishes opening', async () => {
+    const { hurtEnemy } = await import('../src/systems/combat.js');
+    G.P!.x = G.boss!.x + 100; G.P!.y = G.boss!.y;
+    hurtEnemy(G.boss!, 99999, false);
+    frames(30);                                         // the death hit-stop passes with the player outside; still opening
+    expect(G.portal!.wait).toBeGreaterThan(0);
+    G.P!.x = G.portal!.x; frame();
+    expect(G.floorIdx).toBe(0);
+    frames(Math.ceil(BOSS_RULES.portalDelay * 60));
+    expect(G.floorIdx).toBe(1);
+  });
+});

@@ -7,6 +7,7 @@ export const BOSS_RULES = {
   rageDmgMult: 1.25,
   xpMult: 6,         // boss XP (and Col) = floor mob XP (Col) * xpMult
   firstMoveDelay: 2,
+  portalDelay: 1.2,  // seconds before the portal a boss leaves behind can be entered
 };
 
 // Defaults every boss gets unless it overrides them. speed/cd are [normal, rage].

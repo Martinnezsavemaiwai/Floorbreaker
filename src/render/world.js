@@ -2,7 +2,7 @@
 import { G, rage } from '../world/state.ts';
 import { W, H, WORLD, TOWN_X, ROOM_X, DOOR, TORCHES } from '../world/constants.ts';
 import { PLAYER } from '../data/player.ts';
-import { MOVES } from '../data/bosses.ts';
+import { MOVES, BOSS_RULES } from '../data/bosses.ts';
 import { MERCHANT } from '../data/shop.ts';
 import { SKILLS } from '../data/skills.ts';
 import { keyLabel } from '../core/input.ts';
@@ -237,7 +237,8 @@ function drawDoor() {
 function drawPortal() {
   const portal = G.portal;
   if (!portal) return;
-  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.translate(portal.x, portal.y);
+  const k = 1 - Math.max(0, portal.wait) / BOSS_RULES.portalDelay; // grows open while it can't be entered yet
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.translate(portal.x, portal.y); ctx.scale(k, k);
   for (let i = 0; i < 3; i++) {
     ctx.rotate(G.time * (1 + i * 0.5));
     ctx.strokeStyle = `rgba(127,212,255,${0.5 - i * 0.12})`; ctx.lineWidth = 6 - i;

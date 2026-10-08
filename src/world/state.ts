@@ -36,11 +36,14 @@ export interface FloatText extends Point { s: string; col: string; big?: boolean
 export interface Particle extends Point { vx: number; vy: number; life: number; t: number; col: string; size: number; rot: number; vr: number; shard?: boolean }
 export interface Ring extends Point { r0: number; r1: number; life: number; t: number; col: string }
 
+// wait: seconds until it opens; armed: the player has stood outside it since it appeared (no instant pull-through)
+export interface Portal extends Point { wait: number; armed: boolean }
+
 export const G = {
   P: null as Player | null,   // null on the title screen
   mobs: [] as Mob[], boss: null as Boss | null, shots: [] as Shot[],
   texts: [] as FloatText[], parts: [] as Particle[], rings: [] as Ring[],
-  doorClosed: false, portal: null as Point | null,
+  doorClosed: false, portal: null as Portal | null,
   floorIdx: 0, F: null as Floor | null, WALLS: [] as Rect[],
   run: null as Run | null,
   cam: { x: 0, y: 0 },

@@ -140,6 +140,12 @@ export function updatePlayer(dt) {
     }
   }
   if (P.x < TOWN_X) P.hp = Math.min(P.maxHp, P.hp + PLAYER.townRegen * dt);
-  if (G.portal && dist(P, G.portal) < 40) { loadFloor(G.floorIdx + 1); return true; }
+  const portal = G.portal;
+  if (portal) { // it opens after a moment, and only takes you once you walk into it
+    portal.wait -= dt;
+    const inside = dist(P, portal) < 40;
+    if (!inside) portal.armed = true;
+    else if (portal.armed && portal.wait <= 0) { loadFloor(G.floorIdx + 1); return true; }
+  }
   return false;
 }

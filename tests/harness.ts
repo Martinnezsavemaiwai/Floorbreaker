@@ -71,7 +71,7 @@ export function createBot(levelGoals: number[]) {
     const { P, boss, mobs } = G as Required<typeof G>;
     if (G.floorIdx !== floor) { floor = G.floorIdx; phase = 'grind'; }
     const goal = levelGoals[G.floorIdx];
-    if (G.portal) return walkTo(G.portal.x, G.portal.y);
+    if (G.portal) return G.portal.armed ? walkTo(G.portal.x, G.portal.y) : away(G.portal); // step out first, then in
     if (phase === 'heal') { walkTo(150, 600); if (P.hp >= P.maxHp) phase = P.lv >= goal ? 'boss' : 'grind'; return; }
     if (phase === 'grind') {
       if (P.hp < P.maxHp * 0.4) { phase = 'heal'; return; }

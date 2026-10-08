@@ -54,7 +54,7 @@ export function hurtEnemy(e, d, big, crit = false) {
     for (const m of G.mobs) if (m.summoned && m.hp > 0) { m.hp = 0; m.dead = Infinity; burst(m.x, m.y, 20, '#8fe3ff', 260, 0.9, 8, true); }
     emit('bossDeath');
     gainXp(F.mob.xp * BOSS_RULES.xpMult); gainCol(F.mob.col * BOSS_RULES.xpMult, e);
-    if (!isLastFloor()) { G.portal = { x: boss.x, y: boss.y }; emit('portalOpen'); }
+    if (!isLastFloor()) { G.portal = { x: boss.x, y: boss.y, wait: BOSS_RULES.portalDelay, armed: false }; emit('portalOpen'); }
     else { run.over = 'win'; emit('runOver', { cleared: true }); }
   } else {
     e.dead = e.summoned ? Infinity : e.def.respawn; gainXp(e.def.xp); gainCol(e.def.col, e); emit('mobDeath'); run.kills++;
