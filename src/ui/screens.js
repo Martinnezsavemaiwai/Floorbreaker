@@ -70,12 +70,12 @@ export function showUpgradePicker(offer) {
 // Shop: one card per item with its price; cards you can't afford are disabled, not hidden
 export function renderShop(status = '') {
   const P = G.P;
-  $('shop-col').textContent = `มี ${P.col} Col · Potion ${P.potions}/${SHOP.potion.max}`;
+  $('shop-col').textContent = `มี ${P.col} Gold · Potion ${P.potions}/${SHOP.potion.max}`;
   $('shop-items').innerHTML = Object.entries(SHOP).map(([id, it], i) => {
     const full = id === 'potion' && P.potions >= it.max, ok = canBuy(id);
     return `<button class="card" data-buy="${id}" ${ok ? '' : 'aria-disabled="true"'}
-      aria-label="${i + 1}: ${it.name} — ${it.desc} — ${full ? 'เต็มแล้ว' : price(id) + ' Col'}">
-      <kbd>${i + 1}</kbd><b>${it.name}</b><span>${it.desc}</span><span class="price">${full ? 'เต็มแล้ว' : price(id) + ' Col'}</span></button>`;
+      aria-label="${i + 1}: ${it.name} — ${it.desc} — ${full ? 'เต็มแล้ว' : price(id) + ' Gold'}">
+      <kbd>${i + 1}</kbd><b>${it.name}</b><span>${it.desc}</span><span class="price">${full ? 'เต็มแล้ว' : price(id) + ' Gold'}</span></button>`;
   }).join('');
   $('shop-status').textContent = status;
 }
@@ -86,7 +86,7 @@ export function showStoryLine(line, i, n) {
   if (current !== 'story') screen('story');
 }
 
-// Sword Skills: unlock with Memory Shards, pick the slot-2 skill for the next run
+// Blade Arts: unlock with Memory Shards, pick the slot-2 skill for the next run
 function renderSkills(status = '') {
   $('shards-have').textContent = `มี ${meta.shards} Memory Shard`;
   $('skill-cards').innerHTML = Object.entries(SKILLS).map(([id, S]) => {
@@ -123,8 +123,8 @@ function renderHowTo() {
   $('howto-keys').innerHTML = [
     [`${k('up')}${k('left')}${k('down')}${k('right')}`, 'เดิน · เมาส์ใช้เล็ง'],
     [`${k('attack')} / คลิกซ้าย`, 'ฟันดาบ'],
-    [`${k('skill')} / คลิกขวา`, 'Sword Skill 1: Sonic Leap'],
-    [`${k('skill2')} / ปุ่มกลางเมาส์`, 'Sword Skill 2 (เลือกที่ Sword Skills หน้าแรก)'],
+    [`${k('skill')} / คลิกขวา`, 'Blade Art 1: Gale Rush'],
+    [`${k('skill2')} / ปุ่มกลางเมาส์`, 'Blade Art 2 (เลือกที่ Blade Arts หน้าแรก)'],
     [k('dodge'), 'กลิ้งหลบ · ระหว่างกลิ้งไม่โดนดาเมจ'],
     [k('potion'), 'ดื่ม Potion (ซื้อจากร้านในเมือง)'], [k('interact'), 'คุยกับพ่อค้า'],
     [k('pause'), 'หยุดเกม'],
@@ -146,7 +146,7 @@ function endRun({ cleared }) {
   $('newrec').hidden = !(better && (best || cleared || run.floor > 1));
   statCards($('result-stats'), runStats());
   const shards = awardShards(cleared);
-  $('result-shards').textContent = `+${shards} Memory Shard (รวม ${meta.shards}) · ใช้ปลดล็อก Sword Skill ที่หน้าแรก`;
+  $('result-shards').textContent = `+${shards} Memory Shard (รวม ${meta.shards}) · ใช้ปลดล็อก Blade Art ที่หน้าแรก`;
   // a clear plays the ending story first; its window opens the result when it closes
   setTimeout(() => (cleared ? emit('ending') : screen('result')), cleared ? 1400 : 1100);
 }

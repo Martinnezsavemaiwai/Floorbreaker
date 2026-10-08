@@ -77,7 +77,7 @@ export function openShop() { if (playing() && nearMerchant()) scenes.push(shopSc
 export function closeShop() { if (shopping()) scenes.pop(); }
 export function buyItem(id) {
   if (!shopping() || !SHOP[id]) return;
-  renderShop(buy(id) ? `ซื้อ ${SHOP[id].name} แล้ว` : 'Col ไม่พอ หรือของเต็มแล้ว');
+  renderShop(buy(id) ? `ซื้อ ${SHOP[id].name} แล้ว` : 'Gold ไม่พอ หรือของเต็มแล้ว');
 }
 $('shop-items').addEventListener('click', e => {
   const card = /** @type {HTMLElement | null} */ (/** @type {Element} */ (e.target).closest('[data-buy]'));
@@ -117,7 +117,7 @@ export function pauseGame() { if (playing()) scenes.push(pauseScene); }
 export function resumeGame() { if (scenes.top === pauseScene) scenes.pop(); }
 export function goHome() { scenes.replace(titleScene); }
 
-// Link Start = a brand-new character; it replaces (deletes) a suspended run after asking
+// Dive In = a brand-new character; it replaces (deletes) a suspended run after asking
 export async function startIntro() {
   const saved = loadSuspend();
   if (saved && !await confirmDialog({ title: 'เริ่มตัวละครใหม่?', ok: 'เริ่มใหม่',

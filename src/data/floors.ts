@@ -26,7 +26,7 @@ export interface FloorDef {
 
 export const FLOORS: FloorDef[] = [
   {
-    name: 'Floor 1', town: 'Town of Beginnings', ground: 1, roomTint: null, torch: '255,150,60',
+    name: 'Floor 1', town: 'Firstlight', ground: 1, roomTint: null, torch: '255,150,60',
     mob: 'frenzyBoar', boss: 'koboldLord', ranged: 'koboldSlinger',
     trees: [[660, 220, 'big'], [930, 780, 'big'], [1200, 380, 'small'], [800, 420, 'small'], [560, 860, 'small'], [1320, 720, 'small'], [1100, 1020, 'big']],
     spawns: [[600, 200], [650, 900], [900, 450], [1050, 250], [1100, 700], [1300, 950], [1350, 200], [800, 1050]],
@@ -34,7 +34,7 @@ export const FLOORS: FloorDef[] = [
     extras: [{ mob: 'piglet', at: [[1000, 950], [1250, 250]], group: 4 }],
   },
   {
-    name: 'Floor 2', town: 'Urbus', ground: 2, roomTint: 'rgba(70,0,110,.3)', torch: '150,110,255',
+    name: 'Floor 2', town: 'Hornfield', ground: 2, roomTint: 'rgba(70,0,110,.3)', torch: '150,110,255',
     mob: 'taurusSoldier', boss: 'asterius', ranged: 'taurusJavelineer',
     trees: [[520, 120, 'big'], [760, 300, 'small'], [980, 140, 'big'], [1250, 260, 'small'], [640, 760, 'big'], [880, 920, 'small'],
             [1150, 800, 'big'], [1340, 1000, 'small'], [480, 1000, 'small'], [1080, 420, 'small']],
@@ -43,7 +43,7 @@ export const FLOORS: FloorDef[] = [
     extras: [{ mob: 'taurusGuardian', at: [[1150, 600], [800, 1000]] }],
   },
   {
-    name: 'Floor 3', town: 'Zumfut', ground: 3, roomTint: 'rgba(0,60,30,.3)', fog: true, torch: '120,255,150',
+    name: 'Floor 3', town: 'Mistwell', ground: 3, roomTint: 'rgba(0,60,30,.3)', fog: true, torch: '120,255,150',
     mob: 'darkElf', boss: 'nerius', ranged: 'darkElfMage',
     trees: [[460, 60, 'dark'], [700, 180, 'small'], [880, 60, 'dark'], [1120, 200, 'small'], [1300, 80, 'small'], [520, 330, 'small'],
             [980, 360, 'dark'], [1260, 380, 'small'], [460, 700, 'dark'], [720, 800, 'small'], [900, 700, 'small'], [1100, 760, 'dark'],
@@ -53,7 +53,7 @@ export const FLOORS: FloorDef[] = [
     extras: [{ mob: 'elfKnight', at: [[950, 600], [1300, 950]] }, { mob: 'shadowPiglet', at: [[750, 700]], group: 4 }],
   },
   {
-    name: 'Floor 4', town: 'Rovia', ground: 4, roomTint: 'rgba(0,60,120,.3)', torch: '90,200,255',
+    name: 'Floor 4', town: 'Canalis', ground: 4, roomTint: 'rgba(0,60,120,.3)', torch: '90,200,255',
     mob: 'tidalBoar', boss: 'wythege', ranged: 'waterWraith',
     trees: [[440, 380, 'small'], [880, 360, 'big'], [1300, 420, 'small'], [520, 760, 'small'], [1360, 980, 'small'], [960, 100, 'small']],
     ponds: [{ x: 560, y: 140, w: 220, h: 150 }, { x: 1040, y: 760, w: 260, h: 170 }, { x: 760, y: 880, w: 160, h: 130 }, { x: 1180, y: 180, w: 170, h: 140 }],

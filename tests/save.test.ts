@@ -70,7 +70,7 @@ describe('suspend + export/import', () => {
     expect(s.loadSuspend()).toBeNull();
   });
 
-  it('loads a suspend written before upgrades and Col existed', async () => {
+  it('loads a suspend written before upgrades and Gold existed', async () => {
     const { up, pendingUpgrades, skill2, col, potions, scrolls, ...oldPlayer } = suspend.player;
     const s = await boot({ 'saoy.suspend': JSON.stringify({ v: 1, savedAt: '', data: { ...suspend, player: oldPlayer } }) });
     expect(s.loadSuspend()?.player).toMatchObject({ up: {}, col: 0, potions: 0 });
@@ -92,6 +92,14 @@ describe('suspend + export/import', () => {
     expect(b.importSave(file)).toEqual({ ok: true });
     expect(b.settings.music).toBe(25);
     expect(b.meta.best?.cleared).toBe(true);
+    expect(b.loadSuspend()).toEqual(suspend);
+  });
+
+  it('still imports a save exported under the old name', async () => {
+    const a = await boot(); a.writeSuspend(suspend);
+    const old = JSON.parse(a.exportSave()); old.game = 'sword-art-on-you';
+    const b = await boot();
+    expect(b.importSave(JSON.stringify(old))).toEqual({ ok: true });
     expect(b.loadSuspend()).toEqual(suspend);
   });
 

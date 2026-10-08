@@ -1,4 +1,4 @@
-// Player actions and movement: 3-hit sword combo, two Sword Skill slots (-> post-motion delay), dodge roll, input buffer, town regen.
+// Player actions and movement: 3-hit sword combo, two Blade Art slots (-> post-motion delay), dodge roll, input buffer, town regen.
 import { G } from '../world/state.ts';
 import { TOWN_X } from '../world/constants.ts';
 import { move, applyKnock } from '../world/physics.ts';
@@ -86,7 +86,7 @@ export function skill(slot = 0) {
     P.spin = 0.25; P.delay = H.delay; ring(P.x, P.y, 20, H.radius, 0.3, '255,215,130'); kick(0.05, 6);
   } else { P.thrust = SKILLS.vorpal.windup; P.thrustAng = P.ang; } // vorpal: rooted wind-up, the stab lands when it runs out
 }
-// Vorpal Strike: everything inside the long, narrow box along the locked aim
+// Piercing Fang: everything inside the long, narrow box along the locked aim
 function stab() {
   const P = G.P, V = SKILLS.vorpal, m = mods(), cx = Math.cos(P.thrustAng), cy = Math.sin(P.thrustAng);
   for (const e of targets()) {

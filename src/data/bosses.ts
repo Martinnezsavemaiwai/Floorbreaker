@@ -5,7 +5,7 @@ type Pair = [normal: number, rage: number];
 export const BOSS_RULES = {
   rageAt: 0.5,       // rage phase below this fraction of max HP
   rageDmgMult: 1.25,
-  xpMult: 6,         // boss XP (and Col) = floor mob XP (Col) * xpMult
+  xpMult: 6,         // boss XP (and Gold) = floor mob XP (Gold) * xpMult
   firstMoveDelay: 2,
   portalDelay: 1.2,  // seconds before the portal a boss leaves behind can be entered
 };
@@ -33,21 +33,21 @@ export interface BossStats {
 
 export const BOSSES = {
   koboldLord: {
-    name: 'Kobold Lord', img: 'boss1', rageImg: 'boss1Rage', hp: 900, scale: 9, cd: [1.8, 1.1],
+    name: 'Grask the Kobold Warlord', img: 'boss1', rageImg: 'boss1Rage', hp: 900, scale: 9, cd: [1.8, 1.1],
     moves: ['slam', 'charge'], rageMoves: ['slam', 'charge', 'leap'], dmg: { slam: 30, charge: 24, leap: 34, quake: 0 },
   },
   asterius: {
-    name: 'Asterius the Taurus King', img: 'boss2', rageImg: 'boss2Rage', hp: 1800, scale: 10, cd: [1.6, 1.0], summon: 2,
+    name: 'Bullgard the Horned King', img: 'boss2', rageImg: 'boss2Rage', hp: 1800, scale: 10, cd: [1.6, 1.0], summon: 2,
     moves: ['slam', 'charge', 'quake'], rageMoves: ['slam', 'charge', 'leap', 'quake'], dmg: { slam: 40, charge: 34, leap: 40, quake: 30 },
   },
   // The treant is a big tree sprite instead of a character sheet: slow, no charge/leap, roots erupt under you
   nerius: {
-    name: 'Nerius the Evil Treant', tree: true, img: 'treant', rageImg: 'treantRage', hp: 3200, bars: 5, r: 70, speed: [35, 50], cd: [1.5, 0.9], summon: 3,
+    name: 'Elderroot the Blighted', tree: true, img: 'treant', rageImg: 'treantRage', hp: 3200, bars: 5, r: 70, speed: [35, 50], cd: [1.5, 0.9], summon: 3,
     moves: ['slam', 'roots', 'quake'], rageMoves: ['roots', 'roots', 'quake', 'slam'], dmg: { slam: 55, roots: 45, quake: 40 },
   },
   // Floor 4: a water beast that fills the room with rings of water shots
   wythege: {
-    name: 'Wythege the Hippocampus', img: 'boss4', rageImg: 'boss4Rage', hp: 5600, bars: 5, scale: 11, cd: [1.5, 0.9], summon: 2,
+    name: 'Marisca the Tide Mare', img: 'boss4', rageImg: 'boss4Rage', hp: 5600, bars: 5, scale: 11, cd: [1.5, 0.9], summon: 2,
     moves: ['charge', 'volley', 'slam'], rageMoves: ['volley', 'charge', 'leap', 'quake', 'volley'],
     dmg: { slam: 66, charge: 56, leap: 66, quake: 50, volley: 40 },
   },

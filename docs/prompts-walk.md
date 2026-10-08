@@ -144,7 +144,7 @@ light from the top-left, no anti-aliasing, no gradients, no text, no grid lines.
 Solid flat #FF00FF magenta background.
 ```
 
-## boss1.png · Kobold Lord (บอสชั้น 1)
+## boss1.png · Grask the Kobold Warlord (บอสชั้น 1)
 ```
 Using the attached character exactly (same red-furred kobold chieftain, same bone club, same leather war harness
 and skull decorations), draw a sprite sheet grid of exactly 4 columns and 5 rows (20 poses), evenly spaced with
@@ -159,7 +159,7 @@ light from the top-left, no anti-aliasing, no gradients, no text, no grid lines.
 Solid flat #FF00FF magenta background.
 ```
 
-## boss2.png · Asterius the Taurus King (บอสชั้น 2)
+## boss2.png · Bullgard the Horned King (บอสชั้น 2)
 ```
 Using the attached character exactly (same giant bull king, same golden crown, same huge double axe, same purple
 cape), draw a sprite sheet grid of exactly 4 columns and 5 rows (20 poses), evenly spaced with clear empty space
@@ -174,7 +174,7 @@ light from the top-left, no anti-aliasing, no gradients, no text, no grid lines.
 Solid flat #FF00FF magenta background.
 ```
 
-## boss4.png · Wythege the Hippocampus (บอสชั้น 4)
+## boss4.png · Marisca the Tide Mare (บอสชั้น 4)
 ```
 Using the attached character exactly (same upright hippocampus sea beast: horse head and front body, teal scales,
 fin mane, long fish tail), draw a sprite sheet grid of exactly 4 columns and 5 rows (20 poses), evenly spaced
@@ -204,7 +204,7 @@ Solid flat #FF00FF magenta background.
 - ขนาดเท่ากัน เท้าอยู่ระดับเดียวกัน ขาต่างกันชัดเจนระหว่าง 2 ท่า
 - ไม่มีฝุ่น/เส้นความเร็ว/เงาแยกจากตัว (ชิ้นที่ลอยแยกอาจถูกนับเป็นท่าที่ 3)
 
-## boar.png · Frenzy Boar (ชั้น 1)
+## boar.png · Wild Tusker (ชั้น 1)
 ```
 Using the attached animal exactly (same angry brown wild boar, same white tusks, same red eyes, same bristly
 mane and proportions), redraw it as exactly 2 side-view running frames, both facing LEFT, placed side by side

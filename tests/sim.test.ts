@@ -40,7 +40,7 @@ describe('determinism', () => {
 });
 
 describe('fixed timestep', () => {
-  // Hold right and fire the Sword Skill at sim step 30; compare after exactly 120 sim steps
+  // Hold right and fire the Blade Art at sim step 30; compare after exactly 120 sim steps
   const runAt = (frameDt: () => number) => {
     startRun(1);
     const P = G.P!; P.x = 900; P.y = 600;

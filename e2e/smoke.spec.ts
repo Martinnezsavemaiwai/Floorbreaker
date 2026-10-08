@@ -1,15 +1,15 @@
-// Smoke test: the real page boots, Link Start reaches gameplay, the prologue pages and skips, input works, pause opens, no errors.
+// Smoke test: the real page boots, Dive In reaches gameplay, the prologue pages and skips, input works, pause opens, no errors.
 // Not a pixel comparison (canvas output varies by GPU) — it checks state through the dev-only __saoy hook.
 import { test, expect } from '@playwright/test';
 
-test('title -> Link Start -> story -> play -> pause, with no console errors', async ({ page }) => {
+test('title -> Dive In -> story -> play -> pause, with no console errors', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', e => errors.push(e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
 
   await page.goto('/');
   await expect(page.locator('#title-screen')).toBeVisible();
-  await page.getByRole('button', { name: 'Link Start' }).click();
+  await page.getByRole('button', { name: 'Dive In' }).click();
 
   // the intro tunnel runs ~2s, then the play scene takes over
   // a fresh save opens the floor 1 prologue: Enter turns the page, Esc skips the rest

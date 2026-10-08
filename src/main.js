@@ -96,7 +96,7 @@ function padPress(btn) {
   const a = PAD_BUTTONS[btn];
   if (a === 'pause') back(); else GAME_ACTIONS[a]?.();
 }
-addEventListener('gamepadconnected', () => toast('เชื่อมต่อจอยแล้ว', 'อนาล็อกซ้ายเดิน · ขวาเล็ง · X ฟัน · A กลิ้ง · RB / RT Sword Skill', 3.5));
+addEventListener('gamepadconnected', () => toast('เชื่อมต่อจอยแล้ว', 'อนาล็อกซ้ายเดิน · ขวาเล็ง · X ฟัน · A กลิ้ง · RB / RT Blade Art', 3.5));
 on('playerHurt', () => { if (settings.shake) rumble(0.6); });
 on('guardBreak', () => { if (settings.shake) rumble(0.3, 80); });
 addEventListener('blur', () => { releaseAll(); pauseGame(); });
@@ -107,7 +107,7 @@ cv.addEventListener('mousemove', e => {
 });
 cv.addEventListener('mousedown', e => {
   const a = actionForButton(e.button);
-  if (a) e.preventDefault(); // middle button = Sword Skill 2, not autoscroll
+  if (a) e.preventDefault(); // middle button = Blade Art 2, not autoscroll
   if (a && playing()) GAME_ACTIONS[a]();
 });
 cv.addEventListener('contextmenu', e => e.preventDefault());

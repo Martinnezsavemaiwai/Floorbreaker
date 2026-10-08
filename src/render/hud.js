@@ -1,4 +1,4 @@
-// Canvas HUD: SAO-style player panel, stacked boss HP bars, skill slots and the minimap.
+// Canvas HUD: system-window player panel, stacked boss HP bars, skill slots and the minimap.
 import { G, rage } from '../world/state.ts';
 import { W, H, WORLD, TOWN_X, ROOM_X, DOOR } from '../world/constants.ts';
 import { PLAYER } from '../data/player.ts';
@@ -12,7 +12,7 @@ const A = PLAYER.attack;
 // slot icon per skill: blade angle and glow colour
 const ICON = { attack: [Math.PI / 4, null], sonicLeap: [-Math.PI / 4, '#5fc3ff'], horizontal: [Math.PI / 2, '#ffcf6a'], vorpal: [0, '#ff8a5a'] };
 
-// SAO-style slanted HP bar with a white "damage lag" segment
+// Slanted HP bar with a white "damage lag" segment
 function slant(x, y, w, h) {
   ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + w, y); ctx.lineTo(x + w - h * 0.8, y + h); ctx.lineTo(x, y + h); ctx.closePath();
 }
@@ -53,13 +53,13 @@ function drawPlayerPanel() {
   ctx.fillStyle = '#5fc3ff'; ctx.fillRect(78, 59, 240 * P.xp / PLAYER.xpToNext(P.lv), 3);
   const zone = P.x < TOWN_X ? ['SAFE ZONE · HP ฟื้นฟู', '#9fe89f'] : P.x > ROOM_X ? ['BOSS ROOM', '#ff8a7a'] : ['FIELD', '#cfd8e6'];
   ctx.textAlign = 'left'; label(`${F.name} · ${zone[0]}`, 22, 92, zone[1], `600 13px ${FT}`);
-  label(`${P.col} Col`, 22, 110, '#ffe14d', `700 13px ${FN}`);
+  label(`${P.col} Gold`, 22, 110, '#ffe14d', `700 13px ${FN}`);
 }
 
 function drawBossBar() {
   const { boss, F } = G;
   if (!boss.awake || boss.hp <= 0) return;
-  // SAO bosses show several stacked HP bars: one drains at a time, pips count the ones left
+  // Bosses show several stacked HP bars: one drains at a time, pips count the ones left
   const bars = F.boss.bars, seg = boss.maxHp / bars, left = Math.ceil(boss.hp / seg);
   const frac = (boss.hp - (left - 1) * seg) / seg, lag = boss.lag > left * seg ? 1 : (boss.lag - (left - 1) * seg) / seg;
   const w = 440, x = (W - w) / 2, y = H - 118; // bottom centre, above the skill slots

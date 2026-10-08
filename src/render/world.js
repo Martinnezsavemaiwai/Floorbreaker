@@ -140,7 +140,7 @@ function drawTelegraph() {
   ctx.restore();
 }
 
-// Horizontal Square: a golden ring sweeping round; Vorpal Strike: aim line while winding up, then the stab beam
+// Cyclone Edge: a golden ring sweeping round; Piercing Fang: aim line while winding up, then the stab beam
 function drawSkillFx(P) {
   ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
   if (P.spin > 0) {
@@ -171,7 +171,7 @@ function swordAngle(P) {
 function drawPlayer() {
   const P = G.P, time = G.time;
   if (P.hp <= 0) return;
-  // Sword Skill light trail
+  // Blade Art light trail
   if (P.trail.length > 1) {
     ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round'; ctx.shadowColor = '#7fd4ff'; ctx.shadowBlur = 20;
     for (let i = 1; i < P.trail.length; i++) {

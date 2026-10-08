@@ -35,7 +35,7 @@ const BestSchema = z.object({
   kills: z.number().int().min(0), cleared: z.boolean(), assisted: z.boolean().default(false),
 });
 const MetaSchema = z.object({ best: BestSchema.nullable().default(null), hintsSeen: z.array(z.string()).default([]),
-  shards: z.number().int().min(0).default(0), unlocked: z.array(z.string()).default(['sonicLeap']), loadout: z.string().nullable().default(null), // Sword Skill meta
+  shards: z.number().int().min(0).default(0), unlocked: z.array(z.string()).default(['sonicLeap']), loadout: z.string().nullable().default(null), // Blade Art meta
   storySeen: z.array(z.string()).default([]) });
 const SuspendSchema = z.object({
   floorIdx: z.number().int().min(0).max(FLOORS.length - 1),
@@ -96,18 +96,19 @@ export const clearSuspend = () => { raw.del('suspend'); raw.del('suspend.bak'); 
 
 // One JSON file with every slot, so players can back up or move their save
 export function exportSave() {
-  return JSON.stringify({ game: 'sword-art-on-you', v: SAVE_VERSION, exportedAt: new Date().toISOString(),
+  return JSON.stringify({ game: 'floorbreaker', v: SAVE_VERSION, exportedAt: new Date().toISOString(),
                           settings, meta, suspend: loadSuspend() }, null, 2);
 }
 const ExportSchema = z.object({
-  game: z.literal('sword-art-on-you'), v: z.number().int().max(SAVE_VERSION),
+  game: z.enum(['floorbreaker', 'sword-art-on-you']), // the old name: files exported before the rename still import
+  v: z.number().int().max(SAVE_VERSION),
   settings: SettingsSchema, meta: MetaSchema, suspend: SuspendSchema.nullable(),
 });
 export function importSave(text: string): { ok: true } | { ok: false; error: string } {
   let parsed: unknown;
   try { parsed = JSON.parse(text); } catch { return { ok: false, error: 'ไฟล์ไม่ใช่ JSON' }; }
   const r = ExportSchema.safeParse(parsed);
-  if (!r.success) return { ok: false, error: 'ไฟล์ไม่ใช่เซฟของ Sword Art On You หรือข้อมูลเสียหาย' };
+  if (!r.success) return { ok: false, error: 'ไฟล์ไม่ใช่เซฟของ Floorbreaker หรือข้อมูลเสียหาย' };
   Object.assign(settings, r.data.settings); saveSettings();
   Object.assign(meta, r.data.meta); saveMeta();
   if (r.data.suspend) writeSuspend(r.data.suspend); else clearSuspend();

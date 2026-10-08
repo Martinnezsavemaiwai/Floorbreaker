@@ -1,4 +1,4 @@
-// Town merchant: what it sells and where it stands. Col (SAO's currency) drops from every kill (mobs.ts `col`).
+// Town merchant: what it sells and where it stands. Gold drops from every kill (mobs.ts `col`).
 export const MERCHANT = { x: 230, y: 420, reach: 70 }; // inside the safe zone, above the road
 
 export const SHOP = {

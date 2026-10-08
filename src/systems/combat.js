@@ -13,7 +13,7 @@ import { mods } from './upgrades.js';
 
 export const targets = () => [...G.mobs, G.boss].filter(e => e.hp > 0 && (e !== G.boss || G.boss.awake));
 
-export function gainCol(n, at) { G.P.col += n; text(at.x + 14, at.y - 34, `+${n} Col`, '#ffe14d'); }
+export function gainCol(n, at) { G.P.col += n; text(at.x + 14, at.y - 34, `+${n} Gold`, '#ffe14d'); }
 export function gainXp(n) {
   const P = G.P;
   P.xp += n; text(P.x, P.y - 30, '+' + n + ' XP', '#7fd4ff');
@@ -65,7 +65,7 @@ export function hurtEnemy(e, d, big, crit = false) {
 export function hurtPlayer(d, from) {
   const { P, run } = G;
   if (run.over) return;
-  if (P.dash > 0 || P.roll > 0) { text(P.x, P.y - 24, 'DODGE', '#7fd4ff'); emit('dodge'); return; } // Sword Skill dash and the roll = i-frames
+  if (P.dash > 0 || P.roll > 0) { text(P.x, P.y - 24, 'DODGE', '#7fd4ff'); emit('dodge'); return; } // Blade Art dash and the roll = i-frames
   if (P.inv > 0) return; // brief invulnerability after a hit, so a mob crowd can't chain-stun you
   d = Math.max(1, Math.round(d * settings.assistDamage)); // assist mode: take less damage
   const heavy = d >= PLAYER.knockback.heavyFrom;

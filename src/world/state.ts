@@ -8,8 +8,8 @@ import type { Point, Rect } from '../core/math.ts';
 export interface Player extends Point {
   r: number; hp: number; maxHp: number; lag: number; atk: number; lv: number; xp: number;
   ang: number; atkCd: number; hurt: number; inv: number;
-  skills: [string, string | null]; skillCd: [number, number]; // equipped Sword Skill ids (slot 1 = Sonic Leap) and their cooldowns
-  spin: number; thrust: number; thrustAng: number; beam: number;     // Horizontal Square / Vorpal Strike animation timers
+  skills: [string, string | null]; skillCd: [number, number]; // equipped Blade Art ids (slot 1 = Gale Rush) and their cooldowns
+  spin: number; thrust: number; thrustAng: number; beam: number;     // Cyclone Edge / Piercing Fang animation timers
   swing: number; swingDir: number; dash: number; delay: number; moving?: boolean;
   kx: number; ky: number; hitSet: Set<Mob | Boss> | null; trail: (Point & { t: number })[];
   buf: { kind: 'attack' | 'skill'; slot?: number; t: number } | null;

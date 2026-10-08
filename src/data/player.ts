@@ -26,6 +26,6 @@ export const PLAYER = {
   roll: { time: 0.22, speed: 620, cd: 0.7 },
   // when facing where you walk: attacks snap to the nearest enemy within `range` px and `cone` rad of the facing
   aimAssist: { range: 110, cone: Math.PI / 3 }, // dodge roll: i-frames for its whole duration
-  // Sword Skills live in skills.ts
+  // Blade Arts live in skills.ts
   knockback: { light: 280, heavy: 520, heavyFrom: 20 }, // hits of heavyFrom+ damage knock harder
 } satisfies PlayerStats;

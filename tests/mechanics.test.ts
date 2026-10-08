@@ -28,7 +28,7 @@ describe('player', () => {
     expect(G.P!.hp).toBe(hp - 10);
   });
 
-  it('the Sword Skill dash dodges damage', () => {
+  it('the Blade Art dash dodges damage', () => {
     skill(); hurtPlayer(50);
     expect(G.P!.hp).toBe(G.P!.maxHp);
   });
@@ -220,14 +220,14 @@ describe('ranged mobs', () => {
 describe('col and shop', () => {
   beforeEach(quietField);
 
-  it('a kill drops its Col', async () => {
+  it('a kill drops its Gold', async () => {
     const { hurtEnemy } = await import('../src/systems/combat.js');
     const m = G.mobs[0]; m.hp = 1;
     hurtEnemy(m, 5, false);
     expect(G.P!.col).toBe(m.def.col);
   });
 
-  it('buys only with enough Col, potions cap at 3, scrolls get pricier and add a pick', async () => {
+  it('buys only with enough Gold, potions cap at 3, scrolls get pricier and add a pick', async () => {
     const { buy, price } = await import('../src/systems/shop.js');
     expect(buy('potion')).toBe(false);
     G.P!.col = 1000;
@@ -338,7 +338,7 @@ describe('sword skills and memory shards', () => {
     expect(G.P!.skillCd[1]).toBe(0);
   });
 
-  it('Horizontal Square hits all around, Vorpal Strike hits far down the aim line only', async () => {
+  it('Cyclone Edge hits all around, Piercing Fang hits far down the aim line only', async () => {
     const { SKILLS } = await import('../src/data/skills.ts');
     const front = await dummy(0, -70), back = await dummy(0, 70);
     G.P!.skills[1] = 'horizontal'; skill(1);

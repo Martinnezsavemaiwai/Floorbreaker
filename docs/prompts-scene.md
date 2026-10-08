@@ -190,7 +190,7 @@ pixels, 1-pixel dark outline, 3-tone shading, light from the top-left, no anti-a
 Solid flat #FF00FF magenta background.
 ```
 
-## treant.png · Nerius the Evil Treant (บอสชั้น 3)
+## treant.png · Elderroot the Blighted (บอสชั้น 3)
 **แนบเพิ่ม:** `art-src/tree-big.png` (ให้ใบไม้สไตล์เดียวกัน)
 ```
 A giant evil tree monster boss seen from a top-down 3/4 view: a thick twisted dark trunk with an angry carved

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Sword Art On You</title>
+<title>Floorbreaker</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 1 25 16 16 31 7 16Z' fill='%235fc3ff'/%3E%3Cpath d='M16 1 25 16H7Z' fill='%23bfe8ff'/%3E%3C/svg%3E">
 </head>
 <body>
@@ -27,7 +27,7 @@
 <canvas id="c" width="960" height="640"></canvas>
 
 <section id="title-screen" class="screen on" aria-label="หน้าแรก">
-  <h1 class="logo" lang="en">SWORD ART<br>ON YOU<small>AINCRAD · FLOOR 1–4</small></h1>
+  <h1 class="logo" lang="en">FLOOR<br>BREAKER<small>THE SPIRE · FLOOR 1–4</small></h1>
   <nav class="menu" aria-label="เมนูหลัก">
     <button class="btn primary" data-act="continue" id="continue-btn" hidden>
       <span class="ic"><svg class="ico"><use href="#i-play"/></svg></span>
@@ -35,9 +35,9 @@
     </button>
     <button class="btn primary" data-act="start" id="start-btn">
       <span class="ic"><svg class="ico"><use href="#i-play"/></svg></span>
-      <span class="lbl"><span lang="en">Link Start</span><small>สร้างตัวละครใหม่ · ตายแล้วหายถาวร</small></span>
+      <span class="lbl"><span lang="en">Dive In</span><small>สร้างตัวละครใหม่ · ตายแล้วหายถาวร</small></span>
     </button>
-    <button class="btn" data-act="skills"><span class="ic"><svg class="ico"><use href="#i-sword"/></svg></span><span class="lbl"><span lang="en">Sword Skills</span><small id="shards-info"></small></span></button>
+    <button class="btn" data-act="skills"><span class="ic"><svg class="ico"><use href="#i-sword"/></svg></span><span class="lbl"><span lang="en">Blade Arts</span><small id="shards-info"></small></span></button>
     <button class="btn" data-act="howto"><span class="ic"><svg class="ico"><use href="#i-help"/></svg></span>วิธีเล่น</button>
     <button class="btn" data-act="settings"><span class="ic"><svg class="ico"><use href="#i-sliders"/></svg></span>ตั้งค่า</button>
     <p class="record" id="record"></p>
@@ -46,8 +46,8 @@
 </section>
 
 <section id="skills" class="screen" aria-labelledby="skills-h">
-  <div class="win wide"><header id="skills-h">Sword Skills</header><div class="body">
-    <p class="hint">ช่อง 1 เป็น Sonic Leap เสมอ · ช่อง 2 ใส่ได้ 1 ท่าจากที่ปลดล็อกแล้ว (มีผลรอบถัดไป) · ปลดล็อกด้วย Memory Shard ที่ได้ตอนจบแต่ละรอบ</p>
+  <div class="win wide"><header id="skills-h">Blade Arts</header><div class="body">
+    <p class="hint">ช่อง 1 เป็น Gale Rush เสมอ · ช่อง 2 ใส่ได้ 1 ท่าจากที่ปลดล็อกแล้ว (มีผลรอบถัดไป) · ปลดล็อกด้วย Memory Shard ที่ได้ตอนจบแต่ละรอบ</p>
     <p class="result-msg" id="shards-have"></p>
     <div class="cards" id="skill-cards"><!-- filled by ui/screens.js --></div>
     <p class="status" id="skills-status" role="status"></p>
@@ -62,12 +62,12 @@
     <div class="keys" id="howto-keys"><!-- filled from the current key bindings --></div>
     <ul class="tips">
       <li>มอนสเตอร์ขึ้น <b>!</b> สีแดง = กำลังจะโจมตี ให้ถอยออก</li>
-      <li>ระหว่างพุ่ง Sonic Leap จะไม่โดนดาเมจ ใช้หลบท่าบอสได้</li>
+      <li>ระหว่างพุ่ง Gale Rush จะไม่โดนดาเมจ ใช้หลบท่าบอสได้</li>
       <li>ในเมืองปลอดภัย และ HP ฟื้นเอง</li>
       <li>ล้มบอสแล้วเดินเข้าประตูมิติเพื่อขึ้นชั้นถัดไป</li>
     </ul>
     <p class="hint credits">ภาพและเพลง: ทำใหม่ทั้งหมดสำหรับเกมนี้ (เพลงแต่งใน BeepBox) · ฟอนต์ Kanit, Exo 2 (OFL) ·
-      <a href="CREDITS.txt" target="_blank" rel="noopener">เครดิตทั้งหมด</a> · แฟนเกมที่ได้แรงบันดาลใจจาก Sword Art Online ไม่เกี่ยวข้องกับเจ้าของลิขสิทธิ์</p>
+      <a href="CREDITS.txt" target="_blank" rel="noopener">เครดิตทั้งหมด</a></p>
   </div>
   <footer class="win-foot"><button class="btn ghost" data-act="back"><span class="ic"><svg class="ico"><use href="#i-back"/></svg></span>กลับ<kbd>Esc</kbd></button></footer>
   </div>

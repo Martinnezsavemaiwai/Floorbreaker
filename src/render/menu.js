@@ -1,4 +1,4 @@
-// Title background and the "Link Start" intro tunnel.
+// Title background and the "Dive In" intro tunnel.
 import { G } from '../world/state.ts';
 import { W, H } from '../world/constants.ts';
 import { settings } from '../core/save.ts';
@@ -7,7 +7,7 @@ import { ctx, FN } from './canvas.js';
 
 export const INTRO_TIME = 1.9;
 
-// Drifting crystal shards around a slowly turning ring (Aincrad's silhouette)
+// Drifting crystal shards around a slowly turning ring (the Spire's silhouette)
 const shards = Array.from({ length: 46 }, () => ({ x: Math.random() * W, y: Math.random() * H, s: 3 + Math.random() * 9, v: 8 + Math.random() * 26, r: Math.random() * 6 }));
 export function updateMenuBg(dt) {
   for (const p of shards) { p.y -= p.v * dt; p.r += dt; if (p.y < -20) { p.y = H + 20; p.x = Math.random() * W; } }
@@ -42,7 +42,7 @@ export function drawIntro() {
   ctx.fillStyle = glow; ctx.fillRect(-160, -160, 320, 320);
   ctx.restore();
   ctx.globalAlpha = clamp((t - 0.25) * 3, 0, 1) * clamp((INTRO_TIME - t) * 4, 0, 1);
-  ctx.textAlign = 'center'; ctx.font = `800 54px ${FN}`; ctx.fillStyle = '#fff'; ctx.fillText('LINK START', W / 2, H / 2 + 18);
+  ctx.textAlign = 'center'; ctx.font = `800 54px ${FN}`; ctx.fillStyle = '#fff'; ctx.fillText('DIVE IN', W / 2, H / 2 + 18);
   ctx.globalAlpha = 1;
   if (k > 0.8) { ctx.fillStyle = settings.flash ? `rgba(255,255,255,${(k - 0.8) * 5})` : `rgba(0,0,0,${(k - 0.8) * 5})`; ctx.fillRect(0, 0, W, H); }
 }

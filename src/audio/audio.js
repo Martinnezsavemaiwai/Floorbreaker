@@ -7,7 +7,7 @@ const MUSIC = { 0: 'floor1', 1: 'floor2', 2: 'floor3', 3: 'floor4', boss: 'boss'
 const tracks = {};
 let AC, master, music = null, muted = false;
 
-// Needs a user gesture (browser autoplay policy), so it's called from the Link Start click
+// Needs a user gesture (browser autoplay policy), so it's called from the Dive In click
 export function initAudio() {
   if (AC) return;
   AC = new AudioContext(); master = AC.createGain(); master.connect(AC.destination);

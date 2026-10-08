@@ -6,7 +6,7 @@ import { applyAudio } from '../audio/audio.js';
 import { $, confirmDialog } from './screens.js';
 
 const ACTION_NAMES = {
-  up: 'เดินขึ้น', down: 'เดินลง', left: 'เดินซ้าย', right: 'เดินขวา', attack: 'ฟันดาบ', skill: 'Sword Skill 1', skill2: 'Sword Skill 2', dodge: 'กลิ้งหลบ', potion: 'ดื่ม Potion', interact: 'คุย / เปิดร้าน',
+  up: 'เดินขึ้น', down: 'เดินลง', left: 'เดินซ้าย', right: 'เดินขวา', attack: 'ฟันดาบ', skill: 'Blade Art 1', skill2: 'Blade Art 2', dodge: 'กลิ้งหลบ', potion: 'ดื่ม Potion', interact: 'คุย / เปิดร้าน',
   pause: 'หยุดเกม', mute: 'ปิด/เปิดเสียง', fullscreen: 'เต็มจอ',
 };
 
@@ -80,7 +80,7 @@ renderBinds();
 export function downloadSave() {
   const blob = new Blob([exportSave()], { type: 'application/json' });
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = `sword-art-on-you-save-${new Date().toISOString().slice(0, 10)}.json`;
+  a.href = URL.createObjectURL(blob); a.download = `floorbreaker-save-${new Date().toISOString().slice(0, 10)}.json`;
   a.click(); URL.revokeObjectURL(a.href);
   $('save-status').textContent = 'Export แล้ว เก็บไฟล์ไว้ใช้ Import ภายหลังได้';
 }

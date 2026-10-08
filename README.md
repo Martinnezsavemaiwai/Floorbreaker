@@ -1,6 +1,6 @@
-# Sword Art On You
+# Floorbreaker
 
-A browser action RPG inspired by Sword Art Online. Clear 3 floors of Aincrad, one boss per floor. Permadeath.
+A browser action roguelite: trapped in a game world, climb the floors of the Spire, one boss per floor. Permadeath.
 
 ## Run
 
@@ -15,7 +15,7 @@ npm run check      # typecheck + unit/sim tests + browser smoke test
 ```
 npm run build      # -> dist/ (static files, relative paths, works from any folder/subpath)
 npm run preview    # serve dist/ locally to try the production build
-npm run package    # build + sword-art-on-you-web.zip (contents of dist/ at the zip root)
+npm run package    # build + floorbreaker-web.zip (contents of dist/ at the zip root)
 ```
 
 `dist/` must be served over http(s); opening `index.html` straight from disk won't load ES modules.
@@ -26,5 +26,4 @@ Settings → Save → Export is the reliable backup.
 
 ## Credits
 
-See [public/CREDITS.txt](public/CREDITS.txt) (shipped with the build). Fan project, not affiliated with the Sword Art Online
-rights holders — rename the game and its proper nouns before publishing it anywhere public.
+See [public/CREDITS.txt](public/CREDITS.txt) (shipped with the build). All art and music are original (`art-src/`).

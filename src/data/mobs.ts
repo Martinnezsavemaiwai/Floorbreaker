@@ -1,7 +1,7 @@
 // Field mobs. Floors reference these by id (see floors.ts).
 // kind: 'beast' = 2-frame side sheet that flips, 'humanoid' = 4-direction character sheet.
 // ranged: keeps its distance and fires a dodgeable shot after the wind-up instead of lunging.
-// armor: normal hits do 25% and don't stagger; a heavy hit (combo finisher / Sword Skill) breaks it for `regen` s.
+// armor: normal hits do 25% and don't stagger; a heavy hit (combo finisher / Blade Art) breaks it for `regen` s.
 // scale: sprite/body size (swarm mobs are small).
 export interface MobStats {
   name: string; img: string; white: string; kind: 'beast' | 'humanoid';
@@ -23,7 +23,7 @@ const BASE = {
 };
 
 export const MOBS = {
-  frenzyBoar: { ...BASE, name: 'Frenzy Boar', img: 'boar', white: 'boarWhite', kind: 'beast', hp: 45, dmg: 10, speed: 140, wind: 0.35, xp: 25, col: 5 },
+  frenzyBoar: { ...BASE, name: 'Wild Tusker', img: 'boar', white: 'boarWhite', kind: 'beast', hp: 45, dmg: 10, speed: 140, wind: 0.35, xp: 25, col: 5 },
   taurusSoldier: { ...BASE, name: 'Taurus Soldier', img: 'taurus', white: 'taurusWhite', kind: 'humanoid', hp: 90, dmg: 16, speed: 125, wind: 0.4, xp: 45, col: 8 },
   darkElf: { ...BASE, name: 'Dark Elf Warrior', img: 'elf', white: 'elfWhite', kind: 'humanoid', hp: 140, dmg: 22, speed: 135, wind: 0.35, xp: 70, col: 12 },
   // ranged support mobs, one per floor
@@ -46,7 +46,7 @@ export const MOBS = {
     radius: 20, scale: 1.3, armor: { regen: 2.5 }, knockback: { light: 0, heavy: 300 }, respawn: 12 },
   crabling: { ...BASE, name: 'Tide Crabling', img: 'crab', white: 'crabWhite', kind: 'beast', hp: 45, dmg: 12, speed: 190, wind: 0.22, xp: 16, col: 3,
     radius: 10, scale: 0.65, respawn: 10 },
-  // floor 4 (Rovia, the water town)
+  // floor 4 (Canalis, the water town)
   tidalBoar: { ...BASE, name: 'Tidal Boar', img: 'tidalboar', white: 'tidalboarWhite', kind: 'beast', hp: 200, dmg: 28, speed: 160, wind: 0.32, xp: 100, col: 16 },
   waterWraith: { ...BASE, name: 'Water Wraith', img: 'wraith', white: 'wraithWhite', kind: 'humanoid', hp: 120, dmg: 24, speed: 120, wind: 0.6, xp: 85, col: 18,
     attackCd: 2.2, ranged: { keep: 190, range: 340, shotSpeed: 340, shotR: 9, color: '#6fd8ff' } },

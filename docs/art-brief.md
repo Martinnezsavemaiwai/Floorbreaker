@@ -102,9 +102,9 @@ Keep the character centered in each cell with the feet near the bottom. [STYLE]
 | `knight.png` | Dark Elf Knight (ชั้น 3 เกราะ) | a dark elf knight in black and violet plate armor with a kite shield |
 | `wraith.png` | Water Wraith (ชั้น 4 ยิงไกล) | a translucent aqua water spirit in a tattered hooded robe, glowing eyes |
 | `tideguard.png` | Tide Guardian (ชั้น 4 เกราะ) | a fish-man warrior in coral and shell armor with a round shell shield |
-| `boss1.png` | Kobold Lord (บอสชั้น 1) | a large kobold chieftain with red fur, a bone club and a leather war harness |
-| `boss2.png` | Asterius (บอสชั้น 2) | a giant bull king warrior with a golden crown, a huge double axe, and a purple cape |
-| `boss4.png` | Wythege (บอสชั้น 4) | a hippocampus sea beast standing upright: horse head and front body, fish tail, teal scales, fin mane |
+| `boss1.png` | Grask the Kobold Warlord (บอสชั้น 1) | a large kobold chieftain with red fur, a bone club and a leather war harness |
+| `boss2.png` | Bullgard (บอสชั้น 2) | a giant bull king warrior with a golden crown, a huge double axe, and a purple cape |
+| `boss4.png` | Marisca (บอสชั้น 4) | a hippocampus sea beast standing upright: horse head and front body, fish tail, teal scales, fin mane |
 
 **บอส:** เกมขยายบอส ×7–8.5 ภาพ 16 px จะดูเป็นก้อนใหญ่ ถ้าอยากให้บอสละเอียดกว่า วาดบอสช่องละ **32×32** (sheet 128×224) แล้วบอกผม แก้โค้ด 2 บรรทัด
 **ร่าง rage:** บอสมีร่างตอนโกรธ (HP ต่ำกว่า 50%) ตอนนี้เกมย้อมแดงให้เอง ถ้าอยากได้ภาพแยก สั่ง "same character, rage form: glowing red eyes, steam, darker red tint" แล้วตั้งชื่อ `boss1-rage.png`
@@ -119,7 +119,7 @@ the legs in the opposite position. [STYLE]
 ```
 | ไฟล์ | ใครใช้ | [DESCRIPTION] |
 |---|---|---|
-| `boar.png` | Frenzy Boar (ชั้น 1) | an angry brown wild boar with white tusks and red eyes |
+| `boar.png` | Wild Tusker (ชั้น 1) | an angry brown wild boar with white tusks and red eyes |
 | `piglet.png` | Boar Piglet (ฝูงชั้น 1, เกมย่อ 0.65) | a small round pink piglet with tiny tusks |
 | `shadowpig.png` | Shadow Piglet (ฝูงชั้น 3) | a small piglet made of purple shadow smoke with glowing eyes |
 | `tidalboar.png` | Tidal Boar (ชั้น 4) | a blue-grey boar with a fish fin crest and wet scales |
