@@ -9,7 +9,7 @@ test('title -> Dive In -> story -> play -> pause, with no console errors', async
 
   await page.goto('/');
   await expect(page.locator('#title-screen')).toBeVisible();
-  await page.getByRole('button', { name: 'Dive In' }).click();
+  await page.locator('#start-btn').click();
 
   // the intro tunnel runs ~2s, then the play scene takes over
   // a fresh save opens the floor 1 prologue: Enter turns the page, Esc skips the rest

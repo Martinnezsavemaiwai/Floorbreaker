@@ -1,0 +1,125 @@
+// Not part of npm run check (slow): a bot plays whole runs in the real page through real keyboard events,
+// with the game clock fast-forwarded. Every overlay a player meets (story, level-up picker, shop, portal,
+// ending, result) is handled through the UI. Run with
+//   npx playwright test --config e2e/capture.config.ts e2e/playthrough.bot.ts
+import { test, expect, type Page } from '@playwright/test';
+
+// The bot runs inside the page. It is the tests/harness.ts bot, but it only acts through key events.
+const BOT = `(() => {
+  const s = window.__saoy, C = s.consts, log = [], seen = new Set();
+  const key = (code, down) => window.dispatchEvent(new KeyboardEvent(down ? 'keydown' : 'keyup', { code, bubbles: true }));
+  const tap = code => { key(code, true); key(code, false); };
+  const held = {};
+  const hold = (code, on) => { if (!!held[code] !== on) { held[code] = on; key(code, on); } };
+  const visible = id => document.getElementById(id).classList.contains('on');
+  const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+  let phase = 'grind', floor = 0, last = { x: 0, y: 0 }, stuck = 0, detour = 0, side = 1, shopped = -1, frames = 0;
+  const goals = [5, 10, 15, 20];
+  const walkTo = (tx, ty) => {
+    const P = s.P;
+    if (detour > 0) { detour--; [tx, ty] = [P.x - (ty - P.y) * side, P.y + (tx - P.x) * side]; }
+    else if (Math.hypot(P.x - last.x, P.y - last.y) < 0.5 && Math.hypot(tx - P.x, ty - P.y) > 30) { if (++stuck > 60) { stuck = 0; detour = 40; side = -side; } }
+    else stuck = 0;
+    last = { x: P.x, y: P.y };
+    hold('KeyD', tx > P.x + 5); hold('KeyA', tx < P.x - 5); hold('KeyS', ty > P.y + 5); hold('KeyW', ty < P.y - 5);
+  };
+  const stop = () => ['KeyW', 'KeyA', 'KeyS', 'KeyD'].forEach(k => hold(k, false));
+  const away = (f, k = 5) => walkTo(s.P.x + (s.P.x - f.x) * k + 1, s.P.y + (s.P.y - f.y) * k + 1);
+  const aim = e => { s.mouse.x = e.x - s.cam.x; s.mouse.y = e.y - s.cam.y; };
+  const note = m => { if (!seen.has(m)) { seen.add(m); log.push((s.run?.time ?? 0).toFixed(0) + 's ' + m); } };
+
+  function overlays() { // the UI a player has to click through; returns true while one is open
+    if (document.querySelector('dialog[open]')) { note('confirm dialog'); tap('Escape'); return true; }
+    if (visible('story')) { note('story ' + document.getElementById('story-who').textContent); tap('Enter'); return true; }
+    if (visible('upgrade')) { note('level-up picker'); tap('Digit' + (1 + (frames % 3))); return true; }
+    if (visible('shop')) { note('shop'); tap('Digit1'); tap('Digit2'); tap('Escape'); return true; }
+    if (visible('pause')) { note('paused (unexpected)'); tap('Escape'); return true; }
+    return false;
+  }
+  function think() {
+    frames++;
+    if (overlays()) { stop(); return; }
+    const P = s.P, boss = s.boss, mobs = s.mobs;
+    if (!P || s.state !== 'play') return;
+    if (s.floorIdx !== floor) { floor = s.floorIdx; phase = 'grind'; note('reached floor ' + (floor + 1)); }
+    if (P.hp < P.maxHp * 0.35 && P.potions > 0) { tap('KeyQ'); note('drank potion'); }
+    if (s.portal) return s.portal.armed ? walkTo(s.portal.x, s.portal.y) : away(s.portal);
+    // spend Gold once per floor: walk to the merchant and press E
+    if (P.col >= 40 && shopped !== floor && phase !== 'boss') {
+      if (dist(P, { x: 230, y: 470 }) > 30) return walkTo(230, 470);
+      stop(); shopped = floor; tap('KeyE'); return;
+    }
+    if (phase === 'heal') { walkTo(150, 600); if (P.hp >= P.maxHp) phase = P.lv >= goals[floor] ? 'boss' : 'grind'; return; }
+    if (phase === 'grind') {
+      if (P.hp < P.maxHp * 0.4) { phase = 'heal'; return; }
+      if (P.lv >= goals[floor]) { phase = 'boss'; return; }
+      const tg = mobs.filter(m => m.hp > 0 && m.x > C.TOWN_X).sort((a, b) => dist(P, a) - dist(P, b))[0];
+      if (!tg) return;
+      aim(tg);
+      if (tg.wind > 0 && tg.wind < 0.2) { away(tg, 3); if (dist(P, tg) < 80) tap('Space'); return; }
+      walkTo(tg.x, tg.y);
+      if (dist(P, tg) < 60) { tap('KeyJ'); if (P.skillCd[0] <= 0) tap('KeyK'); if (P.skills[1] && P.skillCd[1] <= 0) tap('KeyL'); }
+      return;
+    }
+    if (P.x < C.ROOM_X + 80) return walkTo(C.ROOM_X + 100, 600);
+    const adds = mobs.filter(m => m.hp > 0 && m.summoned).sort((a, b) => dist(P, a) - dist(P, b))[0];
+    const act = boss.act; aim(boss);
+    const spot = act === 'roots' && boss.spots && boss.spots.find(p => dist(p, P) < 100);
+    if (spot) { away(spot); if (boss.t < 0.3) tap('Space'); }
+    else if (act === 'slam' && dist(P, boss) < 170) { away(boss); if (boss.t < 0.3) tap('Space'); }
+    else if (act === 'leap' && dist(P, boss.to) < 140) away(boss.to);
+    else if (act === 'volley' && dist(P, boss) < 260) away(boss);
+    else if (act === 'charge') walkTo(P.x, P.y + (Math.sin(boss.ang) > 0 ? -200 : 200));
+    else if (adds && dist(P, adds) < 120) { aim(adds); walkTo(adds.x, adds.y); tap('KeyJ'); }
+    else { walkTo(boss.x, boss.y); if (dist(P, boss) < boss.r + 50) { tap('KeyJ'); if (P.skillCd[0] <= 0) tap('KeyK'); if (P.skills[1] && P.skillCd[1] <= 0) tap('KeyL'); } }
+  }
+  function invariants() {
+    const P = s.P; if (!P) return;
+    for (const e of [P, s.boss, ...s.mobs.filter(m => m.hp > 0)]) {
+      if (![e.x, e.y].every(Number.isFinite)) note('BUG non-finite position');
+      if (e !== s.boss && s.hitWall(e)) note('BUG entity inside a wall');
+    }
+    if (!(P.hp <= P.maxHp)) note('BUG hp above max');
+    if (P.col < 0 || P.potions < 0) note('BUG negative gold/potions');
+  }
+  window.__bot = { log, done: false, frames: () => frames };
+  const timer = setInterval(() => {
+    for (let i = 0; i < 30 && !window.__bot.done; i++) {
+      think(); s.tick(1 / 60); invariants();
+      if (s.run?.over) { stop(); note('run over: ' + s.run.over + ' on floor ' + (s.floorIdx + 1) + ' at Lv.' + s.P.lv); window.__bot.done = true; clearInterval(timer); }
+    }
+  }, 16);
+})()`;
+
+async function playOnce(page: Page, lang: 'th' | 'en') {
+  const errors: string[] = [];
+  page.on('pageerror', e => errors.push(e.message));
+  page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+  await page.goto('/');
+  await page.evaluate(l => { localStorage.clear(); localStorage.setItem('saoy.settings', JSON.stringify({ v: 1, savedAt: '', data: { lang: l, aim: 'mouse' } })); }, lang);
+  await page.reload();
+  await page.locator('#start-btn').click();
+  await expect.poll(() => page.evaluate(() => (window as any).__saoy.state), { timeout: 10_000 }).not.toBe('intro');
+  await page.evaluate(BOT);
+  await expect.poll(() => page.evaluate(() => (window as any).__bot.done), { timeout: 600_000, intervals: [2000] }).toBe(true);
+  // the run's end must hand over to the result screen (after the ending story on a clear)
+  for (let i = 0; i < 20 && !(await page.locator('#result').isVisible()); i++) {
+    if (await page.locator('#story').isVisible()) await page.keyboard.press('Enter');
+    await page.waitForTimeout(300);
+  }
+  await expect(page.locator('#result')).toBeVisible();
+  const log = await page.evaluate(() => (window as any).__bot.log);
+  console.log(`--- ${lang} run ---\n` + log.join('\n') + `\nresult: ${await page.locator('#result-title').textContent()} | ${await page.locator('#result-msg').textContent()}\nerrors: ${JSON.stringify(errors)}`);
+  await page.locator('#result [data-act=home]').click();
+  await expect(page.locator('#title-screen')).toBeVisible();
+  return { log, errors };
+}
+
+test.describe.configure({ timeout: 900_000 });
+for (const lang of ['th', 'en'] as const) {
+  test(`bot plays a full run (${lang})`, async ({ page }) => {
+    const { log, errors } = await playOnce(page, lang);
+    expect(errors).toEqual([]);
+    expect(log.filter((l: string) => l.includes('BUG') || l.includes('unexpected'))).toEqual([]);
+  });
+}
