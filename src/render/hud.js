@@ -1,5 +1,6 @@
 // Canvas HUD: system-window player panel, stacked boss HP bars, skill slots and the minimap.
 import { G, rage } from '../world/state.ts';
+import { tr } from '../core/i18n.ts';
 import { W, H, WORLD, TOWN_X, ROOM_X, DOOR } from '../world/constants.ts';
 import { PLAYER } from '../data/player.ts';
 import { SKILLS } from '../data/skills.ts';
@@ -51,7 +52,7 @@ function drawPlayerPanel() {
   ctx.fillText(`${Math.max(0, Math.ceil(P.hp))} / ${P.maxHp}`, 380, 33);
   ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.fillRect(78, 59, 240, 3);
   ctx.fillStyle = '#5fc3ff'; ctx.fillRect(78, 59, 240 * P.xp / PLAYER.xpToNext(P.lv), 3);
-  const zone = P.x < TOWN_X ? ['SAFE ZONE · HP ฟื้นฟู', '#9fe89f'] : P.x > ROOM_X ? ['BOSS ROOM', '#ff8a7a'] : ['FIELD', '#cfd8e6'];
+  const zone = P.x < TOWN_X ? ['SAFE ZONE · ' + tr('HP ฟื้นฟู', 'HP regen'), '#9fe89f'] : P.x > ROOM_X ? ['BOSS ROOM', '#ff8a7a'] : ['FIELD', '#cfd8e6'];
   ctx.textAlign = 'left'; label(`${F.name} · ${zone[0]}`, 22, 92, zone[1], `600 13px ${FT}`);
   label(`${P.col} Gold`, 22, 110, '#ffe14d', `700 13px ${FN}`);
 }
@@ -91,7 +92,7 @@ function drawSkillSlots() {
     return { key: keyLabel(action), label: S.short, cd: Math.max(0, cd) / S.cd, glow: cd <= 0, secs: cd, icon: id };
   };
   const slots = [
-    { key: keyLabel('attack'), label: 'ฟัน', cd: Math.max(0, P.atkCd) / A.cd, glow: false, icon: 'attack' },
+    { key: keyLabel('attack'), label: tr('ฟัน', 'Slash'), cd: Math.max(0, P.atkCd) / A.cd, glow: false, icon: 'attack' },
     skill(0, 'skill'), ...(P.skills[1] ? [skill(1, 'skill2')] : []),
     { key: keyLabel('potion'), label: `Potion ×${P.potions}`, cd: 0, glow: false, potion: true },
   ];

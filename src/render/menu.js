@@ -1,48 +1,189 @@
-// Title background and the "Dive In" intro tunnel.
+// Title background ("the Spire's glass") and the Dive In intro.
+// Four leaded lancet windows, one per floor, glazed in that floor's torch color with its boss as the figure.
+// Floors the player has never reached stay dark, unglazed lead. The glass is drawn once into a half-resolution
+// buffer and scaled up with smoothing off, so every lead line is a hard 2 px pixel line like the game's sprites.
 import { G } from '../world/state.ts';
 import { W, H } from '../world/constants.ts';
-import { settings } from '../core/save.ts';
+import { settings, meta, loadSuspend } from '../core/save.ts';
 import { clamp } from '../core/math.ts';
+import { IMG, ready } from '../core/assets.ts';
+import { FLOORS } from '../data/floors.ts';
+import { BOSSES } from '../data/bosses.ts';
 import { ctx, FN } from './canvas.js';
 
 export const INTRO_TIME = 1.9;
 
-// Drifting crystal shards around a slowly turning ring (the Spire's silhouette)
-const shards = Array.from({ length: 46 }, () => ({ x: Math.random() * W, y: Math.random() * H, s: 3 + Math.random() * 9, v: 8 + Math.random() * 26, r: Math.random() * 6 }));
-export function updateMenuBg(dt) {
-  for (const p of shards) { p.y -= p.v * dt; p.r += dt; if (p.y < -20) { p.y = H + 20; p.x = Math.random() * W; } }
+const S = 2, BW = W / S, BH = H / S;           // buffer scale and size: 1 buffer pixel = 2 screen pixels
+const LEAD = '#0c0d12';
+const LANCET = { w: 84, gap: 22, apex: 76, spring: 118, foot: 226 }; // buffer px
+const lancetX = i => Math.round((BW - (4 * LANCET.w + 3 * LANCET.gap)) / 2 + i * (LANCET.w + LANCET.gap));
+const torch = i => FLOORS[i].torch.split(',').map(Number); // "255,150,60" -> [r, g, b]
+
+// Reached = the best record's floor, a suspended run's floor, and always floor 1
+let reached = 1, buf = null, logo = null;
+export function refreshMenuBg() {
+  const s = loadSuspend(), b = meta.best;
+  reached = Math.max(1, b ? (b.cleared ? FLOORS.length : b.floor) : 1, s ? s.floorIdx + 1 : 1);
+  buf = null;
 }
-export function drawMenuBg() {
-  const time = G.time;
-  const g = ctx.createRadialGradient(W / 2, H * 0.42, 40, W / 2, H / 2, W * 0.75);
-  g.addColorStop(0, '#1d3654'); g.addColorStop(1, '#05070c'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  ctx.save(); ctx.translate(W / 2, H * 0.42); ctx.rotate(time * 0.05);
-  for (let i = 0; i < 3; i++) { ctx.strokeStyle = `rgba(95,195,255,${0.12 - i * 0.03})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(0, 0, 300 + i * 40, 90 + i * 14, 0, 0, 7); ctx.stroke(); }
-  ctx.restore();
-  ctx.save(); ctx.globalCompositeOperation = 'lighter';
-  for (const p of shards) {
-    ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.globalAlpha = 0.25 + 0.25 * Math.sin(time + p.x);
-    ctx.fillStyle = '#8fe3ff'; ctx.beginPath(); ctx.moveTo(0, -p.s); ctx.lineTo(p.s * 0.45, 0); ctx.lineTo(0, p.s); ctx.lineTo(-p.s * 0.45, 0); ctx.fill();
-    ctx.restore();
+ready.then(() => { buf = null; });
+document.fonts?.ready.then(() => { logo = null; });
+
+// Seeded so the glass breaks the same way every time
+const rand = seed => () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+
+// The lancet outline: a pointed (equilateral) arch on a straight body
+function lancetPath(g, x, w) {
+  const { apex, spring, foot } = LANCET;
+  g.beginPath();
+  g.moveTo(x, foot); g.lineTo(x, spring);
+  g.quadraticCurveTo(x, apex + (spring - apex) * 0.35, x + w / 2, apex);
+  g.quadraticCurveTo(x + w, apex + (spring - apex) * 0.35, x + w, spring);
+  g.lineTo(x + w, foot); g.closePath();
+}
+
+function glazeLancet(g, i) {
+  const x = lancetX(i), { w } = LANCET, lit = i < reached, [r, gr, b] = torch(i), rnd = rand(97 + i * 31);
+  g.save(); lancetPath(g, x, w); g.clip();
+  // irregular panes: a jittered grid, each pane a slightly different shade of the floor's glass
+  const cols = 4, rows = 9, cw = w / cols, rh = (LANCET.foot - LANCET.apex) / rows;
+  const pt = [];
+  for (let yy = 0; yy <= rows; yy++) for (let xx = 0; xx <= cols; xx++) {
+    const edge = xx === 0 || xx === cols || yy === 0 || yy === rows;
+    pt.push([x + xx * cw + (edge ? 0 : (rnd() - 0.5) * cw * 0.6), LANCET.apex + yy * rh + (edge ? 0 : (rnd() - 0.5) * rh * 0.6)]);
   }
+  const P = (xx, yy) => pt[yy * (cols + 1) + xx];
+  for (let yy = 0; yy < rows; yy++) for (let xx = 0; xx < cols; xx++) {
+    const k = 0.55 + rnd() * 0.45, depth = 1 - (yy / rows) * 0.35; // lighter toward the top, where the light comes in
+    g.fillStyle = lit ? `rgb(${r * k * depth | 0},${gr * k * depth | 0},${b * k * depth | 0})` : `rgb(${22 + rnd() * 10 | 0},${24 + rnd() * 10 | 0},${32 + rnd() * 12 | 0})`;
+    g.beginPath(); g.moveTo(...P(xx, yy)); g.lineTo(...P(xx + 1, yy)); g.lineTo(...P(xx + 1, yy + 1)); g.lineTo(...P(xx, yy + 1)); g.closePath();
+    g.fill(); g.strokeStyle = LEAD; g.lineWidth = 1; g.stroke();
+  }
+  // the boss as the window's figure, outlined in lead; unreached floors show only a dark silhouette
+  const boss = BOSSES[FLOORS[i].boss], img = IMG[boss.img];
+  if (img) {
+    const sheet = !('tree' in boss), sw = sheet ? img.width / 4 : img.width, sh = sheet ? img.width / 4 : img.height;
+    const scale = Math.min((w - 10) / sw, 120 / sh), dw = sw * scale, dh = sh * scale;
+    const dx = Math.round(x + (w - dw) / 2), dy = Math.round(LANCET.foot - 26 - dh);
+    const sil = IMG[boss.img + 'White'];
+    g.globalAlpha = 1; g.filter = 'brightness(0)';
+    for (const [ox, oy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) g.drawImage(sil, 0, 0, sw, sh, dx + ox, dy + oy, dw, dh);
+    g.filter = 'none';
+    if (lit) g.drawImage(img, 0, 0, sw, sh, dx, dy, dw, dh);
+    else { g.globalAlpha = 0.7; g.filter = 'brightness(0.18) saturate(0)'; g.drawImage(img, 0, 0, sw, sh, dx, dy, dw, dh); g.filter = 'none'; g.globalAlpha = 1; }
+  }
+  // the inscription band at the foot of the window
+  g.fillStyle = lit ? `rgb(${r * 0.25 | 0},${gr * 0.25 | 0},${b * 0.25 | 0})` : '#14161d';
+  g.fillRect(x, LANCET.foot - 18, w, 18);
+  g.restore();
+  // cusps: two small lead lobes hanging inside the arch head
+  g.strokeStyle = LEAD; g.lineWidth = 2;
+  for (const side of [-1, 1]) { g.beginPath(); g.arc(x + w / 2 + side * w * 0.17, LANCET.apex + 26, w * 0.17, Math.PI * 1.05, Math.PI * 1.95); g.stroke(); }
+  g.lineWidth = 3; lancetPath(g, x, w); g.stroke();
+  g.fillStyle = LEAD; g.fillRect(x, LANCET.foot - 19, w, 2);
+}
+
+function buildGlass() {
+  const c = document.createElement('canvas'); c.width = BW; c.height = BH;
+  const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+  // the Spire's inner wall: the game's own wall tile, sunk into shadow
+  g.fillStyle = '#07080b'; g.fillRect(0, 0, BW, BH);
+  if (IMG.wall) { g.globalAlpha = 0.22; g.fillStyle = g.createPattern(IMG.wall, 'repeat'); g.fillRect(0, 0, BW, BH); g.globalAlpha = 1; }
+  // light from each glazed window pools on the floor below it
+  for (let i = 0; i < 4; i++) {
+    if (i >= reached) continue;
+    const [r, gr, b] = torch(i), cx = lancetX(i) + LANCET.w / 2;
+    const pool = g.createRadialGradient(cx, LANCET.foot + 20, 4, cx, LANCET.foot + 20, 90);
+    pool.addColorStop(0, `rgba(${r},${gr},${b},.28)`); pool.addColorStop(1, `rgba(${r},${gr},${b},0)`);
+    g.fillStyle = pool; g.fillRect(0, LANCET.foot - 40, BW, BH);
+  }
+  for (let i = 0; i < 4; i++) glazeLancet(g, i);
+  // quatrefoils in the spandrels between the arch heads, glazed in the colors of the two floors they join
+  for (let i = 0; i < 3; i++) {
+    const cx = lancetX(i) + LANCET.w + LANCET.gap / 2, cy = LANCET.apex + 18, r = 5.5, lit = i + 1 < reached;
+    g.fillStyle = '#34363f'; g.beginPath(); g.arc(cx, cy, r * 2.35, 0, 7); g.fill(); // cut stone the foil is pierced through
+    for (const [ox, oy] of [[0, -1], [1, 0], [0, 1], [-1, 0]]) {
+      const [cr, cg, cb] = torch(ox + oy > 0 ? i + 1 : i);
+      g.fillStyle = lit || (i < reached && ox + oy <= 0) ? `rgb(${cr * 0.8 | 0},${cg * 0.8 | 0},${cb * 0.8 | 0})` : '#1c1e27';
+      g.beginPath(); g.arc(cx + ox * r, cy + oy * r, r, 0, 7); g.fill(); g.strokeStyle = LEAD; g.lineWidth = 2; g.stroke();
+    }
+    g.fillStyle = LEAD; g.fillRect(cx - 2, cy - 2, 4, 4);
+  }
+  // the sill the menu stands on, and the tracery band the name is set in
+  g.fillStyle = LEAD; g.fillRect(14, LANCET.foot + 4, BW - 28, 3);
+  // the tracery band the name is glazed into: a lead frame with small trefoil stops at both ends
+  g.fillRect(14, 22, BW - 28, 2); g.fillRect(14, 64, BW - 28, 2);
+  for (const ex of [26, BW - 26]) {
+    g.fillStyle = '#34363f'; g.beginPath(); g.arc(ex, 43, 12.5, 0, 7); g.fill();
+    for (const [ox, oy] of [[0, -5], [-5, 3], [5, 3]]) { g.fillStyle = '#b8642a'; g.beginPath(); g.arc(ex + ox, 43 + oy, 5, 0, 7); g.fill(); g.strokeStyle = LEAD; g.lineWidth = 2; g.stroke(); }
+  }
+  return c;
+}
+
+// Text set small in Exo 2 with a hard alpha threshold, so scaling it up with smoothing off gives real pixel
+// letterforms from the game's own face
+function pixelText(text, size, fill) {
+  const c = document.createElement('canvas'), g = c.getContext('2d');
+  g.font = `800 ${size}px ${FN}`;
+  c.width = Math.ceil(g.measureText(text).width + 6); c.height = size + 8;
+  g.font = `800 ${size}px ${FN}`; g.textBaseline = 'top'; g.textAlign = 'left';
+  g.fillStyle = LEAD; for (const [ox, oy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [1, 1]]) g.fillText(text, 3 + ox, 4 + oy);
+  const bands = g.createLinearGradient(0, 4, 0, 4 + size);
+  fill.forEach((col, k) => { bands.addColorStop(k / fill.length, col); bands.addColorStop((k + 1) / fill.length - 0.001, col); });
+  g.fillStyle = bands; g.fillText(text, 3, 4);
+  const d = g.getImageData(0, 0, c.width, c.height), px = d.data;
+  for (let i = 3; i < px.length; i += 4) px[i] = px[i] > 110 ? 255 : 0;
+  g.putImageData(d, 0, 0);
+  return c;
+}
+const buildLogo = () => pixelText('FLOORBREAKER', 20, ['#fff8e8', '#f4ecd8', '#ffd9a0', '#ffb062', '#ff963c']);
+
+export function drawMenuBg() {
+  buf ??= buildGlass();
+  logo ??= buildLogo();
+  ctx.save(); ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(buf, 0, 0, W, H);
+  // light breathing through the glass (still when reduced motion / flashing is off)
+  const t = G.time, live = settings.flash;
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < reached && i < 4; i++) {
+    const [r, gr, b] = torch(i), k = live ? 0.06 + 0.04 * Math.sin(t * 0.8 + i * 1.7) : 0.06;
+    const shaft = ctx.createLinearGradient(0, LANCET.apex, 0, LANCET.foot);
+    shaft.addColorStop(0, `rgba(${r},${gr},${b},${k * 2})`); shaft.addColorStop(1, `rgba(${r},${gr},${b},0)`);
+    ctx.save(); ctx.scale(S, S); lancetPath(ctx, lancetX(i), LANCET.w); ctx.fillStyle = shaft; ctx.fill(); ctx.restore();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  // town names in the inscription bands, set at screen resolution so they stay readable
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = `800 15px ${FN}`;
+  for (let i = 0; i < 4; i++) {
+    const [r, gr, b] = torch(i);
+    ctx.fillStyle = i < reached ? `rgb(${r},${gr},${b})` : '#4a4d5c';
+    ctx.fillText(i < reached ? FLOORS[i].town.toUpperCase().split('').join(' ') : '? ? ?', (lancetX(i) + LANCET.w / 2) * S, (LANCET.foot - 9) * S);
+  }
+  ctx.textBaseline = 'alphabetic';
+  const lw = logo.width * 4, lh = logo.height * 4;
+  ctx.drawImage(logo, Math.round((W - lw) / 2), 22 * S + Math.round((42 * S - lh) / 2), lw, lh);
   ctx.restore();
 }
 
-// A tunnel of rainbow rings rushing outward, then the game fades in
+// Dive In: the lancets flood with white, then the climb begins (rings in the four floor colors rushing outward)
 export function drawIntro() {
   const t = G.introT, k = t / INTRO_TIME;
-  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+  if (t < 0.35) {
+    drawMenuBg();
+    ctx.fillStyle = settings.flash ? `rgba(255,248,230,${t / 0.35})` : `rgba(0,0,0,${t / 0.35})`; ctx.fillRect(0, 0, W, H);
+    return;
+  }
+  ctx.fillStyle = '#07080b'; ctx.fillRect(0, 0, W, H);
   ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.translate(W / 2, H / 2);
   for (let i = 0; i < 16; i++) {
-    const p = (t * 0.9 + i / 16) % 1, r = p * p * W * 0.9;
-    ctx.strokeStyle = `hsla(${i * 23 + t * 160},95%,62%,${(1 - p) * 0.8})`; ctx.lineWidth = 2 + p * 14;
+    const p = (t * 0.9 + i / 16) % 1, r = p * p * W * 0.9, [cr, cg, cb] = torch(i % 4);
+    ctx.strokeStyle = `rgba(${cr},${cg},${cb},${(1 - p) * 0.8})`; ctx.lineWidth = 2 + p * 14;
     ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.stroke();
   }
-  const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, 160); glow.addColorStop(0, `rgba(255,255,255,${0.5 * k})`); glow.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.fillStyle = glow; ctx.fillRect(-160, -160, 320, 320);
   ctx.restore();
-  ctx.globalAlpha = clamp((t - 0.25) * 3, 0, 1) * clamp((INTRO_TIME - t) * 4, 0, 1);
-  ctx.textAlign = 'center'; ctx.font = `800 54px ${FN}`; ctx.fillStyle = '#fff'; ctx.fillText('DIVE IN', W / 2, H / 2 + 18);
+  ctx.globalAlpha = clamp((t - 0.45) * 3, 0, 1) * clamp((INTRO_TIME - t) * 4, 0, 1);
+  ctx.textAlign = 'center'; ctx.font = `800 54px ${FN}`; ctx.fillStyle = '#f4ecd8'; ctx.fillText('DIVE IN', W / 2, H / 2 + 18);
   ctx.globalAlpha = 1;
-  if (k > 0.8) { ctx.fillStyle = settings.flash ? `rgba(255,255,255,${(k - 0.8) * 5})` : `rgba(0,0,0,${(k - 0.8) * 5})`; ctx.fillRect(0, 0, W, H); }
+  if (k > 0.8) { ctx.fillStyle = settings.flash ? `rgba(255,248,230,${(k - 0.8) * 5})` : `rgba(0,0,0,${(k - 0.8) * 5})`; ctx.fillRect(0, 0, W, H); }
 }

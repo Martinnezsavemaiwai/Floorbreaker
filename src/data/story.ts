@@ -1,34 +1,38 @@
 // Short story beats, shown once per save the first time each floor loads (kept in meta.storySeen).
 // `ending` plays on every clear, before the result screen.
-// Original lines in the spirit of the setting; `who` is the window title.
-export interface Line { who: string; text: string }
+// The System talks in short, cold notices; "you" talks like a person stuck in a game.
+import type { Text } from '../core/i18n.ts';
+
+export interface Line { who: Text; text: Text }
+
+const SYS = 'System', YOU = { th: 'คุณ', en: 'You' };
 
 export const STORY: Record<string, Line[]> = {
   floor0: [
-    { who: 'System', text: 'ยินดีต้อนรับสู่ The Spire หอคอยลอยฟ้า 100 ชั้น' },
-    { who: 'System', text: 'แจ้งเตือน: ไม่พบคำสั่ง Log Out · ทางออกเดียวคือพิชิตชั้นบนสุด' },
-    { who: 'System', text: 'เมื่อ HP เหลือ 0 ตัวละครจะถูกลบถาวร · ขอให้โชคดี' },
-    { who: 'คุณ', text: 'Firstlight… ถ้าออกไม่ได้ ก็ต้องเดินหน้าอย่างเดียว ไปหาบอสที่ปลายถนนกัน' },
+    { who: SYS, text: { th: 'ผู้เล่นใหม่เข้าสู่ระบบ ตำแหน่ง: The Spire ชั้น 1 จาก 100', en: 'New player logged in. Location: The Spire, floor 1 of 100.' } },
+    { who: SYS, text: { th: 'คำสั่ง Log Out ใช้งานไม่ได้ ทางออกอยู่ที่ชั้น 100', en: 'Log Out is unavailable. The exit is on floor 100.' } },
+    { who: SYS, text: { th: 'ถ้า HP เหลือ 0 ตัวละครจะถูกลบ และกู้คืนไม่ได้', en: 'If your HP hits 0, your character is deleted. It cannot be restored.' } },
+    { who: YOU, text: { th: 'เมืองนี้ชื่อ Firstlight สินะ ออกไม่ได้ก็ต้องปีนขึ้นไป บอสชั้นนี้รออยู่สุดถนนเส้นนั้น', en: "So this is Firstlight. If I can't log out, I climb. The boss is at the end of that road." } },
   ],
   floor1: [
-    { who: 'System', text: 'ชั้น 2 เปิดแล้ว · เมือง Hornfield' },
-    { who: 'คุณ', text: 'ชาวเมืองลือกันว่าห้องบอสมีวัวกระทิงยักษ์เฝ้าอยู่ พวกทหาร Taurus ในทุ่งก็ไม่ธรรมดา' },
-    { who: 'คุณ', text: 'แถมยังมีพวกขว้างหอกจากระยะไกลด้วย ต้องคอยดูเส้นเล็งสีแดงให้ดี' },
+    { who: SYS, text: { th: 'ปลดล็อกชั้น 2: Hornfield', en: 'Floor 2 unlocked: Hornfield.' } },
+    { who: YOU, text: { th: 'คนในเมืองบอกว่าห้องบอสมีวัวยักษ์เฝ้าอยู่ ส่วนทหาร Taurus ในทุ่งก็โหดใช่เล่น', en: 'People here say a giant bull guards the boss room. The Taurus soldiers in the fields hit hard too.' } },
+    { who: YOU, text: { th: 'มีพวกขว้างหอกจากไกลๆ ด้วย เห็นเส้นสีแดงเล็งมาเมื่อไหร่ต้องหลบ', en: 'Some of them throw javelins from far off. If a red line points at me, I move.' } },
   ],
   floor2: [
-    { who: 'System', text: 'ชั้น 3 เปิดแล้ว · หมู่บ้าน Mistwell' },
-    { who: 'คุณ', text: 'ป่านี้หมอกหนาจนมองไม่เห็นทาง ได้ยินว่า Dark Elf ซุ่มอยู่ทั่ว และเวทของพวกมันแรงมาก' },
-    { who: 'คุณ', text: 'ที่ใจกลางป่ามีต้นไม้ยักษ์ที่ขยับได้… ชั้นนี้คงเป็นด่านที่ยากที่สุดจนถึงตอนนี้' },
+    { who: SYS, text: { th: 'ปลดล็อกชั้น 3: Mistwell', en: 'Floor 3 unlocked: Mistwell.' } },
+    { who: YOU, text: { th: 'หมอกหนาจนแทบมองไม่เห็นทาง Dark Elf ซุ่มอยู่ในป่านี้ แล้วเวทของพวกมันก็เจ็บมาก', en: "The fog is so thick I can barely see the path. Dark Elves hide in these woods, and their spells hurt." } },
+    { who: YOU, text: { th: 'กลางป่ามีต้นไม้ยักษ์ที่เดินได้ ชั้นนี้ยากสุดตั้งแต่มาเลย', en: "There's a giant tree in the middle of the forest, and it walks. This is the worst floor yet." } },
   ],
   floor3: [
-    { who: 'System', text: 'ชั้น 4 เปิดแล้ว · เมืองน้ำ Canalis' },
-    { who: 'คุณ', text: 'ทั้งเมืองมีแต่คลองกับบ่อน้ำ เดินอ้อมดีๆ อย่าให้โดนต้อนจนติดขอบน้ำ' },
-    { who: 'คุณ', text: 'ว่ากันว่าบอสชั้นนี้คือม้าน้ำยักษ์ ยิงกระสุนน้ำเป็นวงรอบตัว ต้องหาช่องว่างระหว่างนัดแล้วแทรกตัวผ่านไป' },
+    { who: SYS, text: { th: 'ปลดล็อกชั้น 4: Canalis', en: 'Floor 4 unlocked: Canalis.' } },
+    { who: YOU, text: { th: 'ทั้งเมืองมีแต่คลองกับบ่อน้ำ ต้องระวังอย่าให้โดนไล่ต้อนจนติดริมน้ำ', en: "This town is all canals and ponds. I can't let them back me up against the water." } },
+    { who: YOU, text: { th: 'บอสที่นี่เป็นม้าน้ำยักษ์ ยิงน้ำออกมาเป็นวง ต้องรอช่องระหว่างวงแล้วแทรกเข้าไป', en: 'The boss here is a giant seahorse that fires rings of water. I have to wait for a gap between rings and slip through.' } },
   ],
   ending: [
-    { who: 'System', text: 'Floor 4 Cleared · ประตูสู่ชั้น 5 ยังไม่เปิด' },
-    { who: 'คุณ', text: 'ผ่านมาสี่ชั้นแล้ว… แต่ยังเหลืออีก 96 ชั้นกว่าจะได้กลับบ้าน' },
-    { who: 'คุณ', text: 'อย่างน้อยวันนี้ก็รู้แล้วว่าปราสาทนี้พิชิตได้ พักก่อนแล้วค่อยไปต่อ' },
-    { who: 'System', text: 'ขอบคุณที่เล่น Floorbreaker · to be continued' },
+    { who: SYS, text: { th: 'ผ่านชั้น 4 แล้ว ประตูชั้น 5 ยังปิดอยู่', en: 'Floor 4 cleared. The gate to floor 5 is still sealed.' } },
+    { who: YOU, text: { th: 'สี่ชั้นแล้ว เหลืออีก 96', en: 'Four floors down. Ninety-six to go.' } },
+    { who: YOU, text: { th: 'อย่างน้อยตอนนี้ก็รู้แล้วว่าหอนี้ปีนได้ พักก่อน แล้วค่อยไปต่อ', en: "At least now I know this tower can be climbed. I'll rest, then keep going." } },
+    { who: SYS, text: { th: 'ขอบคุณที่เล่น Floorbreaker เรื่องราวยังไม่จบ', en: 'Thanks for playing Floorbreaker. To be continued.' } },
   ],
 };

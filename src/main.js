@@ -1,6 +1,7 @@
 // Entry point: fonts/styles, input wiring, the frame loop, and the dev-only test hook.
 // Self-hosted fonts (Fontsource): Kanit for Thai, Exo 2 for numbers/Latin
 import '@fontsource/kanit/300.css';
+import { tr, applyLang } from './core/i18n.ts';
 import '@fontsource/kanit/400.css';
 import '@fontsource/kanit/600.css';
 import '@fontsource/exo-2/700.css';
@@ -20,7 +21,7 @@ import { settings } from './core/save.ts';
 import { keys, mouse, actionForKey, actionForButton, releaseAll, keyLabel } from './core/input.ts';
 import { drinkPotion } from './systems/shop.js';
 import { SHOP } from './data/shop.ts';
-import { attack, skill, roll, hurtPlayer, startBossMove, updateGame, updateFx } from './systems/index.js';
+import { attack, skill, roll, hurtPlayer, hurtEnemy, startBossMove, updateGame, updateFx } from './systems/index.js';
 import { drawWorld } from './render/world.js';
 import { cv } from './render/canvas.js';
 import { toggleMute, initAudio, playMusic } from './audio/audio.js';
@@ -33,7 +34,7 @@ function toggleFullscreen() {
   if (document.fullscreenElement) document.exitFullscreen();
   else document.documentElement.requestFullscreen?.().catch(() => {});
 }
-const mute = () => toast(toggleMute() ? 'ปิดเสียงแล้ว' : 'เปิดเสียงแล้ว', `กด ${keyLabel('mute')} เพื่อสลับ`, 1.4);
+const mute = () => toast(toggleMute() ? tr('ปิดเสียงแล้ว', 'Sound off') : tr('เปิดเสียงแล้ว', 'Sound on'), tr(`กด ${keyLabel('mute')} เพื่อสลับ`, `Press ${keyLabel('mute')} to toggle`), 1.4);
 
 bindActions({
   start: () => ready.then(startIntro), continue: () => ready.then(continueRun),
@@ -96,7 +97,7 @@ function padPress(btn) {
   const a = PAD_BUTTONS[btn];
   if (a === 'pause') back(); else GAME_ACTIONS[a]?.();
 }
-addEventListener('gamepadconnected', () => toast('เชื่อมต่อจอยแล้ว', 'อนาล็อกซ้ายเดิน · ขวาเล็ง · X ฟัน · A กลิ้ง · RB / RT Blade Art', 3.5));
+addEventListener('gamepadconnected', () => toast(tr('เชื่อมต่อจอยแล้ว', 'Gamepad connected'), tr('สติ๊กซ้ายเดิน สติ๊กขวาเล็ง X ฟัน A กลิ้ง RB/RT ใช้ Blade Art', 'Left stick walks, right stick aims, X attacks, A rolls, RB/RT for Blade Arts.'), 3.5));
 on('playerHurt', () => { if (settings.shake) rumble(0.6); });
 on('guardBreak', () => { if (settings.shake) rumble(0.3, 80); });
 addEventListener('blur', () => { releaseAll(); pauseGame(); });
@@ -118,6 +119,7 @@ const frames = runFrames(real => { for (const b of pollPad()) padPress(b); clock
 // Leaving the tab also writes the suspend save, so closing it mid-run loses nothing
 document.addEventListener('visibilitychange', () => { if (document.hidden) { pauseGame(); suspendRun(); } else frames.reset(); });
 addEventListener('pagehide', suspendRun);
+applyLang();
 scenes.replace(titleScene);
 // Browsers only allow sound after a user gesture: start audio (and the title music) on the first click or key
 const unlockAudio = () => { initAudio(); if (current === 'title-screen') playMusic('title'); };
@@ -129,7 +131,7 @@ if (import.meta.env.DEV) {
   const live = { state: () => G.run?.over || scenes.top?.name, P: () => G.P, mobs: () => G.mobs, shots: () => G.shots, boss: () => G.boss, F: () => G.F,
                  floorIdx: () => G.floorIdx, portal: () => G.portal, run: () => G.run, clock: () => clock, scenes: () => scenes, cam: () => G.cam };
   /** @type {any} */ (window).__saoy = Object.defineProperties(
-    { tick: dt => clock.advance(dt), update: updateGame, updateFx, draw: drawWorld, newGame, loadFloor, attack, skill, hurtPlayer,
+    { tick: dt => clock.advance(dt), update: updateGame, updateFx, draw: drawWorld, newGame, loadFloor, attack, skill, hurtPlayer, hurtEnemy,
       hitWall, startBossMove, keys, mouse, ready, consts: { W, H, WORLD, TOWN_X, ROOM_X } },
     Object.fromEntries(Object.entries(live).map(([k, get]) => [k, { get }])));
 }

@@ -17,9 +17,12 @@ const raw = {
 };
 
 const reduced = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false; // undefined in Node tests
+// First visit: Thai for Thai browsers, English for everyone else (Node tests: Thai, the original text)
+const nav = globalThis.navigator, firstLang = !nav?.languages || nav.languages.some(l => /^th/i.test(l)) ? 'th' : 'en';
 
 // ---------- schemas ----------
 const SettingsSchema = z.object({
+  lang: z.enum(['th', 'en']).default(firstLang),
   music: z.number().min(0).max(100).default(60),
   sfx: z.number().min(0).max(100).default(80),
   shake: z.boolean().default(!reduced),
@@ -46,6 +49,7 @@ const SuspendSchema = z.object({
   run: z.object({ floor: z.number().int().min(1), kills: z.number().int().min(0), time: z.number().min(0), assisted: z.boolean().default(false) }),
 });
 export type Settings = z.infer<typeof SettingsSchema>;
+export type Lang = Settings['lang'];
 export type Meta = z.infer<typeof MetaSchema>;
 export type Best = z.infer<typeof BestSchema>;
 export type Suspend = z.infer<typeof SuspendSchema>;
@@ -104,11 +108,11 @@ const ExportSchema = z.object({
   v: z.number().int().max(SAVE_VERSION),
   settings: SettingsSchema, meta: MetaSchema, suspend: SuspendSchema.nullable(),
 });
-export function importSave(text: string): { ok: true } | { ok: false; error: string } {
+export function importSave(text: string): { ok: true } | { ok: false; error: { th: string; en: string } } {
   let parsed: unknown;
-  try { parsed = JSON.parse(text); } catch { return { ok: false, error: 'ไฟล์ไม่ใช่ JSON' }; }
+  try { parsed = JSON.parse(text); } catch { return { ok: false, error: { th: 'ไฟล์ไม่ใช่ JSON', en: 'The file is not JSON' } }; }
   const r = ExportSchema.safeParse(parsed);
-  if (!r.success) return { ok: false, error: 'ไฟล์ไม่ใช่เซฟของ Floorbreaker หรือข้อมูลเสียหาย' };
+  if (!r.success) return { ok: false, error: { th: 'ไฟล์ไม่ใช่เซฟของ Floorbreaker หรือข้อมูลเสียหาย', en: 'Not a Floorbreaker save, or the data is damaged' } };
   Object.assign(settings, r.data.settings); saveSettings();
   Object.assign(meta, r.data.meta); saveMeta();
   if (r.data.suspend) writeSuspend(r.data.suspend); else clearSuspend();

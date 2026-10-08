@@ -1,5 +1,6 @@
 // Damage, death, XP. Sounds, music and result screens hang off the events emitted here.
 import { G, rage } from '../world/state.ts';
+import { tr } from '../core/i18n.ts';
 import { ROOM, WORLD } from '../world/constants.ts';
 import { knock } from '../world/physics.ts';
 import { makeMob, isLastFloor } from '../world/floor.ts';
@@ -40,7 +41,7 @@ export function hurtEnemy(e, d, big, crit = false) {
   if (e !== boss) { knock(e, P, e.def.knockback[big ? 'heavy' : 'light']); if (big) e.wind = 0; } // heavy hits stagger a winding-up mob
   else if (F.boss.summon && !boss.summoned && rage()) {
     boss.summoned = true; emit('bossSummon');
-    text(boss.x, boss.y - 130, `${F.boss.name.split(' ')[0]} เรียกลูกน้อง!`, '#ff7043', true);
+    text(boss.x, boss.y - 130, F.boss.name.split(' ')[0] + tr(' เรียกพวกมาช่วย!', ' calls for backup!'), '#ff7043', true);
     for (let i = 0; i < F.boss.summon; i++) {
       const m = makeMob(boss.x + (i ? 90 : -90), boss.y + 90, true);
       m.x = clamp(m.x, ROOM.x0 + 20, WORLD.w - 20); G.mobs.push(m); ring(m.x, m.y, 5, 60, 0.4, '255,80,200');

@@ -1,178 +1,230 @@
-/* "System window" theme: frosted white panels, slate text, orange accent.
-   Contrast (measured): --ink 10.7:1 and --ink-2 5.5:1 on the panel; --accent-ink on --accent 5.9:1;
-   --focus ring 5.5:1 on panels, 3.0:1 on the dark title scrim and on --accent (non-text minimum 3:1). */
+/* "The Spire's glass": every window is a leaded pane. Black lead came, dark glass that lights up in one of the four
+   floor torch colors (Firstlight amber, Hornfield violet, Mistwell green, Canalis blue), square corners with rivets.
+   Each window or pane sets --glass to its floor color; the lit state fills the pane with it and sets lead-dark text.
+   Contrast (measured on --win-bg #101118): --ink 15.2:1, --ink-2 8.3:1; --lead on every lit glass color >= 7:1;
+   focus ring #fff on the dark wall 18:1 (it sits outside the pane, never on the glass). */
 :root{
-  --win-bg:rgba(246,247,250,.94); --win-line:rgba(255,255,255,.9); --ink:#2b313b; --ink-2:#555c68; --rule:#dfe3ea;
-  --accent:#f39a1d; --accent-hover:#f7ad44; --accent-ink:#2b313b; --danger:#b02e26; --sky:#5fc3ff; --focus:#0b5cad;
-  --scrim:rgba(6,10,18,.55); --btn-bg:#fff;
-  --ease-out:cubic-bezier(.16,1,.3,1);
+  --lead:#0c0d12; --wall:#07080b; --win-bg:#101118; --win-raise:#171822; --line:#2b2d38;
+  --ink:#efe8d6; --ink-2:#b9b2a2;
+  --firstlight:#ff963c; --hornfield:#a688ff; --mistwell:#78ff96; --canalis:#5ac8ff; --blood:#ff5a4e;
+  --glass:var(--firstlight); --focus:#fff;
+  --scrim:rgba(4,5,8,.62);
   --font:'Kanit','Exo 2',system-ui,sans-serif; --font-num:'Exo 2','Kanit',system-ui,sans-serif;
   /* where the canvas sits inside the window (it is letterboxed at 3:2) */
-  --canvas-h:min(100vh,66.667vw); --canvas-top:calc((100vh - var(--canvas-h)) / 2);
+  --canvas-h:min(100vh,66.667vw); --canvas-w:calc(var(--canvas-h) * 1.5); --canvas-top:calc((100vh - var(--canvas-h)) / 2);
+  /* four lead rivets, one per corner: used by every pane, window and card */
+  --rivets:linear-gradient(var(--lead),var(--lead)) top left/7px 7px no-repeat,linear-gradient(var(--lead),var(--lead)) top right/7px 7px no-repeat,
+           linear-gradient(var(--lead),var(--lead)) bottom left/7px 7px no-repeat,linear-gradient(var(--lead),var(--lead)) bottom right/7px 7px no-repeat;
 }
 *{box-sizing:border-box}
-[hidden]{display:none !important} /* component display rules (.btn, panels) must never un-hide an element */
-html,body{margin:0;height:100%;background:#070a10;color:#e6edf3;font-family:var(--font);overflow:hidden}
+[hidden]{display:none !important} /* component display rules (.btn, panes) must never un-hide an element */
+html,body{margin:0;height:100%;background:var(--wall);color:var(--ink);font-family:var(--font);overflow:hidden}
 body{display:grid;place-items:center}
-::selection{background:var(--accent);color:var(--accent-ink)}
-canvas{display:block;width:min(100vw,150vh);height:auto;cursor:crosshair}
-.ico{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+::selection{background:var(--firstlight);color:var(--lead)}
+canvas{display:block;width:min(100vw,150vh);height:auto;cursor:crosshair;image-rendering:pixelated}
+.ico{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:square;stroke-linejoin:miter;flex:none}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+*{scrollbar-color:var(--line) transparent;scrollbar-width:thin}
 
-/* ---------- screens & windows ---------- */
+/* ---------- screens & leaded windows ---------- */
 .screen{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:16px;background:var(--scrim)}
-.screen.on{display:flex;animation:fade .18s ease-out}
-.win{width:min(420px,100%);max-height:calc(100vh - 32px);display:flex;flex-direction:column;background:var(--win-bg);color:var(--ink);
-  border:1px solid var(--win-line);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.45),inset 0 1px 0 #fff;overflow:hidden;
-  animation:pop .26s var(--ease-out)}
-.win.wide{width:min(680px,100%)}
-.win header{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--rule);
-  font:600 16px var(--font);color:var(--ink);flex:none}
-.win header::before{content:'';width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px rgba(243,154,29,.25)}
-.win .body{padding:16px 18px;display:grid;gap:10px;overflow-y:auto;scroll-padding-bottom:16px;scrollbar-color:#c3c9d3 transparent;scrollbar-width:thin}
-.win-foot{flex:none;padding:10px 18px;border-top:1px solid var(--rule);background:rgba(255,255,255,.55)}
+.screen.on{display:flex;animation:fade .16s ease-out}
+.win{position:relative;width:min(440px,100%);max-height:calc(100vh - 32px);display:flex;flex-direction:column;
+  background:var(--win-bg);color:var(--ink);border:3px solid var(--lead);border-radius:0;
+  box-shadow:inset 0 0 0 2px var(--glass),0 18px 50px rgba(0,0,0,.6);
+  overflow:hidden;animation:settle .22s steps(3,end)}
+.win::after{content:'';position:absolute;inset:2px;background:var(--rivets);pointer-events:none;z-index:1}
+.win.wide{width:min(700px,100%)}
+/* the header is a strip of lit glass in the window's floor color, crossed by one lead came */
+.win header{display:flex;align-items:center;gap:12px;padding:11px 20px;flex:none;
+  background:linear-gradient(104deg,transparent 71%,var(--lead) 71% calc(71% + 2px),transparent calc(71% + 2px)),
+    linear-gradient(180deg,color-mix(in srgb,var(--glass) 70%,#fff),var(--glass));
+  border-bottom:3px solid var(--lead);font:800 17px var(--font-num);letter-spacing:.02em;color:var(--lead)}
+.win .body{padding:16px 18px;display:grid;gap:10px;overflow-y:auto;scroll-padding-bottom:16px}
+.win-foot{flex:none;padding:8px 14px;border-top:3px solid var(--lead);background:var(--win-raise)}
 
-/* ---------- buttons ---------- */
-.menu{display:grid;gap:8px;width:min(340px,100%)}
-.btn{font:600 17px var(--font);display:flex;align-items:center;gap:12px;width:100%;padding:12px 16px;border-radius:10px;cursor:pointer;
-  border:1px solid var(--rule);background:var(--btn-bg);color:var(--ink);text-align:left;
-  transition:background .12s,transform .16s var(--ease-out),box-shadow .12s}
-.btn:hover{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);transform:translateX(3px);box-shadow:0 6px 18px rgba(243,154,29,.35)}
-.btn .ic{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#eef1f5;color:var(--ink-2);flex:none}
-.btn:hover .ic{background:rgba(43,49,59,.12);color:var(--ink)}
-.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-.btn.primary:hover{background:var(--accent-hover)}
-.btn.primary .ic{background:rgba(43,49,59,.12);color:var(--ink)}
-.btn.ghost{background:transparent;border-color:transparent;color:var(--ink-2);font-weight:400;padding:8px 10px}
-.btn.ghost .ic{background:transparent}
-.btn.ghost:hover{background:rgba(43,49,59,.07);color:var(--ink);box-shadow:none;transform:none}
-.btn.danger{background:var(--danger);border-color:var(--danger);color:#fff}
-.btn.danger:hover{background:#951f19;color:#fff;box-shadow:0 6px 18px rgba(176,46,38,.35)}
+/* ---------- buttons: small dark panes that light up in their window's glass ---------- */
+.btn{font:600 16px var(--font);display:flex;align-items:center;gap:12px;width:100%;padding:10px 14px;border-radius:0;cursor:pointer;
+  border:2px solid var(--lead);background:var(--win-raise);color:var(--ink);text-align:left;
+  box-shadow:inset 0 0 0 1px var(--line)}
+.btn:hover,.btn:focus-visible{background:var(--glass);color:var(--lead);box-shadow:inset 0 0 0 1px rgba(255,255,255,.35);animation:light .18s steps(2,end)}
+.btn .ic{width:28px;height:28px;display:grid;place-items:center;background:var(--lead);color:var(--glass);flex:none}
+.btn:hover .ic,.btn:focus-visible .ic{color:var(--ink)}
+.btn.primary{background:var(--glass);color:var(--lead);box-shadow:inset 0 0 0 1px rgba(255,255,255,.35)}
+.btn.primary .ic{color:var(--ink)}
+.btn.primary:hover{background:color-mix(in srgb,var(--glass) 80%,#fff)}
+.btn.ghost{background:transparent;border-color:transparent;box-shadow:none;color:var(--ink-2);font-weight:400;padding:6px 10px;width:auto}
+.btn.ghost .ic{background:transparent;color:inherit;width:22px}
+.btn.ghost:hover,.btn.ghost:focus-visible{background:var(--win-raise);color:var(--ink);border-color:var(--lead);box-shadow:inset 0 0 0 1px var(--line);animation:none}
+.btn.danger{--glass:var(--blood);background:var(--blood);color:var(--lead)}
 .btn .lbl{display:grid;gap:1px}
 .btn small{display:block;font:400 13px var(--font);color:inherit}
 .btn kbd{margin-left:auto}
-/* One focus treatment for every control: a dark ring that is not the hover look */
-:is(.btn,.bind,.card,[role=tab],.corner-btn,select,input):focus-visible{outline:3px solid var(--focus);outline-offset:2px}
-:is(.btn,.bind,.card,[role=tab],.corner-btn,select,input):focus:not(:focus-visible){outline:none}
+/* One focus treatment for every control: a white ring outside the lead, never the hover glass */
+:is(.btn,.pane,.tab-btn,.bind,.card,[role=tab],select,input,a):focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+:is(.btn,.pane,.tab-btn,.bind,.card,[role=tab],select,input,a):focus:not(:focus-visible){outline:none}
 
-/* ---------- title ---------- */
-#title-screen{background:none;flex-direction:column;gap:28px;text-align:center}
-#title-screen{--btn-bg:rgba(255,255,255,.92)}
-.logo{font-family:var(--font-num);font-weight:800;letter-spacing:.08em;line-height:.95;margin:0;
-  font-size:clamp(34px,7vw,72px);color:#fff;text-shadow:0 0 24px rgba(95,195,255,.55),0 2px 0 rgba(0,0,0,.4)}
-.logo small{display:block;font-size:.32em;letter-spacing:.5em;color:var(--sky);margin-top:10px;font-weight:700}
-.record{font:400 14px var(--font);color:#b8c4d6;min-height:20px;margin:6px 0 0}
-.corner-btn{position:absolute;top:16px;right:16px;display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;
-  border:1px solid rgba(255,255,255,.25);background:rgba(10,14,24,.55);color:#e6edf3;font:400 14px var(--font);cursor:pointer}
-.corner-btn:hover{background:rgba(10,14,24,.8);border-color:rgba(255,255,255,.5)}
+/* ---------- title: the menu stands on the sill under the four windows ---------- */
+#title-screen{background:none;padding:0}
+.sill{position:absolute;left:50%;transform:translateX(-50%);top:calc(var(--canvas-top) + var(--canvas-h) * .735);
+  width:min(calc(var(--canvas-w) * .86),calc(100% - 32px));display:flex;align-items:flex-end;justify-content:center;gap:calc(var(--canvas-h) * .016)}
+.pane{--glass:var(--firstlight);position:relative;display:grid;align-content:center;gap:2px;flex:1 1 0;min-width:0;
+  min-height:calc(var(--canvas-h) * .1);padding:10px 14px;border-radius:0;cursor:pointer;text-align:left;
+  border:3px solid var(--lead);color:var(--ink);
+  background:var(--rivets),linear-gradient(118deg,transparent 58%,rgba(12,13,18,.55) 58% 60%,transparent 60%),
+    linear-gradient(180deg,color-mix(in srgb,var(--glass) 26%,#12131b),#0e0f15);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--glass) 60%,transparent),0 10px 22px rgba(0,0,0,.55)}
+.pane-title{font:800 clamp(15px,calc(var(--canvas-h) * .03),21px)/1.1 var(--font-num);letter-spacing:.02em;white-space:nowrap}
+.pane small{font:400 clamp(11px,calc(var(--canvas-h) * .02),14px)/1.3 var(--font);color:var(--ink-2)}
+.pane:hover,.pane:focus-visible{background:var(--rivets),linear-gradient(118deg,transparent 58%,rgba(12,13,18,.45) 58% 60%,transparent 60%),
+    linear-gradient(180deg,color-mix(in srgb,var(--glass) 80%,#fff),var(--glass));color:var(--lead);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.5),0 0 28px color-mix(in srgb,var(--glass) 55%,transparent),0 10px 22px rgba(0,0,0,.55);
+  animation:light .2s steps(2,end)}
+.pane:hover small,.pane:focus-visible small{color:var(--lead)}
+/* the likely next step (Dive In, or Continue when a run is saved) is lit, wider, and breaks past the sill */
+.pane.lit{flex-grow:1.7;transform:translateY(calc(var(--canvas-h) * -.03));min-height:calc(var(--canvas-h) * .13);color:var(--lead);
+  background:var(--rivets),linear-gradient(118deg,transparent 58%,rgba(12,13,18,.35) 58% 60%,transparent 60%),
+    linear-gradient(180deg,#fff6e2,var(--firstlight));
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.6),0 0 40px rgba(255,150,60,.45),0 12px 26px rgba(0,0,0,.6)}
+.pane.lit .pane-title{font-size:clamp(18px,calc(var(--canvas-h) * .042),30px)}
+.pane.lit small{color:#3a1d05}
+.pane.lit:hover,.pane.lit:focus-visible{background:var(--rivets),linear-gradient(118deg,transparent 58%,rgba(12,13,18,.3) 58% 60%,transparent 60%),linear-gradient(180deg,#fff,#ffb36b)}
+.record{position:absolute;left:0;right:0;top:calc(var(--canvas-top) + var(--canvas-h) * .955);margin:0;text-align:center;
+  font:400 clamp(11px,calc(var(--canvas-h) * .022),14px) var(--font);color:var(--ink-2)}
+.tab-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:2px solid var(--lead);border-radius:0;
+  background:rgba(16,17,24,.85);color:var(--ink-2);font:600 13px var(--font-num);cursor:pointer;box-shadow:inset 0 0 0 1px var(--line)}
+.tab-btn:hover{color:var(--ink);background:var(--win-raise)}
+.tab-btn[aria-pressed=true]{background:var(--firstlight);color:var(--lead);box-shadow:inset 0 0 0 1px rgba(255,255,255,.4)}
+.lang{position:absolute;top:calc(var(--canvas-top) + 12px);left:calc(50% - var(--canvas-w) / 2 + 12px);display:flex}
+.lang .tab-btn+.tab-btn{border-left:0}
+.corner{position:absolute;top:calc(var(--canvas-top) + 12px);right:calc(50% - var(--canvas-w) / 2 + 12px)}
+/* portrait phones: the canvas sits at the top, and the menu moves under it as a two-column grid */
+@media (max-aspect-ratio:1/1){
+  body{place-items:start center} :root{--canvas-top:56px} canvas{margin-top:56px}
+  /* the menu sits at the bottom, in thumb reach; the three secondary panes share one row */
+  .sill{top:auto;bottom:40px;display:grid;grid-template-columns:repeat(3,1fr);width:calc(100% - 32px);gap:8px}
+  .pane{min-height:64px;padding:10px}
+  .pane.lit{grid-column:1/-1;transform:none;min-height:76px}
+  .pane-title{font-size:15px;white-space:normal} .pane.lit .pane-title{font-size:22px} .pane small{font-size:12px}
+  /* only the shard count gives way on phones; the permadeath line on Dive In always stays */
+  .pane:not(.lit):not([data-act=start]):not([data-act=skills]) small{display:none}
+  .record{top:auto;bottom:12px;font-size:12px}
+  .lang{left:12px;top:12px} .corner{right:12px;top:12px}
+}
 
 /* ---------- content bits ---------- */
-.row{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:15px;min-height:36px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:15px;min-height:38px}
 .row label{color:var(--ink);min-width:110px;margin-right:auto}
-.row output{font-family:var(--font-num);color:var(--ink-2);min-width:36px;text-align:right}
-input[type=range]{flex:1;max-width:320px;accent-color:var(--accent)}
-.switch{appearance:none;width:42px;height:24px;border-radius:12px;background:#b9c0cb;position:relative;cursor:pointer;transition:background .15s;flex:none;margin:0}
-.switch::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .15s var(--ease-out);box-shadow:0 1px 3px rgba(0,0,0,.3)}
-.switch:checked{background:var(--accent)} .switch:checked::after{left:21px}
+.row output{font-family:var(--font-num);color:var(--ink-2);min-width:36px;text-align:right;font-variant-numeric:tabular-nums}
+input[type=range]{flex:1;max-width:320px;accent-color:var(--glass)}
+.switch{appearance:none;width:44px;height:24px;border-radius:0;background:var(--line);border:2px solid var(--lead);position:relative;cursor:pointer;flex:none;margin:0}
+.switch::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;background:var(--ink-2);transition:left .12s steps(2,end)}
+.switch:checked{background:var(--glass)} .switch:checked::after{left:22px;background:var(--lead)}
 .state{font-size:14px;color:var(--ink-2);min-width:2.5em;text-align:right}
-.hint{font-size:14px;color:var(--ink-2);margin:-4px 0 4px;line-height:1.5}
+.hint{font-size:14px;color:var(--ink-2);margin:-2px 0 4px;line-height:1.55}
 .status{font-size:14px;color:var(--ink);min-height:1.5em;margin:0}
-.status.warn{color:var(--danger)}
-.rule{margin:0;padding:10px 12px;border-radius:10px;background:#fbe9e7;color:#7a1d17;font-size:14px;line-height:1.55}
-.rule strong{color:var(--danger)}
+.status.warn{color:var(--blood)}
+.rule{margin:0;padding:10px 12px;background:color-mix(in srgb,var(--blood) 14%,var(--win-bg));border:1px solid color-mix(in srgb,var(--blood) 45%,transparent);
+  color:var(--ink);font-size:14px;line-height:1.6}
+.rule strong{color:var(--blood);font-weight:600}
 .keys{display:grid;grid-template-columns:auto 1fr;gap:8px 12px;align-items:center;font-size:15px}
-kbd{font:700 12px var(--font-num);min-width:28px;padding:3px 7px;border-radius:6px;background:#fff;border:1px solid var(--rule);
-  border-bottom-width:3px;color:var(--ink);text-align:center;display:inline-block}
-.tips{margin:4px 0 0;padding:12px 14px 12px 32px;border-radius:10px;background:#eef6fd;color:#23506f;font-size:14px;line-height:1.6}
-.tips li::marker{color:var(--focus)}
+kbd{font:700 12px var(--font-num);min-width:28px;padding:3px 7px;border-radius:0;background:var(--win-raise);border:2px solid var(--lead);
+  border-bottom-width:4px;color:var(--ink);text-align:center;display:inline-block;box-shadow:inset 0 0 0 1px var(--line)}
+.btn.primary kbd,.btn:not(.ghost):hover kbd,.btn:not(.ghost):focus-visible kbd{background:rgba(12,13,18,.18);color:var(--lead);box-shadow:none}
+.tips{margin:4px 0 0;padding:12px 14px 12px 30px;background:var(--win-raise);border:1px solid var(--line);color:var(--ink);font-size:14px;line-height:1.65}
+.tips li::marker{color:var(--glass)}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.stat{padding:10px 12px;border-radius:10px;background:#fff;border:1px solid var(--rule)}
+.stat{padding:10px 12px;background:var(--win-raise);border:2px solid var(--lead);box-shadow:inset 0 0 0 1px var(--line)}
 .stat span{display:block;font-size:13px;color:var(--ink-2)}
 .stat b{font:800 22px var(--font-num);color:var(--ink);font-variant-numeric:tabular-nums}
 .pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-select{font:400 15px var(--font);padding:7px 10px;border-radius:8px;border:1px solid #c3c9d3;background:#fff;color:var(--ink);cursor:pointer}
+select{font:400 15px var(--font);padding:7px 10px;border-radius:0;border:2px solid var(--lead);background:var(--win-raise);color:var(--ink);cursor:pointer;
+  box-shadow:inset 0 0 0 1px var(--line);max-width:100%}
+a{color:var(--glass);text-underline-offset:3px}
 
 /* ---------- settings: tabs + grouped key bindings ---------- */
-.tabs{display:flex;gap:4px;padding:8px 12px 0;border-bottom:1px solid var(--rule);flex:none;overflow-x:auto}
-[role=tab]{font:600 15px var(--font);padding:9px 14px;border:0;border-bottom:3px solid transparent;background:none;color:var(--ink-2);
-  cursor:pointer;white-space:nowrap;border-radius:8px 8px 0 0}
-[role=tab]:hover{color:var(--ink);background:rgba(43,49,59,.05)}
-[role=tab][aria-selected=true]{color:var(--ink);border-bottom-color:var(--accent)}
+.tabs{display:flex;gap:2px;padding:8px 12px 0;border-bottom:3px solid var(--lead);flex:none;overflow-x:auto;background:var(--win-raise)}
+[role=tab]{font:600 15px var(--font);padding:8px 14px;border:0;border-bottom:3px solid transparent;margin-bottom:-3px;background:none;color:var(--ink-2);
+  cursor:pointer;white-space:nowrap;border-radius:0}
+[role=tab]:hover{color:var(--ink)}
+[role=tab][aria-selected=true]{color:var(--ink);border-bottom-color:var(--glass);background:var(--win-bg)}
 [role=tabpanel]{display:grid;gap:10px}
-.bind-groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
-.bind-group h3{margin:0 0 6px;font:600 14px var(--font);color:var(--ink-2)}
+.bind-groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
+.bind-group h3{margin:0 0 6px;font:600 14px var(--font);color:var(--glass)}
 .bind-group .rows{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center;font-size:15px}
-.bind{font:700 13px var(--font-num);min-width:76px;padding:6px 10px;border-radius:8px;border:1px solid #c3c9d3;border-bottom-width:3px;
-  background:#fff;color:var(--ink);cursor:pointer;font-variant-numeric:tabular-nums}
-.bind:hover{border-color:var(--accent)}
-.bind.listening{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-.bind.unset{color:var(--danger);border-color:var(--danger)}
+.bind{font:700 13px var(--font-num);min-width:76px;padding:6px 10px;border-radius:0;border:2px solid var(--lead);border-bottom-width:4px;
+  background:var(--win-raise);color:var(--ink);cursor:pointer;font-variant-numeric:tabular-nums;box-shadow:inset 0 0 0 1px var(--line)}
+.bind:hover{background:var(--glass);color:var(--lead)}
+.bind.listening{background:var(--glass);color:var(--lead)}
+.bind.unset{color:var(--blood);box-shadow:inset 0 0 0 1px var(--blood)}
 
-/* ---------- result (death gets its own weight) ---------- */
-.result-title{font:800 30px var(--font-num);letter-spacing:.06em;text-align:center;margin:2px 0}
-.result-msg{font-size:15px;color:var(--ink-2);text-align:center;margin:0}
-.newrec{justify-self:center;font:600 13px var(--font);color:var(--accent-ink);background:var(--accent);padding:3px 12px;border-radius:20px}
-#result.clear .result-title{color:#a35b00}
-#result.dead{background:radial-gradient(ellipse at center,rgba(60,0,0,.55),rgba(8,0,0,.88))}
-#result.dead .win{background:rgba(24,10,12,.92);color:#f3e6e6;border-color:rgba(255,90,80,.35);box-shadow:0 20px 60px rgba(0,0,0,.6),0 0 0 1px rgba(255,90,80,.15)}
-#result.dead header{color:#ffb4ad;border-bottom-color:rgba(255,90,80,.3)}
-#result.dead header::before{background:#ff5a4e;box-shadow:0 0 0 3px rgba(255,90,78,.25)}
-#result.dead .result-title{color:#ff6b5f;font-size:36px;letter-spacing:.12em}
-#result.dead .result-msg{color:#e5c9c6}
-#result.dead .stat{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12)}
-#result.dead .stat span{color:#d6b9b6} #result.dead .stat b{color:#fff}
-#result.dead .btn{--btn-bg:rgba(255,255,255,.08);color:#f3e6e6;border-color:rgba(255,255,255,.18)}
-#result.dead .btn .ic{background:rgba(255,255,255,.1);color:#f3e6e6}
-#result.dead .btn.primary,#result.dead .btn:hover{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-#result.dead .btn.primary .ic,#result.dead .btn:hover .ic{background:rgba(43,49,59,.12);color:var(--ink)}
-#result.dead kbd{background:rgba(255,255,255,.1);color:#f3e6e6;border-color:rgba(255,255,255,.2)}
+/* ---------- result: a clear lights amber, a death bleeds red ---------- */
+.result-title{font:800 30px var(--font-num);letter-spacing:.06em;text-align:center;margin:2px 0;color:var(--glass)}
+.result-msg{font-size:15px;color:var(--ink-2);text-align:center;margin:0;text-wrap:balance}
+#result-shards{text-align:center;text-wrap:balance;margin:0}
+.newrec{justify-self:center;font:600 13px var(--font);color:var(--lead);background:var(--firstlight);padding:3px 12px}
+#result.dead{--glass:var(--blood);background:radial-gradient(ellipse at center,rgba(70,0,0,.5),rgba(6,0,0,.9))}
+#result.dead .result-title{font-size:34px;letter-spacing:.1em}
+#result.dead .win{animation:settle .3s steps(4,end)}
 
 /* ---------- confirm dialog ---------- */
-dialog.dialog{padding:0;width:min(400px,calc(100% - 32px))}
+dialog.dialog{padding:0;width:min(400px,calc(100% - 32px));--glass:var(--blood)}
 dialog.dialog:not([open]){display:none} /* .win sets display:flex, which would otherwise override the closed state */
-dialog.dialog::backdrop{background:rgba(6,10,18,.65)}
-dialog.dialog p{margin:0;font-size:15px;line-height:1.55}
+dialog.dialog::backdrop{background:rgba(4,5,8,.7)}
+dialog.dialog p{margin:0;font-size:15px;line-height:1.6}
+dialog.dialog .btn{justify-content:center}
 
 /* ---------- toast: centred on the canvas, below the HUD's top panels ---------- */
-#toast{position:fixed;left:50%;top:calc(var(--canvas-top) + var(--canvas-h) * .16);transform:translateX(-50%);pointer-events:none;display:none;width:min(380px,calc(100% - 32px))}
-#toast.on{display:block;animation:toast var(--dur,3.2s) ease-in-out forwards}
+#toast{position:fixed;left:50%;top:calc(var(--canvas-top) + var(--canvas-h) * .16);transform:translateX(-50%);pointer-events:none;display:none;width:min(400px,calc(100% - 32px))}
+#toast.on{display:block;animation:toast var(--dur,3.2s) steps(24,end) forwards}
+#toast .win{animation:none}
 #toast .win .body{text-align:center;gap:2px;padding:12px 16px}
-#toast b{font:800 22px var(--font-num);letter-spacing:.04em;color:var(--ink)}
-#toast span{font-size:14px;color:var(--ink-2)}
+#toast b{font:800 21px var(--font-num);letter-spacing:.03em;color:var(--ink)}
+#toast span{font-size:14px;color:var(--ink-2);line-height:1.5}
 
+/* nothing glides: windows and lit glass step in, overshoot a pixel, and settle */
 @keyframes fade{from{opacity:0}}
-@keyframes pop{from{opacity:0;transform:scale(.97) translateY(6px)}}
-@keyframes toast{0%{opacity:0;transform:translate(-50%,-10px)}10%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0}}
-@media (prefers-reduced-motion:reduce){.screen.on,.win,#toast.on{animation-duration:.01s}.btn,.switch::after{transition:none}}
+@keyframes settle{0%{opacity:0;transform:translateY(6px)}66%{opacity:1;transform:translateY(-1px)}100%{transform:none}}
+@keyframes light{0%{filter:brightness(.8)}50%{filter:brightness(1.15)}100%{filter:none}}
+@keyframes toast{0%{opacity:0;transform:translate(-50%,-8px)}8%,86%{opacity:1;transform:translate(-50%,0)}100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.screen.on,.win,#toast.on,.btn,.pane,.card{animation-duration:.01s !important}.switch::after{transition:none}}
 
-/* ---------- level-up picker ---------- */
+/* ---------- picker cards (level-up, shop, Blade Arts) ---------- */
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
-.card{display:grid;gap:6px;align-content:start;text-align:left;padding:14px;border-radius:12px;background:#fff;
-  border:1px solid var(--rule);border-bottom-width:3px;color:var(--ink);font:400 14px/1.5 var(--font);cursor:pointer;
-  transition:transform .12s var(--ease-out),border-color .12s}
-.card:hover{transform:translateY(-2px);border-color:var(--accent)}
-.card:active{transform:translateY(0)}
+.card{position:relative;display:grid;gap:6px;align-content:start;text-align:left;padding:14px;border-radius:0;
+  background:var(--rivets),linear-gradient(180deg,color-mix(in srgb,var(--glass) 14%,var(--win-raise)),var(--win-raise));
+  border:3px solid var(--lead);box-shadow:inset 0 0 0 1px var(--line);color:var(--ink);font:400 14px/1.5 var(--font);cursor:pointer}
+.card:hover,.card:focus-visible{background:var(--rivets),linear-gradient(180deg,color-mix(in srgb,var(--glass) 80%,#fff),var(--glass));color:var(--lead);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.4);animation:light .18s steps(2,end)}
 .card kbd{justify-self:start}
 .card b{font:600 17px var(--font)}
 .card span{color:var(--ink-2)}
+.card:hover span,.card:focus-visible span{color:var(--lead)}
 .card .pips{display:flex;gap:4px;margin-top:2px}
-.pips i{width:14px;height:6px;border-radius:3px;background:var(--rule)}
-.pips i.got{background:var(--accent)}
-.pips i.next{background:var(--accent);opacity:.4;animation:pulse 1s ease-in-out infinite alternate}
-@keyframes pulse{to{opacity:.9}}
-@media (prefers-reduced-motion: reduce){.card{transition:none}.card:hover{transform:none}.pips i.next{animation:none}}
-.card[aria-disabled=true]{opacity:.55;cursor:not-allowed}
-.card[aria-disabled=true]:hover{transform:none;border-color:var(--rule)}
-.card .price{font:800 15px var(--font-num);color:var(--accent-ink)}
+.pips i{width:14px;height:6px;background:var(--line);outline:1px solid var(--lead)}
+.pips i.got{background:var(--glass)}
+.pips i.next{background:var(--glass);opacity:.45;animation:pulse 1s steps(2,end) infinite alternate}
+.card:hover .pips i.got,.card:focus-visible .pips i.got{background:var(--lead)}
+@keyframes pulse{to{opacity:.95}}
+@media (prefers-reduced-motion: reduce){.pips i.next{animation:none}}
+.card[aria-disabled=true]{opacity:.5;cursor:not-allowed}
+.card[aria-disabled=true]:hover{background:var(--rivets),var(--win-raise);color:var(--ink);animation:none}
+.card[aria-disabled=true]:hover span{color:var(--ink-2)}
+.card .price{font:800 15px var(--font-num);color:var(--glass)}
+.card:hover .price,.card:focus-visible .price{color:var(--lead)}
+.card.on{box-shadow:inset 0 0 0 2px var(--glass)}
+.card.on[aria-disabled=true]{opacity:1;cursor:default}
+#upgrade .win{--glass:var(--firstlight)} #shop .win{--glass:var(--firstlight)}
 
-/* ---------- story: dialogue window along the bottom, the world stays visible ---------- */
-.screen.story{align-items:flex-end;padding-bottom:calc(16px + 4vh);background:linear-gradient(transparent 55%,rgba(5,7,12,.55))}
+/* ---------- story: dialogue pane along the bottom, the world stays visible ---------- */
+/* sits above the skill bar (the bottom ~16% of the canvas) so slot labels never show under it */
+.screen.story{align-items:flex-end;padding-bottom:calc(var(--canvas-top) + var(--canvas-h) * .17);background:linear-gradient(transparent 55%,rgba(4,5,8,.6))}
 .story-text{margin:0;font-size:17px;line-height:1.7;color:var(--ink);min-height:3.4em}
 .story-foot{display:flex;align-items:center;gap:8px}
 .story-foot .hint{margin:0 auto 0 0;font-family:var(--font-num)}
 .story-foot .btn{width:auto}
 .credits{margin:4px 0 0;font-size:13px}
-.credits a{color:var(--focus)}
 /* banners never cover a menu window; the bottom story window leaves room for them */
 body:has(.screen.on:not(.story)) #toast{display:none}
-.card.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
-.card.on[aria-disabled=true]{opacity:1;cursor:default}
+/* tracking pulls Thai vowel and tone marks apart: Latin titles keep it, Thai sets solid */
+:lang(th) :is(.result-title,.pane-title,.win header),:lang(th) #result.dead .result-title{letter-spacing:0}

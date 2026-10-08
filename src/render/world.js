@@ -1,5 +1,6 @@
 // Drawing the live world: terrain, telegraphs, y-sorted actors, effects, fog and screen tint.
 import { G, rage } from '../world/state.ts';
+import { tr } from '../core/i18n.ts';
 import { W, H, WORLD, TOWN_X, ROOM_X, DOOR, TORCHES } from '../world/constants.ts';
 import { PLAYER } from '../data/player.ts';
 import { MOVES, BOSS_RULES } from '../data/bosses.ts';
@@ -79,7 +80,7 @@ function drawMerchant() {
   shadow(x, y, 14);
   frame(IMG.merchant, 0, Math.floor(G.time * 2) % 2 ? 0 : 2, x, y, 3);
   ctx.textAlign = 'center'; ctx.font = `700 13px ${FT}`; ctx.lineJoin = 'round'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.8)';
-  const tag = nearMerchant() ? `[${keyLabel('interact')}] ร้านค้า` : 'ร้านค้า';
+  const name = tr('ร้านค้า', 'Shop'), tag = nearMerchant() ? `[${keyLabel('interact')}] ${name}` : name;
   ctx.strokeText(tag, x, y - 34); ctx.fillStyle = nearMerchant() ? '#ffe14d' : '#fff'; ctx.fillText(tag, x, y - 34);
 }
 

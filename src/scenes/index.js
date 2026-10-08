@@ -2,6 +2,7 @@
 // Also owns the run lifecycle around the suspend slot: save on quit / tab close, consume on continue,
 // delete when the run ends (permadeath) or a new character starts.
 import { G } from '../world/state.ts';
+import { tr } from '../core/i18n.ts';
 import { newRun, resumeRun, snapshotRun } from '../world/floor.ts';
 import { scenes } from '../core/app.ts';
 import { releaseAll } from '../core/input.ts';
@@ -9,9 +10,9 @@ import { loadSuspend, writeSuspend, clearSuspend } from '../core/save.ts';
 import { on } from '../core/events.ts';
 import { updateGame, updateFx } from '../systems/index.js';
 import { drawWorld } from '../render/world.js';
-import { updateMenuBg, drawMenuBg, drawIntro, INTRO_TIME } from '../render/menu.js';
+import { refreshMenuBg, drawMenuBg, drawIntro, INTRO_TIME } from '../render/menu.js';
 import { initAudio, stopMusic, playMusic, pauseMusic, resumeMusic, SFX } from '../audio/audio.js';
-import { screen, showPauseStats, showUpgradePicker, renderShop, showStoryLine, confirmDialog, $ } from '../ui/screens.js';
+import { screen, showUpgradePicker, renderShop, showStoryLine, confirmDialog, $ } from '../ui/screens.js';
 import { nearMerchant, buy } from '../systems/shop.js';
 import { STORY } from '../data/story.ts';
 import { meta, saveMeta } from '../core/save.ts';
@@ -22,8 +23,8 @@ let resume = null; // suspend data to continue from once the intro finishes
 
 export const titleScene = {
   name: 'menu',
-  enter() { G.P = null; G.run = null; storyQueue.length = 0; playMusic('title'); screen('title-screen'); }, // silent until the first click/key (autoplay rules)
-  update: updateMenuBg, draw: drawMenuBg,
+  enter() { G.P = null; G.run = null; storyQueue.length = 0; refreshMenuBg(); playMusic('title'); screen('title-screen'); }, // silent until the first click/key (autoplay rules)
+  update() {}, draw: drawMenuBg,
 };
 const introScene = {
   name: 'intro',
@@ -44,7 +45,7 @@ const playScene = {
 };
 const pauseScene = {
   name: 'paused', blocksUpdate: true, // Play keeps drawing underneath, frozen
-  enter() { releaseAll(); pauseMusic(); showPauseStats(); screen('pause'); },
+  enter() { releaseAll(); pauseMusic(); screen('pause'); },
   exit() { screen(null); resumeMusic(); },
 };
 
@@ -77,7 +78,7 @@ export function openShop() { if (playing() && nearMerchant()) scenes.push(shopSc
 export function closeShop() { if (shopping()) scenes.pop(); }
 export function buyItem(id) {
   if (!shopping() || !SHOP[id]) return;
-  renderShop(buy(id) ? `ซื้อ ${SHOP[id].name} แล้ว` : 'Gold ไม่พอ หรือของเต็มแล้ว');
+  renderShop(buy(id) ? tr(`ซื้อ ${SHOP[id].name} แล้ว`, `Bought: ${SHOP[id].name}`) : tr('Gold ไม่พอ หรือพกเต็มแล้ว', "Not enough Gold, or you can't carry more"));
 }
 $('shop-items').addEventListener('click', e => {
   const card = /** @type {HTMLElement | null} */ (/** @type {Element} */ (e.target).closest('[data-buy]'));
@@ -120,8 +121,8 @@ export function goHome() { scenes.replace(titleScene); }
 // Dive In = a brand-new character; it replaces (deletes) a suspended run after asking
 export async function startIntro() {
   const saved = loadSuspend();
-  if (saved && !await confirmDialog({ title: 'เริ่มตัวละครใหม่?', ok: 'เริ่มใหม่',
-    msg: `ตัวละครที่เซฟพักไว้ (Lv.${saved.player.lv}) จะหายถาวร` })) return;
+  if (saved && !await confirmDialog({ title: tr('เริ่มตัวละครใหม่?', 'Start a new character?'), ok: tr('เริ่มใหม่', 'Start over'),
+    msg: tr(`ตัวละคร Lv.${saved.player.lv} ที่เซฟไว้จะถูกลบ และกู้คืนไม่ได้`, `Your saved Lv.${saved.player.lv} character will be deleted. This can't be undone.`) })) return;
   clearSuspend(); resume = null;
   initAudio(); scenes.replace(introScene);
 }
