@@ -1,9 +1,9 @@
 // Damage, death, XP. Sounds, music and result screens hang off the events emitted here.
 import { G, rage } from '../world/state.ts';
 import { tr } from '../core/i18n.ts';
-import { ROOM, WORLD } from '../world/constants.ts';
 import { knock } from '../world/physics.ts';
-import { makeMob, isLastFloor } from '../world/floor.ts';
+import { makeMob } from '../world/floor.ts';
+import { isFinalFloor } from '../data/run.ts';
 import { PLAYER } from '../data/player.ts';
 import { BOSS_RULES } from '../data/bosses.ts';
 import { clamp } from '../core/math.ts';
@@ -44,21 +44,21 @@ export function hurtEnemy(e, d, big, crit = false) {
     text(boss.x, boss.y - 130, F.boss.name.split(' ')[0] + tr(' เรียกพวกมาช่วย!', ' calls for backup!'), '#ff7043', true);
     for (let i = 0; i < F.boss.summon; i++) {
       const m = makeMob(boss.x + (i ? 90 : -90), boss.y + 90, true);
-      m.x = clamp(m.x, ROOM.x0 + 20, WORLD.w - 20); G.mobs.push(m); ring(m.x, m.y, 5, 60, 0.4, '255,80,200');
+      m.x = clamp(m.x, G.L.roomX + 60, G.L.w - 20); G.mobs.push(m); ring(m.x, m.y, 5, 60, 0.4, '255,80,200');
     }
   }
   if (e.hp > 0) return;
   if (e === boss) {
-    G.doorClosed = false; kick(0.35, 20); run.kills++;
+    G.doorClosed = false; kick(0.35, 20); run.kills++; run.bosses++;
     burst(e.x, e.y, 90, '#8fe3ff', 420, 1.6, 12, true); burst(e.x, e.y, 40, '#ffd54a', 300, 1.4, 8, true);
     ring(e.x, e.y, 20, 260, 0.8, '143,227,255');
     for (const m of G.mobs) if (m.summoned && m.hp > 0) { m.hp = 0; m.dead = Infinity; burst(m.x, m.y, 20, '#8fe3ff', 260, 0.9, 8, true); }
     emit('bossDeath');
     gainXp(F.mob.xp * BOSS_RULES.xpMult); gainCol(F.mob.col * BOSS_RULES.xpMult, e);
-    if (!isLastFloor()) { G.portal = { x: boss.x, y: boss.y, wait: BOSS_RULES.portalDelay, armed: false }; emit('portalOpen'); }
+    if (!isFinalFloor(G.floorIdx)) { G.portal = { x: boss.x, y: boss.y, wait: BOSS_RULES.portalDelay, armed: false }; emit('portalOpen'); }
     else { run.over = 'win'; emit('runOver', { cleared: true }); }
   } else {
-    e.dead = e.summoned ? Infinity : e.def.respawn; gainXp(e.def.xp); gainCol(e.def.col, e); emit('mobDeath'); run.kills++;
+    e.dead = Infinity; gainXp(e.def.xp); gainCol(e.def.col, e); emit('mobDeath'); run.kills++;
     burst(e.x, e.y, 26, '#8fe3ff', 260, 0.9, 9, true); ring(e.x, e.y, 5, 50, 0.3, '143,227,255');
   }
 }

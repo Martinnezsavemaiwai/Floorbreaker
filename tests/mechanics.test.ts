@@ -1,21 +1,16 @@
 // Focused checks of individual mechanics, each in a quiet arena (mobs removed) on a fresh seeded run.
 import { describe, it, expect, beforeEach } from 'vitest';
-import { G, STEP, startRun, frame } from './harness.ts';
+import { G, STEP, startRun, frame, enterRoom, enterBoss } from './harness.ts';
 import { attack, skill, roll, hurtPlayer, startBossMove } from '../src/systems/index.js';
 import { keys, mouse } from '../src/core/input.ts';
 import { gainXp } from '../src/systems/combat.js';
 import { loadFloor } from '../src/world/floor.ts';
-import { ROOM_X } from '../src/world/constants.ts';
 import { clock } from '../src/core/app.ts';
 import { PLAYER } from '../src/data/player.ts';
 import { MOVES, BOSS_RULES } from '../src/data/bosses.ts';
 
 const frames = (n: number) => { for (let i = 0; i < n; i++) frame(); };
-function quietField() {
-  startRun(1);
-  G.P!.x = 900; G.P!.y = 600; // open field, away from town regen and trees
-  for (const m of G.mobs) { m.hp = 0; m.dead = 1e9; }
-}
+function quietField() { startRun(1); enterRoom(1); }
 
 describe('player', () => {
   beforeEach(quietField);
@@ -56,14 +51,23 @@ describe('player', () => {
     // floors 1 and 3 have a ranged mob standing right in front of the door: dashing at it used to lock you in with the boss
     G.cam.x = 0; G.cam.y = 0;
     for (const move of [() => skill(), () => { keys.KeyD = true; roll(); keys.KeyD = false; }]) {
-      quietField(); G.P!.x = ROOM_X - 70; G.P!.y = 600; mouse.x = ROOM_X + 400; mouse.y = 600;
+      quietField(); enterBoss(4); G.P!.x = G.L!.roomX - 70; G.P!.y = G.L!.h / 2; mouse.x = G.L!.roomX + 400; mouse.y = G.L!.h / 2;
       move(); frames(40);
       expect(G.boss!.awake).toBe(false);
-      expect(G.P!.x).toBeLessThanOrEqual(ROOM_X);
+      expect(G.P!.x).toBeLessThanOrEqual(G.L!.roomX);
     }
     // walking in still wakes the boss and locks the door, as before
-    quietField(); G.P!.x = ROOM_X - 20; G.P!.y = 600; keys.KeyD = true; frames(60); keys.KeyD = false;
+    quietField(); enterBoss(4); G.P!.x = G.L!.roomX - 20; G.P!.y = G.L!.h / 2; keys.KeyD = true; frames(60); keys.KeyD = false;
     expect(G.boss!.awake).toBe(true);
+  });
+
+  it('the town fountain is solid: walking or dashing at it stops at the rim', () => {
+    startRun(1); // floor 0 is the town
+    G.cam.x = 0; G.cam.y = 0;
+    G.P!.x = 600; G.P!.y = 420; keys.KeyW = true; frames(90); keys.KeyW = false; // walk up into it
+    expect(G.P!.y).toBeGreaterThan(330);
+    G.P!.x = 460; G.P!.y = 300; mouse.x = 900; mouse.y = 300 - G.cam.y; frame(); skill(); frames(40); // dash across it
+    expect(G.P!.x).toBeLessThan(550);
   });
 
   it('levels up at xpToNext and gains the per-level stats', () => {
@@ -76,9 +80,8 @@ describe('player', () => {
 
 describe('boss', () => {
   beforeEach(() => {
-    quietField(); loadFloor(2);
-    for (const m of G.mobs) { m.hp = 0; m.dead = 1e9; }
-    G.P!.x = ROOM_X + 100; G.P!.y = 600; frame(); // walk in: the boss wakes and the door locks
+    quietField(); enterBoss(14);
+    G.P!.x = G.L!.roomX + 100; G.P!.y = G.L!.h / 2; frame(); // walk in: the boss wakes and the door locks
   });
 
   it('wakes and locks the door when the player enters the room', () => {
@@ -145,7 +148,7 @@ describe('assist mode and suspend', () => {
 
   it('a suspended run resumes on the same floor with the same character', async () => {
     const { snapshotRun, resumeRun } = await import('../src/world/floor.ts');
-    quietField(); gainXp(PLAYER.xpToNext(1) + PLAYER.xpToNext(2)); loadFloor(1); G.run!.kills = 12;
+    quietField(); gainXp(PLAYER.xpToNext(1) + PLAYER.xpToNext(2)); enterRoom(1); G.run!.kills = 12;
     const snap = snapshotRun();
     startRun(2); // a different session
     resumeRun(snap);
@@ -153,6 +156,43 @@ describe('assist mode and suspend', () => {
     expect(G.P!.lv).toBe(3);
     expect(G.P!.hp).toBe(G.P!.maxHp);
     expect(G.run!.kills).toBe(12);
+  });
+
+  it('a suspend writes the floor-entry state: earnings on the floor are not kept, so resume cannot pay twice', async () => {
+    const { resumeRun, loadFloor } = await import('../src/world/floor.ts');
+    startRun(3); loadFloor(1, { type: 'battle', reward: 'gold' });
+    const { col, kills, bosses, xp } = { col: G.P!.col, kills: G.run!.kills, bosses: G.run!.bosses, xp: G.P!.xp };
+    G.P!.col += 99; G.P!.xp += 5; G.run!.kills += 7; G.run!.bosses += 1; // what clearing the room would have paid
+    const snap = G.entry!; startRun(2); resumeRun(snap);
+    expect(G.P!.col).toBe(col); expect(G.P!.xp).toBe(xp); expect(G.run!.kills).toBe(kills); expect(G.run!.bosses).toBe(bosses);
+  });
+
+  it('a suspend on a boss floor brings the boss back alive at full HP', async () => {
+    const { resumeRun } = await import('../src/world/floor.ts');
+    quietField(); enterBoss(4); const bosses = G.run!.bosses;
+    G.boss!.hp = 0; G.run!.bosses++;
+    const snap = G.entry!; startRun(2); resumeRun(snap);
+    expect(G.floorIdx).toBe(4); expect(G.boss!.hp).toBe(G.boss!.maxHp); expect(G.run!.bosses).toBe(bosses);
+  });
+
+  it('resume re-rolls the same waves and, once cleared, the same doors', async () => {
+    const { resumeRun, loadFloor } = await import('../src/world/floor.ts');
+    startRun(5); loadFloor(1, { type: 'battle', reward: 'gold' });
+    const waves = JSON.stringify(G.room!.waves); G.room!.cleared = true;
+    const snap = G.entry!; startRun(2); resumeRun(snap);
+    expect(JSON.stringify(G.room!.waves)).toBe(waves); expect(G.room!.cleared).toBe(false);
+    const { rollDoors } = await import('../src/data/run.ts');
+    const doors = JSON.stringify(rollDoors(G.run!.seed, 1));
+    resumeRun(snap); expect(JSON.stringify(rollDoors(G.run!.seed, 1))).toBe(doors);
+  });
+
+  it('resume keeps the room, its seed and the HP you left with', async () => {
+    const { snapshotRun, resumeRun } = await import('../src/world/floor.ts');
+    quietField(); G.P!.hp = 40;
+    const snap = snapshotRun(), seed = G.run!.seed;
+    startRun(2); resumeRun(snap);
+    expect(G.floorIdx).toBe(1); expect(G.room!.reward).toBe('gold');
+    expect(G.run!.seed).toBe(seed); expect(G.P!.hp).toBe(40);
   });
 });
 
@@ -236,7 +276,8 @@ describe('col and shop', () => {
 
   it('a kill drops its Gold', async () => {
     const { hurtEnemy } = await import('../src/systems/combat.js');
-    const m = G.mobs[0]; m.hp = 1;
+    const { makeMob } = await import('../src/world/floor.ts');
+    const m = makeMob(G.P!.x + 60, G.P!.y); G.mobs.push(m); m.hp = 1;
     hurtEnemy(m, 5, false);
     expect(G.P!.col).toBe(m.def.col);
   });
@@ -264,21 +305,22 @@ describe('col and shop', () => {
     expect(G.P!.potions).toBe(0);
   });
 
-  it('the merchant stands in the safe zone and can be reached', async () => {
-    const { MERCHANT } = await import('../src/data/shop.ts');
-    const { TOWN_X } = await import('../src/world/constants.ts');
-    expect(MERCHANT.x).toBeLessThan(TOWN_X);
-    G.P!.x = MERCHANT.x; G.P!.y = MERCHANT.y + 30;
+  it('the town merchant stands in the safe zone and can be reached; rooms have none', async () => {
     const { nearMerchant } = await import('../src/systems/shop.js');
+    startRun(1); // floor 0 = town
+    const m = G.L!.merchant!;
+    expect(m.x).toBeLessThan(G.L!.townX);
+    G.P!.x = m.x; G.P!.y = m.y + 30;
     expect(nearMerchant()).toBe(true);
+    enterRoom(1);
+    expect(G.L!.merchant).toBeNull(); expect(nearMerchant()).toBe(false);
   });
 });
 
 describe('floor 4 boss volley', () => {
   beforeEach(() => {
-    quietField(); loadFloor(3);
-    for (const m of G.mobs) { m.hp = 0; m.dead = 1e9; }
-    G.P!.x = ROOM_X + 100; G.P!.y = 600; frame();
+    quietField(); enterBoss(19);
+    G.P!.x = G.L!.roomX + 100; G.P!.y = G.L!.h / 2; frame();
   });
 
   it('fires one shot per telegraphed spoke, more in rage', () => {
@@ -291,11 +333,6 @@ describe('floor 4 boss volley', () => {
     expect(G.boss!.angs).toHaveLength(MOVES.volley.count[1]);
   });
 
-  it('ponds block movement like trees', async () => {
-    const { hitWall } = await import('../src/world/physics.ts');
-    const p = G.F!.ponds![0];
-    expect(hitWall({ x: p.x + p.w / 2, y: p.y + p.h / 2, r: 14 })).toBe(true);
-  });
 });
 
 describe('combo and roll', () => {
@@ -373,11 +410,11 @@ describe('sword skills and memory shards', () => {
     const { awardShards, unlockSkill, equipSkill } = await import('../src/systems/meta.js');
     const { SKILLS } = await import('../src/data/skills.ts');
     meta.shards = 0; meta.unlocked = ['sonicLeap']; meta.loadout = null;
-    G.run!.kills = 40; G.run!.floor = 3;
-    expect(awardShards(false)).toBe(10 + 2 * 10);
-    expect(unlockSkill('vorpal')).toBe(false); // 30 < 60
+    G.run!.kills = 80; G.run!.floor = 6; G.run!.bosses = 1;
+    expect(awardShards(false)).toBe(45);
+    expect(unlockSkill('vorpal')).toBe(false); // 45 < 60
     expect(unlockSkill('horizontal')).toBe(true);
-    expect(meta.shards).toBe(30 - SKILLS.horizontal.cost);
+    expect(meta.shards).toBe(45 - SKILLS.horizontal.cost);
     expect(unlockSkill('horizontal')).toBe(false); // already owned
     expect(meta.loadout).toBe('horizontal');
     startRun(3);
@@ -401,12 +438,6 @@ describe('armored and swarm mobs', () => {
     hurtEnemy(m, 40, false); expect(m.hp).toBe(9999 - 90);
     m.armorT = 0;
     hurtEnemy(m, 40, false); expect(m.hp).toBe(9999 - 100);
-  });
-
-  it('swarm points spawn their whole group', () => {
-    const extras = G.F!.extras!.find(e => e.group)!;
-    const n = G.mobs.filter(m => m.def.name === 'Boar Piglet').length;
-    expect(n).toBe(extras.at.length * extras.group!);
   });
 });
 
@@ -436,9 +467,8 @@ describe('facing where you walk', () => {
 
 describe('boss portal', () => {
   beforeEach(() => {
-    quietField();
-    for (const m of G.mobs) { m.hp = 0; m.dead = 1e9; }
-    G.P!.x = ROOM_X + 100; G.P!.y = 600; frame(); // wake the floor 1 boss
+    quietField(); enterBoss(4);
+    G.P!.x = G.L!.roomX + 100; G.P!.y = G.L!.h / 2; frame(); // wake the act 1 boss
   });
 
   it('standing on the boss when it dies does not pull you through; walking back in after it opens does', async () => {
@@ -447,10 +477,10 @@ describe('boss portal', () => {
     hurtEnemy(G.boss!, 99999, false);
     expect(G.portal).not.toBeNull();
     frames(Math.ceil(BOSS_RULES.portalDelay * 60) + 30);
-    expect(G.floorIdx).toBe(0);                         // still on floor 1: never left the portal
+    expect(G.floorIdx).toBe(4);                         // still on the boss floor: never left the portal
     G.P!.x += 80; frame();                              // step out...
     G.P!.x -= 80; frames(10);                           // ...and back in
-    expect(G.floorIdx).toBe(1);
+    expect(G.floorIdx).toBe(5);
   });
 
   it('cannot be entered before it finishes opening', async () => {
@@ -460,8 +490,8 @@ describe('boss portal', () => {
     frames(30);                                         // the death hit-stop passes with the player outside; still opening
     expect(G.portal!.wait).toBeGreaterThan(0);
     G.P!.x = G.portal!.x; frame();
-    expect(G.floorIdx).toBe(0);
+    expect(G.floorIdx).toBe(4);
     frames(Math.ceil(BOSS_RULES.portalDelay * 60));
-    expect(G.floorIdx).toBe(1);
+    expect(G.floorIdx).toBe(5);
   });
 });

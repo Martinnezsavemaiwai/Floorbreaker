@@ -1,7 +1,6 @@
 // Boss AI: walk toward the player, then pick a (weighted-by-repetition) move from the phase's list.
 // Each move telegraphs for MOVES[mv].wind seconds, then RESOLVE[mv] fires; ACTIVE moves run every step.
 import { G, rage } from '../world/state.ts';
-import { ROOM, ROOM_X, WORLD } from '../world/constants.ts';
 import { move } from '../world/physics.ts';
 import { BOSS_RULES, MOVES } from '../data/bosses.ts';
 import { clamp, dist, lerp, pick, rand } from '../core/math.ts';
@@ -22,10 +21,10 @@ export function startBossMove(mv) {
   emit('bossWind', mv);
   if (mv === 'leap') {
     boss.from = { x: boss.x, y: boss.y };
-    boss.to = { x: clamp(P.x, ROOM.x0 + boss.r, WORLD.w - boss.r), y: clamp(P.y, boss.r, WORLD.h - boss.r) };
+    boss.to = { x: clamp(P.x, G.L.roomX + 40 + boss.r, G.L.w - boss.r), y: clamp(P.y, boss.r, G.L.h - boss.r) };
   } else if (mv === 'roots') { // spikes under the player plus random spots around the room
     boss.spots = [{ x: P.x, y: P.y }];
-    for (let i = 0; i < MOVES.roots.extraSpots[fast ? 1 : 0]; i++) boss.spots.push({ x: rand(ROOM.x0 + 40, WORLD.w - 40), y: rand(40, WORLD.h - 40) });
+    for (let i = 0; i < MOVES.roots.extraSpots[fast ? 1 : 0]; i++) boss.spots.push({ x: rand(G.L.roomX + 40 + 40, G.L.w - 40), y: rand(40, G.L.h - 40) });
   } else if (mv === 'volley') { // fixed at the start so the telegraph shows exactly where the shots will fly
     const n = MOVES.volley.count[fast ? 1 : 0], a0 = rand(0, Math.PI * 2);
     boss.angs = Array.from({ length: n }, (_, i) => a0 + i * Math.PI * 2 / n);
@@ -37,7 +36,7 @@ export function startBossMove(mv) {
 const ACTIVE = {
   dash(dt, b, P) {
     const ox = b.x, oy = b.y, sp = MOVES.charge.speed;
-    move(b, Math.cos(b.ang) * sp * dt, Math.sin(b.ang) * sp * dt, ROOM.x0);
+    move(b, Math.cos(b.ang) * sp * dt, Math.sin(b.ang) * sp * dt, G.L.roomX + 40);
     if (Math.random() < 0.6) burst(b.x, b.y + b.r * 0.7, 1, '#8a6a4a', 60, 0.4, 6, false);
     if (!b.hitP && dist(b, P) < b.r + P.r) { b.hitP = true; hurtPlayer(bossDmg('charge'), b); }
     if (b.t <= 0 || (b.x === ox && b.y === oy)) { endAct(); kick(0, 6); }
@@ -84,7 +83,7 @@ const RESOLVE = {
 export function updateBoss(dt) {
   const { boss: b, P, F } = G;
   b.lag = b.lag > b.hp ? Math.max(b.hp, b.lag - 160 * dt) : b.hp;
-  if (!b.awake && P.x > ROOM_X + 60) {
+  if (!b.awake && b.hp > 0 && P.x > G.L.roomX + 60) {
     b.awake = true; G.doorClosed = true; kick(0, 10); emit('bossWake');
     text(b.x, b.y - 70, F.boss.name, '#ff7043', true);
   }
@@ -94,7 +93,7 @@ export function updateBoss(dt) {
     b.cd -= dt;
     const a = Math.atan2(P.y - b.y, P.x - b.x), sp = F.boss.speed[rage() ? 1 : 0];
     b.ang = a;
-    if (dist(b, P) > b.r + P.r) move(b, Math.cos(a) * sp * dt, Math.sin(a) * sp * dt, ROOM.x0);
+    if (dist(b, P) > b.r + P.r) move(b, Math.cos(a) * sp * dt, Math.sin(a) * sp * dt, G.L.roomX + 40);
     if (b.cd <= 0) startBossMove(pick(rage() ? F.boss.rageMoves : F.boss.moves));
     return;
   }

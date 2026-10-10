@@ -1,9 +1,10 @@
 // DOM overlay screens (title, how-to, pause, result) and the toast queue. Reads game state, never owns it.
 import { G } from '../world/state.ts';
-import { meta, saveMeta, loadSuspend } from '../core/save.ts';
+import { meta, saveMeta, loadSuspend, takeLegacyNotice } from '../core/save.ts';
 import { on, emit } from '../core/events.ts';
 import { keyLabel } from '../core/input.ts';
-import { FLOORS } from '../data/floors.ts';
+import { FLOOR_COUNT } from '../data/run.ts';
+import { floorLabel } from '../world/floor.ts';
 import { UPGRADES } from '../data/upgrades.ts';
 import { SHOP } from '../data/shop.ts';
 import { price, canBuy } from '../systems/shop.js';
@@ -112,11 +113,15 @@ $('skill-cards').addEventListener('click', e => {
 
 // Title: best record + a Continue button when a suspended run exists
 function renderTitle() {
-  const b = meta.best;
-  $('record').textContent = b ? tr('ดีที่สุด: ', 'Best: ') + `${b.cleared ? tr('ผ่านครบ 4 ชั้น', 'all 4 floors') : tr('ชั้น ', 'floor ') + b.floor} · Lv.${b.lv} · ${fmtTime(b.time)}${b.assisted ? ' · assist' : ''}` : '';
+  const b = meta.best, old = meta.bestLegacy;
+  $('record').textContent = [
+    b ? tr('ดีที่สุด: ', 'Best: ') + `${b.cleared ? tr(`ผ่านครบ ${FLOOR_COUNT} ชั้น`, `all ${FLOOR_COUNT} floors`) : floorLabel(b.floor - 1)} · Lv.${b.lv} · ${fmtTime(b.time)}${b.assisted ? ' · assist' : ''}` : '',
+    old ? (old.cleared ? tr('เวอร์ชันเก่า: ผ่านครบ 4 ชั้น', 'Old version: all 4 floors cleared') : tr(`เวอร์ชันเก่า: ชั้น ${old.floor}/4`, `Old version: floor ${old.floor}/4`)) : '',
+  ].filter(Boolean).join(' · ');
+  if (takeLegacyNotice()) $('legacy-note').textContent = tr('เซฟพักจากเวอร์ชันเก่าเล่นต่อไม่ได้แล้ว', "Your old saved run can't continue in this version."); // shown once, kept until the next boot
   const s = loadSuspend();
   $('continue-btn').hidden = !s;
-  if (s) $('continue-info').textContent = `${FLOORS[s.floorIdx].name} · Lv.${s.player.lv} · ${fmtTime(s.run.time)}`;
+  if (s) $('continue-info').textContent = `${floorLabel(s.floorIdx)} · Lv.${s.player.lv} · ${fmtTime(s.run.time)}`;
   $('start-btn').classList.toggle('lit', !s); $('continue-btn').classList.toggle('lit', !!s); // the likely next step is the lit pane
   $('shards-info').textContent = tr(`${meta.shards} Shard · ช่อง 2: `, `${meta.shards} Shards · slot 2: `) + (meta.loadout ? SKILLS[meta.loadout]?.name ?? '—' : tr('ว่าง', 'empty'));
 }
@@ -145,9 +150,9 @@ function endRun({ cleared }) {
   if (better) { meta.best = mine; saveMeta(); }
   $('result').className = 'screen ' + (cleared ? 'clear' : 'dead');
   $('result-head').textContent = 'System';
-  $('result-title').textContent = cleared ? tr('ผ่านชั้น 4 แล้ว', 'FLOOR 4 CLEARED') : tr('ตัวละครถูกลบ', 'CHARACTER DELETED');
-  $('result-msg').textContent = cleared ? tr(`${F.boss.name} ล้มแล้ว ประตูชั้น ${FLOORS.length + 1} ยังไม่เปิด`, `${F.boss.name} is down. The gate to floor ${FLOORS.length + 1} isn't open yet.`)
-                                        : tr(`ตายที่ ${F.name} ตอน Lv.${P.lv} ตัวละครนี้ถูกลบแล้ว`, `Died on ${F.name} at Lv.${P.lv}. This character has been deleted.`);
+  $('result-title').textContent = cleared ? tr(`ผ่านชั้น ${FLOOR_COUNT} แล้ว`, `FLOOR ${FLOOR_COUNT} CLEARED`) : tr('ตัวละครถูกลบ', 'CHARACTER DELETED');
+  $('result-msg').textContent = cleared ? tr(`${F.boss.name} ล้มแล้ว ประตูชั้น ${FLOOR_COUNT + 1} ยังไม่เปิด`, `${F.boss.name} is down. The gate to floor ${FLOOR_COUNT + 1} isn't open yet.`)
+                                        : tr(`ตายที่${floorLabel(G.floorIdx)} ตอน Lv.${P.lv} ตัวละครนี้ถูกลบแล้ว`, `Died on ${floorLabel(G.floorIdx)} at Lv.${P.lv}. This character has been deleted.`);
   // Only celebrate a real improvement: a first-ever death on floor 1 is not a "new record"
   $('newrec').hidden = !(better && (best || cleared || run.floor > 1));
   statCards($('result-stats'), runStats());
@@ -175,8 +180,13 @@ on('langChanged', () => {
   else if (current === 'howto') renderHowTo();
   else if (current === 'skills') renderSkills();
 });
-on('floorLoaded', () => toast(`${G.F.name} · ${G.F.town}`, tr('บอส: ', 'Boss: ') + G.F.boss.name));
-on('portalOpen', () => toast(`${G.F.name} Cleared`, tr('เดินเข้าประตูสีฟ้าเพื่อขึ้นชั้นต่อไป', 'Step into the blue portal to go up.'), 4.5));
+on('floorLoaded', i => {
+  const k = G.L.kind, sub = k === 'boss' ? tr('บอส: ', 'Boss: ') + G.F.boss.name
+    : k === 'town' ? tr('ฟื้น HP เต็มแล้ว พ่อค้าอยู่ข้างน้ำพุ', 'Fully healed. The merchant is by the fountain.')
+    : tr('เคลียร์ห้องเพื่อเปิดประตู', 'Clear the room to open the doors.');
+  toast(`${floorLabel(i)} · ${G.F.town}`, sub);
+});
+on('portalOpen', () => toast(tr(`ผ่าน ${floorLabel(G.floorIdx)} แล้ว`, `${floorLabel(G.floorIdx)} Cleared`), tr('เดินเข้าประตูสีฟ้าเพื่อขึ้นชั้นต่อไป', 'Step into the blue portal to go up.'), 4.5));
 on('hint', ({ title, sub }) => toast(title, sub, 4.5));
 
 // Buttons carry data-act="name"; main.js supplies what each name does

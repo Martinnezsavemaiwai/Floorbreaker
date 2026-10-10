@@ -2,6 +2,7 @@
 // Gameplay never calls sounds directly — the bottom of this file maps game events to SFX and music.
 import { settings } from '../core/save.ts';
 import { on } from '../core/events.ts';
+import { actOf } from '../data/run.ts';
 
 const MUSIC = { 0: 'floor1', 1: 'floor2', 2: 'floor3', 3: 'floor4', boss: 'boss', clear: 'clear', title: 'title' };
 const tracks = {};
@@ -97,4 +98,4 @@ on('bossSummon', SFX.roar);
 on('bossWind', mv => { if (mv !== 'charge') SFX.bossWind(); }); // charge has its own whoosh (bossCharge)
 on('bossImpact', SFX.slam);
 on('bossCharge', SFX.charge);
-on('floorLoaded', i => playMusic(i));
+on('floorLoaded', i => playMusic(actOf(i)));

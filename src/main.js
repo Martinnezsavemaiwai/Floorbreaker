@@ -7,7 +7,7 @@ import '@fontsource/kanit/600.css';
 import '@fontsource/exo-2/700.css';
 import '@fontsource/exo-2/800.css';
 import './style.css';
-import { W, H, WORLD, TOWN_X, ROOM_X } from './world/constants.ts';
+import { W, H } from './world/constants.ts';
 import { G } from './world/state.ts';
 import { loadFloor } from './world/floor.ts';
 import { hitWall } from './world/physics.ts';
@@ -129,9 +129,9 @@ addEventListener('keydown', unlockAudio, { once: true });
 // Dev-only handle for console/bot playtests; stripped from production builds.
 if (import.meta.env.DEV) {
   const live = { state: () => G.run?.over || scenes.top?.name, P: () => G.P, mobs: () => G.mobs, shots: () => G.shots, boss: () => G.boss, F: () => G.F,
-                 floorIdx: () => G.floorIdx, portal: () => G.portal, run: () => G.run, clock: () => clock, scenes: () => scenes, cam: () => G.cam };
+                 floorIdx: () => G.floorIdx, L: () => G.L, doors: () => G.doors, room: () => G.room, portal: () => G.portal, run: () => G.run, clock: () => clock, scenes: () => scenes, cam: () => G.cam };
   /** @type {any} */ (window).__saoy = Object.defineProperties(
     { tick: dt => clock.advance(dt), update: updateGame, updateFx, draw: drawWorld, newGame, loadFloor, attack, skill, hurtPlayer, hurtEnemy,
-      hitWall, startBossMove, keys, mouse, ready, consts: { W, H, WORLD, TOWN_X, ROOM_X } },
+      hitWall, startBossMove, keys, mouse, ready, consts: { W, H } },
     Object.fromEntries(Object.entries(live).map(([k, get]) => [k, { get }])));
 }

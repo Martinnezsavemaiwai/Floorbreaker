@@ -12,7 +12,3 @@ export const SKILLS = {
     cd: 6, dmgMult: 3.5, delay: 0.3, windup: 0.25, length: 180, width: 46 },
 } satisfies Record<string, SkillDef & Record<string, unknown>>;
 export type SkillId = keyof typeof SKILLS;
-
-// Memory Shards for a finished run: kills, floors cleared, and a bonus for clearing the game
-export const shardsFor = (kills: number, floorsCleared: number, cleared: boolean) =>
-  Math.floor(kills / 4) + 10 * floorsCleared + (cleared ? 20 : 0);

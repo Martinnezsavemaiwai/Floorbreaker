@@ -3,7 +3,7 @@
 // delete when the run ends (permadeath) or a new character starts.
 import { G } from '../world/state.ts';
 import { tr } from '../core/i18n.ts';
-import { newRun, resumeRun, snapshotRun } from '../world/floor.ts';
+import { newRun, resumeRun } from '../world/floor.ts';
 import { scenes } from '../core/app.ts';
 import { releaseAll } from '../core/input.ts';
 import { loadSuspend, writeSuspend, clearSuspend } from '../core/save.ts';
@@ -14,6 +14,7 @@ import { refreshMenuBg, drawMenuBg, drawIntro, INTRO_TIME } from '../render/menu
 import { initAudio, stopMusic, playMusic, pauseMusic, resumeMusic, SFX } from '../audio/audio.js';
 import { screen, showUpgradePicker, renderShop, showStoryLine, confirmDialog, $ } from '../ui/screens.js';
 import { nearMerchant, buy } from '../systems/shop.js';
+import { kindOf, actOf } from '../data/run.ts';
 import { STORY } from '../data/story.ts';
 import { meta, saveMeta } from '../core/save.ts';
 import { SHOP } from '../data/shop.ts';
@@ -88,7 +89,11 @@ $('shop-items').addEventListener('click', e => {
 // Story: a floor's beat plays once per save, the first time that floor loads (queued, shown on the next play step)
 const storyQueue = [];
 let line = 0;
-on('floorLoaded', i => { const id = 'floor' + i; if (STORY[id] && !meta.storySeen.includes(id)) storyQueue.push(id); });
+on('floorLoaded', i => {
+  if (kindOf(i) !== 'town') return;
+  const id = 'floor' + actOf(i);
+  if (STORY[id] && !meta.storySeen.includes(id)) storyQueue.push(id);
+});
 const storyScene = {
   name: 'story', blocksUpdate: true,
   enter() { releaseAll(); line = 0; showStory(); },
@@ -133,7 +138,7 @@ export function continueRun() {
   clearSuspend();
   initAudio(); scenes.replace(introScene);
 }
-export function suspendRun() { if (liveRun()) writeSuspend(snapshotRun()); }
+export function suspendRun() { if (liveRun()) writeSuspend(G.entry); }
 export function saveAndQuit() { suspendRun(); goHome(); }
 
 on('runOver', clearSuspend); // permadeath: a finished run can't be continued

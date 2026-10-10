@@ -1,12 +1,12 @@
 // Progress that outlives a run: Memory Shards and the Blade Arts they unlock (stored in meta, see core/save.ts).
 import { G } from '../world/state.ts';
 import { meta, saveMeta } from '../core/save.ts';
-import { SKILLS, shardsFor } from '../data/skills.ts';
-import { FLOORS } from '../data/floors.ts';
+import { SKILLS } from '../data/skills.ts';
+import { shardsFor, FLOOR_COUNT } from '../data/run.ts';
 
 // Called once when a run ends; returns the shards earned so the result screen can show them
 export function awardShards(cleared) {
-  const n = shardsFor(G.run.kills, cleared ? FLOORS.length : G.run.floor - 1, cleared);
+  const n = shardsFor(G.run.kills, cleared ? FLOOR_COUNT : G.run.floor - 1, G.run.bosses, cleared);
   meta.shards += n; saveMeta();
   return n;
 }

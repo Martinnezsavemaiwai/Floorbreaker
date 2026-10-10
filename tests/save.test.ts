@@ -22,7 +22,7 @@ describe('loading', () => {
   it('starts from defaults with empty storage', async () => {
     const s = await boot();
     expect(s.settings).toMatchObject({ music: 60, sfx: 80, hints: true, assistDamage: 1, assistSpeed: 1, bindings: {} });
-    expect(s.meta).toEqual({ best: null, hintsSeen: [], shards: 0, unlocked: ['sonicLeap'], loadout: null, storySeen: [] });
+    expect(s.meta).toEqual({ best: null, bestLegacy: null, hintsSeen: [], shards: 0, unlocked: ['sonicLeap'], loadout: null, storySeen: [] });
     expect(s.loadSuspend()).toBeNull();
   });
 
@@ -32,10 +32,10 @@ describe('loading', () => {
       'saoy.best': JSON.stringify({ floor: 2, lv: 8, time: 120, kills: 30, cleared: false }),
     });
     expect(s.settings).toMatchObject({ music: 30, sfx: 40, shake: false, flash: true, hints: true }); // new field defaulted
-    expect(s.meta.best).toMatchObject({ floor: 2, lv: 8, assisted: false });
+    expect(s.meta.best).toBeNull(); expect(s.meta.bestLegacy).toMatchObject({ floor: 2, lv: 8, assisted: false });
     const dump = storage.dump();
     expect(dump['saoy.best']).toBeUndefined();                    // legacy key folded away
-    expect(JSON.parse(dump['saoy.meta'])).toMatchObject({ v: s.SAVE_VERSION, data: { best: { floor: 2 } } });
+    expect(JSON.parse(dump['saoy.meta'])).toMatchObject({ v: s.SAVE_VERSION, data: { best: null, bestLegacy: { floor: 2 } } });
   });
 
   it('falls back to defaults on corrupt data and keeps the bad copy as .bak', async () => {
@@ -60,7 +60,9 @@ describe('loading', () => {
 });
 
 describe('suspend + export/import', () => {
-  const suspend = { floorIdx: 1, player: { lv: 7, xp: 40, maxHp: 220, atk: 28, up: { keenEdge: 2 }, pendingUpgrades: 1, skill2: 'vorpal', col: 120, potions: 2, scrolls: 1 }, run: { floor: 2, kills: 41, time: 300, assisted: false } };
+  const suspend = { floorIdx: 7, room: { type: 'battle' as const, reward: 'gold' as const },
+    player: { lv: 7, xp: 40, hp: 150, maxHp: 220, atk: 28, up: { keenEdge: 2 }, pendingUpgrades: 1, skill2: 'vorpal', col: 120, potions: 2, scrolls: 1 },
+    run: { floor: 8, kills: 41, time: 300, assisted: false, seed: 12345, bosses: 1 } };
 
   it('round-trips a suspended run and clears it', async () => {
     const s = await boot();
@@ -72,12 +74,12 @@ describe('suspend + export/import', () => {
 
   it('loads a suspend written before upgrades and Gold existed', async () => {
     const { up, pendingUpgrades, skill2, col, potions, scrolls, ...oldPlayer } = suspend.player;
-    const s = await boot({ 'saoy.suspend': JSON.stringify({ v: 1, savedAt: '', data: { ...suspend, player: oldPlayer } }) });
+    const s = await boot({ 'saoy.suspend': JSON.stringify({ v: 2, savedAt: '', data: { ...suspend, player: oldPlayer } }) });
     expect(s.loadSuspend()?.player).toMatchObject({ up: {}, col: 0, potions: 0 });
   });
 
   it('rejects a suspend for a floor that does not exist', async () => {
-    const s = await boot({ 'saoy.suspend': JSON.stringify({ v: 1, savedAt: '', data: { ...suspend, floorIdx: 42 } }) });
+    const s = await boot({ 'saoy.suspend': JSON.stringify({ v: 2, savedAt: '', data: { ...suspend, floorIdx: 42 } }) });
     expect(s.loadSuspend()).toBeNull();
   });
 
@@ -108,6 +110,35 @@ describe('suspend + export/import', () => {
     expect(s.importSave('hello')).toMatchObject({ ok: false });
     expect(s.importSave(JSON.stringify({ game: 'other', v: 1 }))).toMatchObject({ ok: false });
     expect(s.settings.music).toBe(60); // nothing was applied
+  });
+});
+
+describe('version 2', () => {
+  it('drops a suspended run from the 4-floor version and flags it once; meta keeps shards and moves best to bestLegacy', async () => {
+    const oldSuspend = { floorIdx: 1, player: { lv: 7, xp: 40, maxHp: 220, atk: 28, up: {}, pendingUpgrades: 0, skill2: null, col: 0, potions: 0, scrolls: 0 }, run: { floor: 2, kills: 4, time: 30 } };
+    const s = await boot({
+      'saoy.suspend': JSON.stringify({ v: 1, savedAt: '', data: oldSuspend }),
+      'saoy.meta': JSON.stringify({ v: 1, savedAt: '', data: { best: { floor: 3, lv: 9, time: 400, kills: 50, cleared: false }, shards: 70, unlocked: ['sonicLeap', 'horizontal'] } }),
+    });
+    expect(s.takeLegacyNotice()).toBe(true); // known without loadSuspend() being called first
+    expect(s.takeLegacyNotice()).toBe(false); // once only
+    expect(s.loadSuspend()).toBeNull();
+    expect(storage.dump()['saoy.suspend']).toBeUndefined();
+    expect(storage.dump()['saoy.suspend.bak']).toBeUndefined();
+    expect(s.meta.shards).toBe(70);
+    expect(s.meta.unlocked).toEqual(['sonicLeap', 'horizontal']);
+    expect(s.meta.best).toBeNull();
+    expect(s.meta.bestLegacy).toMatchObject({ floor: 3 });
+  });
+
+  it('imports a version-1 export file: settings and meta migrate, its suspended run is dropped', async () => {
+    const s = await boot();
+    const file = JSON.stringify({ game: 'floorbreaker', v: 1, settings: { music: 20 }, meta: { best: { floor: 4, lv: 20, time: 900, kills: 300, cleared: true }, shards: 12 },
+      suspend: { floorIdx: 2, player: { lv: 3, xp: 0, maxHp: 120, atk: 14 }, run: { floor: 3, kills: 1, time: 10 } } });
+    expect(s.importSave(file)).toEqual({ ok: true });
+    expect(s.settings.music).toBe(20);
+    expect(s.meta.bestLegacy).toMatchObject({ cleared: true });
+    expect(s.loadSuspend()).toBeNull();
   });
 });
 

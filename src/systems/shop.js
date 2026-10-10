@@ -1,11 +1,11 @@
 // Buying from the town merchant and drinking potions. Prices and items live in data/shop.ts.
 import { G } from '../world/state.ts';
-import { SHOP, MERCHANT, POTION_HEAL } from '../data/shop.ts';
+import { SHOP, MERCHANT_REACH, POTION_HEAL } from '../data/shop.ts';
 import { dist } from '../core/math.ts';
 import { emit } from '../core/events.ts';
 import { text, burst } from './fx.js';
 
-export const nearMerchant = () => !!G.P && dist(G.P, MERCHANT) < MERCHANT.reach;
+export const nearMerchant = () => !!G.P && !!G.L?.merchant && dist(G.P, G.L.merchant) < MERCHANT_REACH;
 export const price = id => SHOP[id].price(G.P.scrolls);
 export const canBuy = id => G.P.col >= price(id) && (id !== 'potion' || G.P.potions < SHOP.potion.max);
 

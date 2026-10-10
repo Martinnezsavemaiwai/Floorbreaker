@@ -1,10 +1,10 @@
 // Drawing the live world: terrain, telegraphs, y-sorted actors, effects, fog and screen tint.
 import { G, rage } from '../world/state.ts';
-import { tr } from '../core/i18n.ts';
-import { W, H, WORLD, TOWN_X, ROOM_X, DOOR, TORCHES } from '../world/constants.ts';
+import { tr, t } from '../core/i18n.ts';
+import { kindOf } from '../data/run.ts';
+import { W, H } from '../world/constants.ts';
 import { PLAYER } from '../data/player.ts';
 import { MOVES, BOSS_RULES } from '../data/bosses.ts';
-import { MERCHANT } from '../data/shop.ts';
 import { SKILLS } from '../data/skills.ts';
 import { keyLabel } from '../core/input.ts';
 import { nearMerchant } from '../systems/shop.js';
@@ -12,7 +12,7 @@ import { IMG } from '../core/assets.ts';
 import { settings } from '../core/save.ts';
 import { clamp } from '../core/math.ts';
 import { burst } from '../systems/fx.js';
-import { ctx, frame, shadow, dirCol, FT, sword as drawSword } from './canvas.js';
+import { ctx, frame, shadow, dirCol, FN, FT, sword as drawSword } from './canvas.js';
 import { bg, vig } from './terrain.js';
 import { drawHud } from './hud.js';
 
@@ -76,7 +76,7 @@ function drawBoss() {
 
 // Town merchant: idles facing down; name tag always, the key prompt only when close enough to open the shop
 function drawMerchant() {
-  const { x, y } = MERCHANT;
+  const { x, y } = G.L.merchant;
   shadow(x, y, 14);
   frame(IMG.merchant, 0, Math.floor(G.time * 2) % 2 ? 0 : 2, x, y, 3);
   ctx.textAlign = 'center'; ctx.font = `700 13px ${FT}`; ctx.lineJoin = 'round'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.8)';
@@ -218,7 +218,7 @@ function drawPlayer() {
 function drawTorches() {
   const torch = G.F.torch;
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
-  for (const [x, y] of TORCHES) {
+  for (const [x, y] of G.L.torches) {
     const r = 110 + Math.sin(G.time * 9 + x) * 8 + Math.random() * 4;
     const g = ctx.createRadialGradient(x, y, 0, x, y, r);
     g.addColorStop(0, `rgba(${torch},.35)`); g.addColorStop(1, `rgba(${torch},0)`);
@@ -228,12 +228,35 @@ function drawTorches() {
   ctx.restore();
 }
 function drawDoor() {
-  if (!G.doorClosed) return;
+  const DOOR = G.L.door;
+  if (!G.doorClosed || !DOOR) return;
   ctx.save(); ctx.shadowColor = '#ff3030'; ctx.shadowBlur = 20;
   ctx.fillStyle = `rgba(200,30,30,${0.6 + 0.2 * Math.sin(G.time * 6)})`; ctx.fillRect(DOOR.x, DOOR.y, DOOR.w, DOOR.h);
   ctx.strokeStyle = '#ff8a80'; ctx.lineWidth = 2;
   for (let y = DOOR.y + 10; y < DOOR.y + DOOR.h; y += 20) { ctx.beginPath(); ctx.moveTo(DOOR.x, y); ctx.lineTo(DOOR.x + DOOR.w, y); ctx.stroke(); }
   ctx.restore();
+}
+// Room doors: a stone slab on the right wall, glowing in the colour of what's behind it, with a sign over it
+const DOOR_LOOK = {
+  gold: ['#ffd35a', { th: 'Gold', en: 'Gold' }], xp: ['#5fc3ff', { th: 'XP', en: 'XP' }], potion: ['#7dff8a', { th: 'Potion', en: 'Potion' }],
+};
+function doorLook(d) {
+  const i = G.floorIdx + 1;
+  if (!d.to) return kindOf(i) === 'boss' ? ['#ff6b5f', { th: 'บอส', en: 'Boss' }] : ['#f4ecd8', { th: 'ไปต่อ', en: 'Onward' }];
+  return DOOR_LOOK[d.to.reward] ?? ['#f4ecd8', { th: 'ห้องถัดไป', en: 'Next room' }];
+}
+function drawDoors() {
+  for (const d of G.doors) {
+    const [col, name] = doorLook(d), glow = 0.55 + 0.2 * Math.sin(G.time * 3 + d.y);
+    ctx.save();
+    ctx.fillStyle = '#3a3d4a'; ctx.fillRect(d.x - 8, d.y - 10, d.w + 16, d.h + 10);             // stone frame
+    ctx.fillStyle = '#0c0d12'; ctx.fillRect(d.x, d.y, d.w, d.h);                                 // opening
+    ctx.globalAlpha = glow; ctx.fillStyle = col; ctx.fillRect(d.x + 6, d.y + 6, d.w - 12, d.h - 6); // light inside
+    ctx.globalAlpha = 1;
+    ctx.textAlign = 'center'; ctx.font = `800 15px ${FN}`; ctx.lineJoin = 'round'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,.85)';
+    ctx.strokeText(t(name), d.x + d.w / 2, d.y - 18); ctx.fillStyle = col; ctx.fillText(t(name), d.x + d.w / 2, d.y - 18);
+    ctx.restore();
+  }
 }
 function drawPortal() {
   const portal = G.portal;
@@ -274,10 +297,10 @@ function drawFx() {
   ctx.globalAlpha = 1;
 }
 function drawFog() { // two drifting layers of the fog texture over the field
-  ctx.save(); ctx.beginPath(); ctx.rect(TOWN_X, 0, ROOM_X - TOWN_X, WORLD.h); ctx.clip();
+  ctx.save(); ctx.beginPath(); ctx.rect(0, 0, Math.min(G.L.roomX, G.L.w), G.L.h); ctx.clip();
   for (const [speed, alpha] of [[14, 0.3], [-22, 0.18]]) {
     ctx.globalAlpha = alpha; const fw = 960, fh = 528, ox = ((G.time * speed) % fw + fw) % fw;
-    for (let x = TOWN_X - fw + ox; x < ROOM_X; x += fw) for (let y = 0; y < WORLD.h; y += fh) ctx.drawImage(IMG.fog, x, y, fw, fh);
+    for (let x = -fw + ox; x < G.L.w; x += fw) for (let y = 0; y < G.L.h; y += fh) ctx.drawImage(IMG.fog, x, y, fw, fh);
   }
   ctx.restore();
 }
@@ -292,20 +315,21 @@ function drawDanger() { // red edge on hits and at low HP (steady instead of pul
 
 export function drawWorld() {
   const { P, cam } = G;
-  cam.x = clamp(P.x - W / 2, 0, WORLD.w - W); cam.y = clamp(P.y - H / 2, 0, WORLD.h - H);
+  cam.x = clamp(P.x - W / 2, 0, G.L.w - W); cam.y = clamp(P.y - H / 2, 0, G.L.h - H);
   ctx.imageSmoothingEnabled = false;
   const sx = (Math.random() - 0.5) * G.shake, sy = (Math.random() - 0.5) * G.shake;
   ctx.save(); ctx.translate(Math.round(-cam.x + sx), Math.round(-cam.y + sy));
   ctx.drawImage(bg, 0, 0);
-  drawTorches(); drawDoor(); drawPortal(); drawTelegraph();
+  drawTorches(); drawDoor(); drawPortal(); drawDoors(); drawTelegraph();
   // y-sort so whoever is lower on screen is drawn in front
   const actors = G.mobs.filter(m => m.hp > 0).map(m => ({ y: m.y, draw: () => drawMob(m) }));
-  actors.push({ y: P.y, draw: drawPlayer }, { y: MERCHANT.y, draw: drawMerchant });
+  actors.push({ y: P.y, draw: drawPlayer });
+  if (G.L.merchant) actors.push({ y: G.L.merchant.y, draw: drawMerchant });
   if (G.boss.hp > 0) actors.push({ y: G.boss.y, draw: drawBoss });
   for (const a of actors.sort((a, b) => a.y - b.y)) a.draw();
   drawShots();
   drawFx();
-  if (G.F.fog) drawFog();
+  if (G.F.fog && G.L.kind !== 'town') drawFog();
   ctx.restore();
   ctx.drawImage(vig, 0, 0);
   drawDanger();

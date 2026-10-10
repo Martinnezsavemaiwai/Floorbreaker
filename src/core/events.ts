@@ -8,7 +8,7 @@ export interface GameEvents {
   playerHurt: void; playerDeath: void; runOver: { cleared: boolean };
   mobWindup: void; mobShot: void; mobDeath: void;
   bossWake: void; bossSummon: void; bossWind: MoveName; bossImpact: void; bossCharge: void; bossDeath: void;
-  portalOpen: void; floorLoaded: number;
+  portalOpen: void; roomCleared: void; floorLoaded: number;
   hint: { title: string; sub: string };
   langChanged: 'th' | 'en';
   upgradePicked: string; finisher: void; roll: void; guardBreak: void; ending: void; bought: string; potion: void;

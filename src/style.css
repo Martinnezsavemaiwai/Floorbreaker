@@ -91,6 +91,7 @@ canvas{display:block;width:min(100vw,150vh);height:auto;cursor:crosshair;image-r
 .pane.lit:hover,.pane.lit:focus-visible{background:var(--rivets),linear-gradient(118deg,transparent 58%,rgba(12,13,18,.3) 58% 60%,transparent 60%),linear-gradient(180deg,#fff,#ffb36b)}
 .record{position:absolute;left:0;right:0;top:calc(var(--canvas-top) + var(--canvas-h) * .955);margin:0;text-align:center;
   font:400 clamp(11px,calc(var(--canvas-h) * .022),14px) var(--font);color:var(--ink-2)}
+.record.note{top:calc(var(--canvas-top) + var(--canvas-h) * .915)}
 .tab-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:2px solid var(--lead);border-radius:0;
   background:rgba(16,17,24,.85);color:var(--ink-2);font:600 13px var(--font-num);cursor:pointer;box-shadow:inset 0 0 0 1px var(--line)}
 .tab-btn:hover{color:var(--ink);background:var(--win-raise)}
@@ -108,7 +109,7 @@ canvas{display:block;width:min(100vw,150vh);height:auto;cursor:crosshair;image-r
   .pane-title{font-size:15px;white-space:normal} .pane.lit .pane-title{font-size:22px} .pane small{font-size:12px}
   /* only the shard count gives way on phones; the permadeath line on Dive In always stays */
   .pane:not(.lit):not([data-act=start]):not([data-act=skills]) small{display:none}
-  .record{top:auto;bottom:12px;font-size:12px}
+  .record{top:auto;bottom:12px;font-size:12px} .record.note{top:auto;bottom:32px}
   .lang{left:12px;top:12px} .corner{right:12px;top:12px}
 }
 

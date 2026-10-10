@@ -1,45 +1,41 @@
-// Content sanity: every floor loads, nothing spawns inside trees, the road and boss door stay open.
+// Content sanity: every act's data resolves, story beats exist, each floor kind lays out playably.
 import { describe, it, expect, beforeAll } from 'vitest';
 import { G, startRun } from './harness.ts';
 import { loadFloor } from '../src/world/floor.ts';
 import { hitWall } from '../src/world/physics.ts';
-import { overlaps } from '../src/core/math.ts';
-import { TOWN_X, ROOM_X, DOOR } from '../src/world/constants.ts';
 import { FLOORS } from '../src/data/floors.ts';
 import { MOVES } from '../src/data/bosses.ts';
 import { STORY } from '../src/data/story.ts';
+import { ACT_LEN } from '../src/data/run.ts';
 
-describe.each(FLOORS.map((f, i) => [f.name, i] as const))('%s', (_name, i) => {
-  beforeAll(() => { startRun(1); loadFloor(i); });
+describe.each(FLOORS.map((f, a) => [f.town, a] as const))('act %s', (_town, a) => {
+  beforeAll(() => startRun(1));
 
-  it('mob and boss ids resolve to stats', () => {
+  it('mob and boss ids resolve to stats, with a ranged mob in the ranged slot', () => {
+    loadFloor(a * ACT_LEN);
     expect(G.F!.mob.hp).toBeGreaterThan(0);
-    expect(G.F!.ranged.ranged, 'the ranged slot holds a ranged mob').toBeDefined();
-    expect(G.mobs.filter(m => m.def === G.F!.ranged)).toHaveLength(FLOORS[i].rangedSpawns.length);
+    expect(G.F!.ranged.ranged).toBeDefined();
     expect(G.F!.boss.hp).toBeGreaterThan(0);
-  });
-
-  it('has a story beat with non-empty lines', () => {
-    expect(STORY['floor' + i]?.length).toBeGreaterThan(0);
-    for (const l of STORY['floor' + i]) expect(l.who && l.text).toBeTruthy();
-  });
-
-  it('every boss move has timing data', () => {
     for (const mv of [...G.F!.boss.moves, ...G.F!.boss.rageMoves]) expect(MOVES[mv], mv).toBeDefined();
   });
 
-  it('no mob spawns inside a tree', () => {
-    for (const m of G.mobs) expect(hitWall(m), `spawn ${m.x},${m.y}`).toBe(false);
+  it('has a story beat with non-empty lines', () => {
+    expect(STORY['floor' + a]?.length).toBeGreaterThan(0);
+    for (const l of STORY['floor' + a]) expect(l.who && l.text).toBeTruthy();
   });
 
-  it('the road from town to the boss door is clear of trees', () => {
-    const road = { x: TOWN_X, y: 560, w: ROOM_X - TOWN_X, h: 80 };
-    const trees = G.WALLS.filter(w => w.x < ROOM_X); // gate walls sit at ROOM_X
-    for (const t of trees) expect(overlaps(t, road), JSON.stringify(t)).toBe(false);
+  it('town: start, merchant and exit door are reachable (not in walls)', () => {
+    loadFloor(a * ACT_LEN);
+    expect(hitWall({ ...G.L.start, r: 14 })).toBe(false);
+    expect(hitWall({ ...G.L.merchant!, r: 14 })).toBe(false);
+    expect(G.doors).toHaveLength(1);
   });
 
-  it('the boss door gap lines up with the road', () => {
-    expect(DOOR.y).toBeLessThanOrEqual(560);
-    expect(DOOR.y + DOOR.h).toBeGreaterThanOrEqual(640);
+  it('boss floor: the boss stands in its room behind a gate with an open gap', () => {
+    loadFloor(a * ACT_LEN + 4);
+    expect(G.boss!.hp).toBeGreaterThan(0);
+    expect(G.boss!.x).toBeGreaterThan(G.L.roomX);
+    expect(hitWall({ x: G.L.roomX + 20, y: G.L.h / 2, r: 14 })).toBe(false); // the doorway
+    expect(hitWall({ x: G.L.roomX + 20, y: 40, r: 14 })).toBe(true);         // the wall
   });
 });

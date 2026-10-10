@@ -1,7 +1,9 @@
 // Canvas HUD: system-window player panel, stacked boss HP bars, skill slots and the minimap.
 import { G, rage } from '../world/state.ts';
 import { tr } from '../core/i18n.ts';
-import { W, H, WORLD, TOWN_X, ROOM_X, DOOR } from '../world/constants.ts';
+import { W, H } from '../world/constants.ts';
+import { floorLabel } from '../world/floor.ts';
+import { actOf } from '../data/run.ts';
 import { PLAYER } from '../data/player.ts';
 import { SKILLS } from '../data/skills.ts';
 import { on } from '../core/events.ts';
@@ -52,8 +54,8 @@ function drawPlayerPanel() {
   ctx.fillText(`${Math.max(0, Math.ceil(P.hp))} / ${P.maxHp}`, 380, 33);
   ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.fillRect(78, 59, 240, 3);
   ctx.fillStyle = '#5fc3ff'; ctx.fillRect(78, 59, 240 * P.xp / PLAYER.xpToNext(P.lv), 3);
-  const zone = P.x < TOWN_X ? ['SAFE ZONE · ' + tr('HP ฟื้นฟู', 'HP regen'), '#9fe89f'] : P.x > ROOM_X ? ['BOSS ROOM', '#ff8a7a'] : ['FIELD', '#cfd8e6'];
-  ctx.textAlign = 'left'; label(`${F.name} · ${zone[0]}`, 22, 92, zone[1], `600 13px ${FT}`);
+  const L = G.L, where = L.kind === 'town' ? ['SAFE ZONE · ' + tr('HP ฟื้นฟู', 'HP regen'), '#9fe89f'] : L.kind === 'boss' ? ['BOSS', '#ff8a7a'] : ['', '#cfd8e6'];
+  ctx.textAlign = 'left'; label([floorLabel(G.floorIdx), F.town, where[0]].filter(Boolean).join(' · '), 22, 92, where[1], `600 13px ${FT}`);
   label(`${P.col} Gold`, 22, 110, '#ffe14d', `700 13px ${FN}`);
 }
 
@@ -129,15 +131,14 @@ function drawSkillSlots() {
 }
 
 // Minimap: static terrain is pre-rendered per floor, dots are drawn live
-const mm = document.createElement('canvas'), MM = 0.1; mm.width = WORLD.w * MM; mm.height = WORLD.h * MM;
+const mm = document.createElement('canvas'), MM = 0.1;
 function paintMinimap() {
+  const L = G.L; mm.width = L.w * MM; mm.height = L.h * MM;
   const g = mm.getContext('2d');
-  g.fillStyle = ['#7fa846', '#4f8f3d', '#3c5b47', '#3f7f9a'][G.floorIdx] ?? '#5a7a4a'; g.fillRect(0, 0, mm.width, mm.height);
-  g.fillStyle = '#a07a4c'; g.fillRect(TOWN_X * MM, 560 * MM, (ROOM_X - TOWN_X) * MM, 80 * MM);
-  g.fillStyle = '#c9a56e'; g.fillRect(0, 0, TOWN_X * MM, mm.height);
-  g.fillStyle = '#4a3a44'; g.fillRect(ROOM_X * MM, 0, (WORLD.w - ROOM_X) * MM, mm.height);
+  g.fillStyle = L.kind === 'town' ? '#c9a56e' : ['#7fa846', '#4f8f3d', '#3c5b47', '#3f7f9a'][actOf(G.floorIdx)]; g.fillRect(0, 0, mm.width, mm.height);
+  if (L.kind === 'boss') { g.fillStyle = '#4a3a44'; g.fillRect(L.roomX * MM, 0, (L.w - L.roomX) * MM, mm.height); }
   g.fillStyle = '#1f2a22'; for (const w of G.WALLS) g.fillRect(w.x * MM, w.y * MM, Math.max(2, w.w * MM), Math.max(2, w.h * MM));
-  g.fillStyle = '#3d8fd0'; for (const p of G.F.ponds ?? []) g.fillRect(p.x * MM, p.y * MM, p.w * MM, p.h * MM);
+  g.fillStyle = '#3d8fd0'; for (const p of G.ponds) g.fillRect(p.x * MM, p.y * MM, p.w * MM, p.h * MM);
 }
 on('floorLoaded', paintMinimap);
 function drawMinimap() {
@@ -145,7 +146,9 @@ function drawMinimap() {
   panel(x - 6, y - 6, w + 12, h + 30, 10);
   ctx.save(); ctx.beginPath(); ctx.roundRect(x, y, w, h, 6); ctx.clip();
   ctx.globalAlpha = 0.9; ctx.drawImage(mm, x, y); ctx.globalAlpha = 1;
-  if (G.doorClosed) { ctx.fillStyle = '#ff4a3a'; ctx.fillRect(x + DOOR.x * MM, y + DOOR.y * MM, DOOR.w * MM, DOOR.h * MM); }
+  const DOOR = G.L.door;
+  if (G.doorClosed && DOOR) { ctx.fillStyle = '#ff4a3a'; ctx.fillRect(x + DOOR.x * MM, y + DOOR.y * MM, DOOR.w * MM, DOOR.h * MM); }
+  ctx.fillStyle = '#f4ecd8'; for (const d of G.doors) ctx.fillRect(x + d.x * MM, y + d.y * MM, 4, d.h * MM);
   ctx.fillStyle = '#ff5a4a'; for (const m of G.mobs) if (m.hp > 0) ctx.fillRect(x + m.x * MM - 1.5, y + m.y * MM - 1.5, 3, 3);
   if (boss.hp > 0) {
     const r = 4 + (boss.awake ? Math.sin(G.time * 6) : 0);
@@ -157,7 +160,7 @@ function drawMinimap() {
   ctx.beginPath(); ctx.moveTo(6, 0); ctx.lineTo(-4, -4); ctx.lineTo(-2, 0); ctx.lineTo(-4, 4); ctx.closePath();
   ctx.fillStyle = '#fff'; ctx.fill(); ctx.restore();
   ctx.restore();
-  ctx.textAlign = 'left'; ctx.font = `600 11px ${FT}`; ctx.fillStyle = '#e8eef7'; ctx.fillText(`${F.name} · ${F.town}`, x, y + h + 16);
+  ctx.textAlign = 'left'; ctx.font = `600 11px ${FT}`; ctx.fillStyle = '#e8eef7'; ctx.fillText(`${floorLabel(G.floorIdx)} · ${F.town}`, x, y + h + 16);
 }
 
 export function drawHud() {

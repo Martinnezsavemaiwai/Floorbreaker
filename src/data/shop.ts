@@ -1,7 +1,7 @@
 import type { Text } from '../core/i18n.ts';
 
-// Town merchant: what it sells and where it stands. Gold drops from every kill (mobs.ts `col`).
-export const MERCHANT = { x: 230, y: 420, reach: 70 }; // inside the safe zone, above the road
+// Town merchant: what it sells. It stands in each town (world/layout.ts). Gold drops from every kill (mobs.ts `col`).
+export const MERCHANT_REACH = 70;
 
 export const SHOP = {
   potion: { name: 'Healing Potion', desc: { th: 'ฟื้น HP ครึ่งหลอด ใช้ที่ไหนก็ได้ พกได้ 3 ขวด', en: 'Heals half your HP. Works anywhere. Carry up to 3.' }, price: () => 40, max: 3 },

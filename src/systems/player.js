@@ -1,6 +1,5 @@
 // Player actions and movement: 3-hit sword combo, two Blade Art slots (-> post-motion delay), dodge roll, input buffer, town regen.
 import { G } from '../world/state.ts';
-import { TOWN_X, ROOM_X } from '../world/constants.ts';
 import { move, applyKnock } from '../world/physics.ts';
 import { loadFloor } from '../world/floor.ts';
 import { PLAYER } from '../data/player.ts';
@@ -101,7 +100,7 @@ function stab() {
 function dashMove(P, dx, dy) {
   const x0 = P.x;
   move(P, dx, dy);
-  if (!G.boss.awake && P.x > ROOM_X && x0 <= ROOM_X) P.x = ROOM_X;
+  if (!G.boss.awake && P.x > G.L.roomX && x0 <= G.L.roomX) P.x = G.L.roomX;
 }
 
 // Returns true when the player stepped into the portal and a new floor was loaded (skip the rest of this step)
@@ -146,7 +145,7 @@ export function updatePlayer(dt) {
       P.moving = v.moving;
     }
   }
-  if (P.x < TOWN_X) P.hp = Math.min(P.maxHp, P.hp + PLAYER.townRegen * dt);
+  if (P.x < G.L.townX) P.hp = Math.min(P.maxHp, P.hp + PLAYER.townRegen * dt);
   const portal = G.portal;
   if (portal) { // it opens after a moment, and only takes you once you walk into it
     portal.wait -= dt;

@@ -2,9 +2,9 @@
 // It mirrors the play scene (gameplay until the run ends, effects always) so hit-stop, i-frames and timings
 // behave exactly as in the browser. Level-up picks are taken instantly: the first card of each offer.
 import { G } from '../src/world/state.ts';
-import { newRun } from '../src/world/floor.ts';
+import { newRun, loadFloor } from '../src/world/floor.ts';
 import { hitWall } from '../src/world/physics.ts';
-import { W, H, WORLD, TOWN_X, ROOM_X } from '../src/world/constants.ts';
+import { W, H } from '../src/world/constants.ts';
 import { scenes, clock } from '../src/core/app.ts';
 import { STEP } from '../src/core/loop.ts';
 import { seedRng } from '../src/core/rng.ts';
@@ -13,6 +13,7 @@ import { keys, mouse, releaseAll } from '../src/core/input.ts';
 import { dist, clamp, type Point } from '../src/core/math.ts';
 import { updateGame, updateFx, attack, skill, roll } from '../src/systems/index.js';
 import { rollOffer, applyUpgrade, hasPendingUpgrade } from '../src/systems/upgrades.js';
+import { buy, drinkPotion } from '../src/systems/shop.js';
 
 export { G, STEP };
 
@@ -27,17 +28,26 @@ export function startRun(seed = 1) {
   seedRng(seed); releaseAll(); clock.acc = 0; clock.hitStop = 0; clock.scale = 1;
   newRun(); scenes.replace(playScene);
 }
+// Jump straight to a floor: a quiet battle room (waves stopped, no doors) or a boss floor with the player in the antechamber
+export function enterRoom(i = 1) {
+  loadFloor(i, { type: 'battle', reward: 'gold' });
+  G.room!.cleared = true; G.doors = []; G.mobs = [];
+  G.P!.x = 600; G.P!.y = 400; // CENTER_ZONE: every preset keeps it clear
+}
+export function enterBoss(i = 4) { loadFloor(i); G.mobs = []; }
+
 // One rendered frame of `frameDt` real seconds (the clock runs as many fixed steps as that allows)
 export const frame = (frameDt = STEP) => clock.advance(frameDt);
 
 // Things that must never happen, checked after every frame
 export function violations() {
   const out: string[] = [];
-  for (const e of [G.P!, G.boss!, ...G.mobs.filter(m => m.hp > 0)]) {
+  for (const e of [G.P!, ...(G.boss!.hp > 0 ? [G.boss!] : []), ...G.mobs.filter(m => m.hp > 0)]) {
     if (![e.x, e.y].every(Number.isFinite)) out.push('non-finite position');
     if (e !== G.boss && hitWall(e)) out.push('entity inside a wall');
   }
   if (!(G.P!.hp <= G.P!.maxHp)) out.push('player hp above max');
+  if (G.P!.x < 0 || G.P!.x > G.L!.w || G.P!.y < 0 || G.P!.y > G.L!.h) out.push('player outside the floor');
   return out;
 }
 
@@ -47,10 +57,9 @@ export const snapshot = () => JSON.stringify({
   mobs: G.mobs.map(m => [m.x, m.y, m.hp]), boss: [G.boss!.x, G.boss!.y, G.boss!.hp, G.boss!.act],
 });
 
-// A scripted player: grinds mobs to a target level per floor, heals in town, then fights the boss while
-// stepping out of telegraphs. Same logic as the console bot used during development.
-export function createBot(levelGoals: number[]) {
-  let phase: 'grind' | 'heal' | 'boss' = 'grind', floor = 0;
+// A scripted player for the 20-floor run: buys Potions in town, clears rooms (stepping out of telegraphs),
+// takes the first door, and fights bosses the way the old bot did.
+export function createBot() {
   let last = { x: 0, y: 0 }, stuck = 0, detour = 0, side = 1; // walking straight into a tree: sidestep for a bit
   const walkTo = (tx: number, ty: number) => {
     const P = G.P!;
@@ -63,28 +72,31 @@ export function createBot(levelGoals: number[]) {
   };
   const away = (from: Point, k = 5) => walkTo(G.P!.x + (G.P!.x - from.x) * k + 1, G.P!.y + (G.P!.y - from.y) * k + 1);
   const aim = (e: Point) => {
-    const P = G.P!;
-    G.cam.x = clamp(P.x - W / 2, 0, WORLD.w - W); G.cam.y = clamp(P.y - H / 2, 0, WORLD.h - H);
+    const P = G.P!, L = G.L!;
+    G.cam.x = clamp(P.x - W / 2, 0, L.w - W); G.cam.y = clamp(P.y - H / 2, 0, L.h - H);
     mouse.x = e.x - G.cam.x; mouse.y = e.y - G.cam.y;
   };
+  const fight = (tg: Point & { wind?: number; r: number }) => {
+    const P = G.P!; aim(tg);
+    if (tg.wind && tg.wind > 0 && tg.wind < 0.2) { away(tg, 3); if (dist(P, tg) < 80) roll(); return; }
+    walkTo(tg.x, tg.y);
+    if (dist(P, tg) < tg.r + 50) { attack(); if (P.skillCd[0] <= 0) skill(); }
+  };
   return function think() {
-    const { P, boss, mobs } = G as Required<typeof G>;
-    if (G.floorIdx !== floor) { floor = G.floorIdx; phase = 'grind'; }
-    const goal = levelGoals[G.floorIdx];
+    const { P, boss, mobs, L } = G as Required<typeof G>;
+    if (P.hp < P.maxHp * 0.35 && P.potions > 0) drinkPotion();
     if (G.portal) return G.portal.armed ? walkTo(G.portal.x, G.portal.y) : away(G.portal); // step out first, then in
-    if (phase === 'heal') { walkTo(150, 600); if (P.hp >= P.maxHp) phase = P.lv >= goal ? 'boss' : 'grind'; return; }
-    if (phase === 'grind') {
-      if (P.hp < P.maxHp * 0.4) { phase = 'heal'; return; }
-      if (P.lv >= goal) { phase = 'boss'; return; }
-      const tg = mobs.filter(m => m.hp > 0 && m.x > TOWN_X).sort((a, b) => dist(P, a) - dist(P, b))[0];
-      if (!tg) return;
-      aim(tg);
-      if (tg.wind > 0 && tg.wind < 0.2) { away(tg, 3); if (dist(P, tg) < 80) roll(); return; }
-      walkTo(tg.x, tg.y);
-      if (dist(P, tg) < 60) { attack(); if (P.skillCd[0] <= 0) skill(); }
-      return;
+    if (L.kind === 'town' && L.merchant && P.col >= 40 && P.potions < 3) {
+      if (dist(P, L.merchant) > 40) return walkTo(L.merchant.x, L.merchant.y + 30);
+      buy('potion'); return;
     }
-    if (P.x < ROOM_X + 80) return walkTo(ROOM_X + 100, 600);
+    if (G.doors.length) { const d = G.doors[0]; return walkTo(d.x + d.w / 2, d.y + d.h / 2); }
+    if (L.kind === 'room') {
+      const tg = mobs.filter(m => m.hp > 0).sort((a, b) => dist(P, a) - dist(P, b))[0];
+      return tg ? fight(tg) : walkTo(L.w / 2, L.h / 2);
+    }
+    if (L.kind !== 'boss') return;
+    if (P.x < L.roomX + 80) return walkTo(L.roomX + 100, L.h / 2);
     const adds = mobs.filter(m => m.hp > 0 && m.summoned).sort((a, b) => dist(P, a) - dist(P, b))[0];
     const act = boss.act; aim(boss);
     const spot = act === 'roots' && boss.spots!.find(s => dist(s, P) < 100);
@@ -94,15 +106,15 @@ export function createBot(levelGoals: number[]) {
     else if (act === 'volley' && dist(P, boss) < 260) away(boss);
     else if (act === 'charge') walkTo(P.x, P.y + (Math.sin(boss.ang) > 0 ? -200 : 200));
     else if (act === 'wave' && Math.abs(dist(boss, P) - boss.waveR!) < 70 && dist(boss, P) > boss.waveR! && P.skillCd[0] <= 0) skill();
-    else if (adds && dist(P, adds) < 120) { aim(adds); walkTo(adds.x, adds.y); attack(); }
+    else if (adds && dist(P, adds) < 120) fight(adds);
     else { walkTo(boss.x, boss.y); if (dist(P, boss) < boss.r + 50) { attack(); if (P.skillCd[0] <= 0) skill(); } }
   };
 }
 
 // Play a whole run with the bot. Returns the outcome plus any invariant violations seen along the way.
-export function playRun(seed: number, levelGoals = [5, 10, 15, 20], maxSeconds = 2400) {
+export function playRun(seed: number, maxSeconds = 3600) {
   startRun(seed);
-  const think = createBot(levelGoals), seen = new Set<string>();
+  const think = createBot(), seen = new Set<string>();
   let frames = 0;
   for (; frames < maxSeconds * 60 && !G.run!.over; frames++) {
     think(); frame();

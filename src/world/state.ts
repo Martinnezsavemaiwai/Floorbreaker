@@ -2,8 +2,11 @@
 // because ES module bindings can't be reassigned from other files.
 import { BOSS_RULES, type MoveName, type ResolvedBoss } from '../data/bosses.ts';
 import type { MobStats } from '../data/mobs.ts';
-import type { FloorDef } from '../data/floors.ts';
+import type { FloorDef, TreeType } from '../data/floors.ts';
 import type { Point, Rect } from '../core/math.ts';
+import type { Layout } from './layout.ts';
+import type { Room, WaveMob } from '../data/run.ts';
+import type { Suspend } from '../core/save.ts';
 
 export interface Player extends Point {
   r: number; hp: number; maxHp: number; lag: number; atk: number; lv: number; xp: number;
@@ -22,6 +25,7 @@ export interface Mob extends Point {
   cd: number; dead: number; hurt: number; face: number; side: number; sideDir: number;
   wind: number; lunge: number; kx: number; ky: number; summoned: boolean; def: MobStats;
   armorT: number; // > 0 while an armored mob's guard is broken
+  aggro?: boolean; // room mobs chase from anywhere
 }
 export interface Shot extends Point { vx: number; vy: number; r: number; dmg: number; col: string; life: number }
 export interface Boss extends Point {
@@ -31,7 +35,10 @@ export interface Boss extends Point {
   from?: Point; to?: Point; spots?: Point[]; waveR?: number; angs?: number[];
 }
 export type Floor = Omit<FloorDef, 'mob' | 'boss' | 'ranged'> & { mob: MobStats; ranged: MobStats; boss: ResolvedBoss };
-export interface Run { floor: number; kills: number; time: number; assisted?: boolean; over?: 'dead' | 'win' }
+export interface Run { floor: number; kills: number; time: number; seed: number; bosses: number; assisted?: boolean; over?: 'dead' | 'win' }
+export interface RoomState extends Room { waves: WaveMob[][]; wave: number; next: number; cleared: boolean }
+export interface Door extends Rect { to: Room | null; armed: boolean } // to = null: the fixed exit (first room, boss, next town)
+
 export interface FloatText extends Point { s: string; col: string; big?: boolean; t: number }
 export interface Particle extends Point { vx: number; vy: number; life: number; t: number; col: string; size: number; rot: number; vr: number; shard?: boolean }
 export interface Ring extends Point { r0: number; r1: number; life: number; t: number; col: string }
@@ -45,7 +52,9 @@ export const G = {
   texts: [] as FloatText[], parts: [] as Particle[], rings: [] as Ring[],
   doorClosed: false, portal: null as Portal | null,
   floorIdx: 0, F: null as Floor | null, WALLS: [] as Rect[],
+  L: null as Layout | null, room: null as RoomState | null, doors: [] as Door[], trees: [] as [number, number, TreeType][], ponds: [] as Rect[],
   run: null as Run | null,
+  entry: null as Suspend | null, // snapshot taken as the current floor loaded: what a suspend writes (Continue restarts the floor)
   cam: { x: 0, y: 0 },
   shake: 0, time: 0, introT: 0,
 };

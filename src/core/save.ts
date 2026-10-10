@@ -4,9 +4,9 @@
 // Browser storage is only a cache (Safari wipes it after 7 idle days, itch.io iframes may partition it),
 // so export/import is the one reliable backup.
 import { z } from 'zod';
-import { FLOORS } from '../data/floors.ts';
+import { FLOOR_COUNT, ROOM_TYPES, REWARDS } from '../data/run.ts';
 
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 const PREFIX = 'saoy.';
 
 // Storage that never throws: private mode, blocked iframes and Node tests all behave like "empty"
@@ -37,16 +37,18 @@ const BestSchema = z.object({
   floor: z.number().int().min(1), lv: z.number().int().min(1), time: z.number().min(0),
   kills: z.number().int().min(0), cleared: z.boolean(), assisted: z.boolean().default(false),
 });
-const MetaSchema = z.object({ best: BestSchema.nullable().default(null), hintsSeen: z.array(z.string()).default([]),
+const MetaSchema = z.object({ best: BestSchema.nullable().default(null), bestLegacy: BestSchema.nullable().default(null), hintsSeen: z.array(z.string()).default([]),
   shards: z.number().int().min(0).default(0), unlocked: z.array(z.string()).default(['sonicLeap']), loadout: z.string().nullable().default(null), // Blade Art meta
   storySeen: z.array(z.string()).default([]) });
 const SuspendSchema = z.object({
-  floorIdx: z.number().int().min(0).max(FLOORS.length - 1),
-  player: z.object({ lv: z.number().int().min(1), xp: z.number().min(0), maxHp: z.number().positive(), atk: z.number().positive(),
+  floorIdx: z.number().int().min(0).max(FLOOR_COUNT - 1),
+  room: z.object({ type: z.enum(ROOM_TYPES), reward: z.enum(REWARDS).nullable() }).nullable().default(null),
+  player: z.object({ lv: z.number().int().min(1), xp: z.number().min(0), hp: z.number().positive().optional(), maxHp: z.number().positive(), atk: z.number().positive(),
     up: z.record(z.string(), z.number().int().min(0)).default({}), pendingUpgrades: z.number().int().min(0).default(0),
     skill2: z.string().nullable().default(null),
     col: z.number().int().min(0).default(0), potions: z.number().int().min(0).default(0), scrolls: z.number().int().min(0).default(0) }),
-  run: z.object({ floor: z.number().int().min(1), kills: z.number().int().min(0), time: z.number().min(0), assisted: z.boolean().default(false) }),
+  run: z.object({ floor: z.number().int().min(1), kills: z.number().int().min(0), time: z.number().min(0), assisted: z.boolean().default(false),
+    seed: z.number().int(), bosses: z.number().int().min(0).default(0) }),
 });
 export type Settings = z.infer<typeof SettingsSchema>;
 export type Lang = Settings['lang'];
@@ -58,10 +60,19 @@ export type Suspend = z.infer<typeof SuspendSchema>;
 interface Envelope { v: number; savedAt: string; data: unknown }
 const isEnvelope = (x: any): x is Envelope => x && typeof x === 'object' && typeof x.v === 'number' && 'data' in x;
 
-// MIGRATIONS[n] turns version-n data into version n+1. v0 = before envelopes existed (raw objects).
-const MIGRATIONS: Record<number, (data: any) => any> = {
-  0: data => data, // same shapes; v1 adds the envelope and new fields, which the schema defaults fill in
+// MIGRATIONS[n] turns version-n data into version n+1 for a slot; null drops the slot.
+// v0 = before envelopes existed (raw objects). v1 -> v2: the run grew from 4 to 20 floors, so a suspended
+// 4-floor run can't continue, and the old best record is kept aside as bestLegacy.
+const MIGRATIONS: Record<number, (data: any, slot: string) => any> = {
+  0: data => data,
+  1: (data, slot) => slot === 'suspend' ? null
+    : slot === 'meta' ? { ...data, bestLegacy: data.best ?? null, best: null } : data,
 };
+let legacySuspendDropped = false; // set when a v1 suspend is dropped; read once through takeLegacyNotice
+function migrate(data: unknown, from: number, slot: string) {
+  for (let v = from; v < SAVE_VERSION && data != null; v++) data = MIGRATIONS[v](data, slot);
+  return data;
+}
 
 function load<S extends z.ZodType>(slot: string, schema: S, legacy?: () => unknown): z.output<S> | null {
   const text = raw.get(slot);
@@ -72,8 +83,8 @@ function load<S extends z.ZodType>(slot: string, schema: S, legacy?: () => unkno
     env = isEnvelope(parsed) ? parsed : { v: 0, savedAt: '', data: parsed };
   } catch { if (text) raw.set(slot + '.bak', text); return null; }
   if (env.v > SAVE_VERSION) return null; // written by a newer build: leave it alone rather than guess
-  let { v, data } = env;
-  for (; v < SAVE_VERSION; v++) data = MIGRATIONS[v](data);
+  const data = migrate(env.data, env.v, slot);
+  if (data == null) { raw.del(slot); raw.del(slot + '.bak'); if (slot === 'suspend') legacySuspendDropped = true; return null; }
   const result = schema.safeParse(data);
   if (!result.success) { if (text) raw.set(slot + '.bak', text); return null; }
   return result.data;
@@ -95,6 +106,9 @@ if (raw.get('best') !== null) { save('meta', meta); raw.del('best'); }
 export const saveMeta = () => save('meta', meta);
 
 export const loadSuspend = () => load('suspend', SuspendSchema);
+loadSuspend(); // eager, so a dropped v1 suspend is known before the title asks
+/** True once if an old-version suspended run was dropped on boot, then false. */
+export const takeLegacyNotice = () => { const f = legacySuspendDropped; legacySuspendDropped = false; return f; };
 export const writeSuspend = (s: Suspend) => save('suspend', s);
 export const clearSuspend = () => { raw.del('suspend'); raw.del('suspend.bak'); };
 
@@ -105,16 +119,22 @@ export function exportSave() {
 }
 const ExportSchema = z.object({
   game: z.enum(['floorbreaker', 'sword-art-on-you']), // the old name: files exported before the rename still import
-  v: z.number().int().max(SAVE_VERSION),
-  settings: SettingsSchema, meta: MetaSchema, suspend: SuspendSchema.nullable(),
+  v: z.number().int().min(0).max(SAVE_VERSION),
+  settings: z.unknown(), meta: z.unknown(), suspend: z.unknown().nullable(),
 });
 export function importSave(text: string): { ok: true } | { ok: false; error: { th: string; en: string } } {
   let parsed: unknown;
   try { parsed = JSON.parse(text); } catch { return { ok: false, error: { th: 'ไฟล์ไม่ใช่ JSON', en: 'The file is not JSON' } }; }
+  const bad = { ok: false as const, error: { th: 'ไฟล์ไม่ใช่เซฟของ Floorbreaker หรือข้อมูลเสียหาย', en: 'Not a Floorbreaker save, or the data is damaged' } };
   const r = ExportSchema.safeParse(parsed);
-  if (!r.success) return { ok: false, error: { th: 'ไฟล์ไม่ใช่เซฟของ Floorbreaker หรือข้อมูลเสียหาย', en: 'Not a Floorbreaker save, or the data is damaged' } };
-  Object.assign(settings, r.data.settings); saveSettings();
-  Object.assign(meta, r.data.meta); saveMeta();
-  if (r.data.suspend) writeSuspend(r.data.suspend); else clearSuspend();
+  if (!r.success) return bad;
+  const st = SettingsSchema.safeParse(migrate(r.data.settings, r.data.v, 'settings'));
+  const me = MetaSchema.safeParse(migrate(r.data.meta, r.data.v, 'meta'));
+  const suRaw = r.data.suspend == null ? null : migrate(r.data.suspend, r.data.v, 'suspend');
+  const su = suRaw == null ? null : SuspendSchema.safeParse(suRaw);
+  if (!st.success || !me.success || (su && !su.success)) return bad;
+  Object.assign(settings, st.data); saveSettings();
+  Object.assign(meta, me.data); saveMeta();
+  if (su?.success) writeSuspend(su.data); else clearSuspend();
   return { ok: true };
 }

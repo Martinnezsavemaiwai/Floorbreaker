@@ -1,9 +1,7 @@
 // Field mobs: wander, chase outside town, wind up (telegraph) then lunge; sidestep around trees.
 // Ranged mobs hold a distance instead and fire a shot that flies straight until it hits the player, a wall or town.
 import { G } from '../world/state.ts';
-import { TOWN_X, ROOM_X, WORLD } from '../world/constants.ts';
 import { move, applyKnock, hitWall } from '../world/physics.ts';
-import { makeMob } from '../world/floor.ts';
 import { dist, rand } from '../core/math.ts';
 import { emit } from '../core/events.ts';
 import { rng } from '../core/rng.ts';
@@ -13,11 +11,11 @@ export function updateMobs(dt) {
   const { P } = G;
   updateShots(dt);
   for (const m of G.mobs) {
-    const M = m.def, R = M.ranged, maxX = m.summoned ? WORLD.w : ROOM_X; // field mobs stay out of the boss room
-    if (m.hp <= 0) { if ((m.dead -= dt) <= 0) Object.assign(m, makeMob(m.sx, m.sy, false, M)); continue; }
+    const L = G.L, M = m.def, R = M.ranged, maxX = m.summoned ? L.w : L.roomX; // field mobs stay out of the boss room
+    if (m.hp <= 0) continue; // the dead stay dead: rooms are cleared wave by wave
     m.cd -= dt; m.hurt -= dt; m.lunge -= dt; m.armorT -= dt;
-    applyKnock(m, dt, TOWN_X, maxX);
-    const d = dist(m, P), chase = d < M.chaseRange && P.x > TOWN_X, wr = M.wanderRange;
+    applyKnock(m, dt, L.townX, maxX);
+    const d = dist(m, P), chase = (m.aggro || d < M.chaseRange) && P.x > L.townX, wr = M.wanderRange;
     if (m.wind > 0) {
       m.face = Math.atan2(P.y - m.y, P.x - m.x); m.wind -= dt;
       if (m.wind <= 0) {
@@ -41,8 +39,8 @@ export function updateMobs(dt) {
     const sp = chase ? M.speed : M.wanderSpeed, ox = m.x, oy = m.y, siding = m.side > 0;
     if (siding) { // walking around an obstacle
       m.side -= dt;
-      move(m, -Math.sin(m.face) * m.sideDir * sp * dt, Math.cos(m.face) * m.sideDir * sp * dt, TOWN_X, maxX);
-    } else move(m, Math.cos(m.face) * sp * dt, Math.sin(m.face) * sp * dt, TOWN_X, maxX);
+      move(m, -Math.sin(m.face) * m.sideDir * sp * dt, Math.cos(m.face) * m.sideDir * sp * dt, L.townX, maxX);
+    } else move(m, Math.cos(m.face) * sp * dt, Math.sin(m.face) * sp * dt, L.townX, maxX);
     if (Math.hypot(m.x - ox, m.y - oy) < sp * dt * 0.3) { // (nearly) blocked: sidestep for a moment
       m.sideDir = siding ? -m.sideDir : (rng() < 0.5 ? 1 : -1); m.side = 0.5;
       if (!chase) { m.wx = m.sx + rand(-wr, wr); m.wy = m.sy + rand(-wr, wr); }
@@ -61,6 +59,6 @@ function updateShots(dt) {
   G.shots = G.shots.filter(s => {
     s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt;
     if (Math.hypot(P.x - s.x, P.y - s.y) < P.r + s.r) { hurtPlayer(s.dmg, s); return false; }
-    return s.life > 0 && s.x > TOWN_X && !hitWall(s);
+    return s.life > 0 && s.x > G.L.townX && !hitWall(s);
   });
 }

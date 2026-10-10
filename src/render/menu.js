@@ -8,6 +8,7 @@ import { settings, meta, loadSuspend } from '../core/save.ts';
 import { clamp } from '../core/math.ts';
 import { IMG, ready } from '../core/assets.ts';
 import { FLOORS } from '../data/floors.ts';
+import { actOf } from '../data/run.ts';
 import { BOSSES } from '../data/bosses.ts';
 import { ctx, FN } from './canvas.js';
 
@@ -23,7 +24,7 @@ const torch = i => FLOORS[i].torch.split(',').map(Number); // "255,150,60" -> [r
 let reached = 1, buf = null, logo = null;
 export function refreshMenuBg() {
   const s = loadSuspend(), b = meta.best;
-  reached = Math.max(1, b ? (b.cleared ? FLOORS.length : b.floor) : 1, s ? s.floorIdx + 1 : 1);
+  reached = Math.max(1, b ? (b.cleared ? FLOORS.length : actOf(b.floor - 1) + 1) : 1, s ? actOf(s.floorIdx) + 1 : 1); // best.floor / floorIdx are run floors; the menu shows acts
   buf = null;
 }
 ready.then(() => { buf = null; });

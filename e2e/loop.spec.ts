@@ -34,13 +34,24 @@ async function until(page: Page, expr: string, timeout = 10_000) {
   throw new Error(`timed out waiting for ${expr}; state: ${await state(page)}`);
 }
 
-// Walk out of the portal (that arms it), wait until it opens, then step in
-async function takePortal(page: Page, toFloor: number) {
-  await until(page, '!!s.portal');
-  await hook(page, 's.P.x = s.portal.x - 120, s.P.y = s.portal.y');
-  await until(page, 's.portal.armed && s.portal.wait <= 0');
-  await hook(page, 's.P.x = s.portal.x, s.P.y = s.portal.y');
-  await until(page, `s.floorIdx === ${toFloor}`);
+// Finish whatever floor we're on: towns and cleared rooms -> first door, rooms -> kill each wave, boss -> kill + portal
+async function finishFloor(page: Page) {
+  const from = await hook(page, 's.floorIdx') as number;
+  await settle(page);
+  const kind = await hook(page, 's.L.kind');
+  if (kind === 'boss') {
+    await hook(page, 's.P.x = s.boss.x - 160, s.P.y = s.boss.y, s.boss.awake = true, s.hurtEnemy(s.boss, s.boss.hp + 1, true)');
+    if (from === 19) return;
+    await until(page, '!!s.portal');
+    await hook(page, 's.P.x = s.portal.x - 120, s.P.y = s.portal.y');
+    await until(page, 's.portal.armed && s.portal.wait <= 0');
+    await hook(page, 's.P.x = s.portal.x, s.P.y = s.portal.y');
+  } else {
+    if (kind === 'room') await until(page, '(s.mobs.forEach(m => m.hp > 0 && s.hurtEnemy(m, m.hp + 1, true)), s.doors.length > 0)', 30_000);
+    await until(page, 's.doors[0]?.armed'); // a door only works once you have been outside it
+    await hook(page, 's.P.x = s.doors[0].x + 30, s.P.y = s.doors[0].y + 55');
+  }
+  await until(page, `s.floorIdx === ${from + 1}`);
 }
 
 async function diveIn(page: Page) {
@@ -49,15 +60,15 @@ async function diveIn(page: Page) {
   await settle(page);
 }
 
-test('clear loop: title -> 4 floors -> bosses -> portals -> ending -> result -> title', async ({ page }) => {
-  test.setTimeout(90_000);
+test('clear loop: title -> 20 floors (towns, rooms, doors, bosses, portals) -> ending -> result -> title', async ({ page }) => {
+  test.setTimeout(180_000);
   const errors = watchErrors(page);
   await page.goto('/');
   await expect(page.locator('#title-screen')).toBeVisible();
   await diveIn(page);
 
   // Floor 1 town: walk to the merchant, open the shop, buy a potion, leave
-  await hook(page, 's.P.col = 999, s.P.x = 230, s.P.y = 470');
+  await hook(page, 's.P.col = 999, s.P.x = s.L.merchant.x, s.P.y = s.L.merchant.y + 30');
   await page.keyboard.press('KeyE');
   await expect(page.locator('#shop')).toBeVisible();
   await page.keyboard.press('Digit1');
@@ -66,14 +77,7 @@ test('clear loop: title -> 4 floors -> bosses -> portals -> ending -> result -> 
   await settle(page);
   expect(await hook(page, 's.P.potions')).toBeGreaterThan(0);
 
-  for (let floor = 0; floor < 4; floor++) {
-    await settle(page);
-    expect(await hook(page, 's.floorIdx')).toBe(floor);
-    // into the boss room, wake the boss, finish it
-    await hook(page, 's.P.x = s.boss.x - 160, s.P.y = s.boss.y, s.boss.awake = true, s.hurtEnemy(s.boss, s.boss.hp + 1, true)');
-    if (floor === 3) break;
-    await takePortal(page, floor + 1);
-  }
+  for (let f = 0; f < 20; f++) await finishFloor(page);
 
   // last boss down: ending story, then the clear result
   await expect.poll(() => state(page)).toBe('win');
@@ -110,9 +114,8 @@ test('suspend loop: pause -> save and quit -> continue keeps the run', async ({ 
   const errors = watchErrors(page);
   await page.goto('/');
   await diveIn(page);
-  // clear floor 1 so there is progress worth keeping
-  await hook(page, 's.P.x = s.boss.x - 160, s.P.y = s.boss.y, s.boss.awake = true, s.hurtEnemy(s.boss, s.boss.hp + 1, true)');
-  await takePortal(page, 1);
+  // town -> room 1 -> room 2 so there is progress worth keeping
+  await finishFloor(page); await finishFloor(page);
   await settle(page);
   const lv = await hook(page, 's.P.lv');
 
@@ -125,7 +128,7 @@ test('suspend loop: pause -> save and quit -> continue keeps the run', async ({ 
   await page.locator('#continue-btn').click();
   await expect.poll(() => state(page), { timeout: 10_000 }).not.toBe('intro');
   await settle(page);
-  expect(await hook(page, 's.floorIdx')).toBe(1);
+  expect(await hook(page, 's.floorIdx')).toBe(2);
   expect(await hook(page, 's.P.lv')).toBe(lv);
   // the slot was consumed: back on the title there is nothing to continue until the next quit
   expect(await page.evaluate(() => Object.keys(localStorage).some(k => /suspend/i.test(k) && localStorage.getItem(k)))).toBe(false);

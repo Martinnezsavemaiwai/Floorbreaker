@@ -15,17 +15,17 @@ describe('bot playthroughs', () => {
     for (const r of runs) expect(r.over, `seed ${r.seed}: ${JSON.stringify(r)}`).not.toBe('timeout');
   });
 
-  it('the game is beatable and most runs get past floor 1', () => {
+  it('the game is beatable and most runs reach the first boss', () => {
     // Balance guard: if a change makes this fail, the game got much harder (or broke a floor transition)
     expect(runs.some(r => r.over === 'win'), JSON.stringify(runs)).toBe(true);
-    expect(runs.filter(r => r.floor >= 2).length, JSON.stringify(runs)).toBeGreaterThanOrEqual(3);
+    expect(runs.filter(r => r.floor >= 5).length, JSON.stringify(runs)).toBeGreaterThanOrEqual(3);
   });
 });
 
 describe('determinism', () => {
   const playFor = (seed: number, seconds: number) => {
     startRun(seed);
-    const think = createBot([5, 10, 15]);
+    const think = createBot();
     for (let i = 0; i < seconds * 60 && !G.run!.over; i++) { think(); frame(); }
     return snapshot();
   };

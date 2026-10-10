@@ -6,15 +6,14 @@ import { test, expect, type Page } from '@playwright/test';
 
 // The bot runs inside the page. It is the tests/harness.ts bot, but it only acts through key events.
 const BOT = `(() => {
-  const s = window.__saoy, C = s.consts, log = [], seen = new Set();
+  const s = window.__saoy, log = [], seen = new Set();
   const key = (code, down) => window.dispatchEvent(new KeyboardEvent(down ? 'keydown' : 'keyup', { code, bubbles: true }));
   const tap = code => { key(code, true); key(code, false); };
   const held = {};
   const hold = (code, on) => { if (!!held[code] !== on) { held[code] = on; key(code, on); } };
   const visible = id => document.getElementById(id).classList.contains('on');
   const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-  let phase = 'grind', floor = 0, last = { x: 0, y: 0 }, stuck = 0, detour = 0, side = 1, shopped = -1, frames = 0;
-  const goals = [5, 10, 15, 20];
+  let floor = -1, last = { x: 0, y: 0 }, stuck = 0, detour = 0, side = 1, frames = 0;
   const walkTo = (tx, ty) => {
     const P = s.P;
     if (detour > 0) { detour--; [tx, ty] = [P.x - (ty - P.y) * side, P.y + (tx - P.x) * side]; }
@@ -36,32 +35,32 @@ const BOT = `(() => {
     if (visible('pause')) { note('paused (unexpected)'); tap('Escape'); return true; }
     return false;
   }
-  function think() {
+  const fight = tg => { // the nearest live mob: step out of its telegraph, otherwise close in and swing
+    const P = s.P; aim(tg);
+    if (tg.wind > 0 && tg.wind < 0.2) { away(tg, 3); if (dist(P, tg) < 80) tap('Space'); return; }
+    walkTo(tg.x, tg.y);
+    if (dist(P, tg) < tg.r + 50) { tap('KeyJ'); if (P.skillCd[0] <= 0) tap('KeyK'); }
+  };
+  function think() { // same decision order as the tests/harness.ts bot
     frames++;
     if (overlays()) { stop(); return; }
-    const P = s.P, boss = s.boss, mobs = s.mobs;
+    const P = s.P, boss = s.boss, mobs = s.mobs, L = s.L;
     if (!P || s.state !== 'play') return;
-    if (s.floorIdx !== floor) { floor = s.floorIdx; phase = 'grind'; note('reached floor ' + (floor + 1)); }
+    if (s.floorIdx !== floor) { floor = s.floorIdx; note('reached floor ' + (s.floorIdx + 1) + ' (' + s.L.kind + ')'); }
     if (P.hp < P.maxHp * 0.35 && P.potions > 0) { tap('KeyQ'); note('drank potion'); }
     if (s.portal) return s.portal.armed ? walkTo(s.portal.x, s.portal.y) : away(s.portal);
-    // spend Gold once per floor: walk to the merchant and press E
-    if (P.col >= 40 && shopped !== floor && phase !== 'boss') {
-      if (dist(P, { x: 230, y: 470 }) > 30) return walkTo(230, 470);
-      stop(); shopped = floor; tap('KeyE'); return;
+    // town: walk to the merchant and press E (the shop overlay above does the buying)
+    if (L.kind === 'town' && L.merchant && P.col >= 40 && P.potions < 3) {
+      if (dist(P, L.merchant) > 40) return walkTo(L.merchant.x, L.merchant.y + 30);
+      stop(); tap('KeyE'); return;
     }
-    if (phase === 'heal') { walkTo(150, 600); if (P.hp >= P.maxHp) phase = P.lv >= goals[floor] ? 'boss' : 'grind'; return; }
-    if (phase === 'grind') {
-      if (P.hp < P.maxHp * 0.4) { phase = 'heal'; return; }
-      if (P.lv >= goals[floor]) { phase = 'boss'; return; }
-      const tg = mobs.filter(m => m.hp > 0 && m.x > C.TOWN_X).sort((a, b) => dist(P, a) - dist(P, b))[0];
-      if (!tg) return;
-      aim(tg);
-      if (tg.wind > 0 && tg.wind < 0.2) { away(tg, 3); if (dist(P, tg) < 80) tap('Space'); return; }
-      walkTo(tg.x, tg.y);
-      if (dist(P, tg) < 60) { tap('KeyJ'); if (P.skillCd[0] <= 0) tap('KeyK'); if (P.skills[1] && P.skillCd[1] <= 0) tap('KeyL'); }
-      return;
+    if (s.doors.length) { const d = s.doors[0]; return walkTo(d.x + d.w / 2, d.y + d.h / 2); }
+    if (L.kind === 'room') {
+      const tg = mobs.filter(m => m.hp > 0).sort((a, b) => dist(P, a) - dist(P, b))[0];
+      return tg ? fight(tg) : walkTo(L.w / 2, L.h / 2);
     }
-    if (P.x < C.ROOM_X + 80) return walkTo(C.ROOM_X + 100, 600);
+    if (L.kind !== 'boss') return;
+    if (P.x < L.roomX + 80) return walkTo(L.roomX + 100, L.h / 2);
     const adds = mobs.filter(m => m.hp > 0 && m.summoned).sort((a, b) => dist(P, a) - dist(P, b))[0];
     const act = boss.act; aim(boss);
     const spot = act === 'roots' && boss.spots && boss.spots.find(p => dist(p, P) < 100);
@@ -75,7 +74,7 @@ const BOT = `(() => {
   }
   function invariants() {
     const P = s.P; if (!P) return;
-    for (const e of [P, s.boss, ...s.mobs.filter(m => m.hp > 0)]) {
+    for (const e of [P, ...(s.boss.hp > 0 ? [s.boss] : []), ...s.mobs.filter(m => m.hp > 0)]) {
       if (![e.x, e.y].every(Number.isFinite)) note('BUG non-finite position');
       if (e !== s.boss && s.hitWall(e)) note('BUG entity inside a wall');
     }
@@ -101,7 +100,7 @@ async function playOnce(page: Page, lang: 'th' | 'en') {
   await page.locator('#start-btn').click();
   await expect.poll(() => page.evaluate(() => (window as any).__saoy.state), { timeout: 10_000 }).not.toBe('intro');
   await page.evaluate(BOT);
-  await expect.poll(() => page.evaluate(() => (window as any).__bot.done), { timeout: 600_000, intervals: [2000] }).toBe(true);
+  await expect.poll(() => page.evaluate(() => (window as any).__bot.done), { timeout: 1_200_000, intervals: [2000] }).toBe(true);
   // the run's end must hand over to the result screen (after the ending story on a clear)
   for (let i = 0; i < 20 && !(await page.locator('#result').isVisible()); i++) {
     if (await page.locator('#story').isVisible()) await page.keyboard.press('Enter');
@@ -115,7 +114,7 @@ async function playOnce(page: Page, lang: 'th' | 'en') {
   return { log, errors };
 }
 
-test.describe.configure({ timeout: 900_000 });
+test.describe.configure({ timeout: 1_500_000 });
 for (const lang of ['th', 'en'] as const) {
   test(`bot plays a full run (${lang})`, async ({ page }) => {
     const { log, errors } = await playOnce(page, lang);
