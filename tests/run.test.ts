@@ -1,7 +1,7 @@
 // Run rules: floor kinds, door rolls, wave plans, presets and the shards formula. Pure data, no DOM.
 import { describe, it, expect } from 'vitest';
-import { FLOOR_COUNT, actOf, stepOf, kindOf, isFinalFloor, mobScale, rollDoors, planWaves, planElite, ROOM_PRESETS, pickPreset,
-         START_ZONE, DOOR_ZONE, CENTER_ZONE, shardsFor, rewardValue } from '../src/data/run.ts';
+import { FLOOR_COUNT, actOf, stepOf, kindOf, isFinalFloor, mobScale, rollDoors, planWaves, planElite, ELITE_MODS, ROOM_PRESETS, pickPreset,
+         START_ZONE, DOOR_ZONE, CENTER_ZONE, shardsFor, rewardValue, AVAILABLE_ROOMS } from '../src/data/run.ts';
 import { TREE_TYPES } from '../src/data/floors.ts';
 import { MOBS } from '../src/data/mobs.ts';
 import { overlaps } from '../src/core/math.ts';
@@ -47,12 +47,12 @@ describe('doors', () => {
     }
   });
 
-  it('round 2 rolls battle and elite rooms; battle doors name a reward, elite doors do not', () => {
+  it('doors roll only the room types this build has, and only battle/challenge doors name a reward', () => {
     const all = Array.from({ length: 60 }, (_, s) => rollDoors(s + 1, 1)).flat();
     expect(all.some(d => d.type === 'elite')).toBe(true);
     for (const d of all) {
-      expect(['battle', 'elite']).toContain(d.type);
-      expect(d.type === 'battle' ? d.reward !== null : d.reward === null).toBe(true);
+      expect(AVAILABLE_ROOMS).toContain(d.type);
+      expect(['battle', 'challenge'].includes(d.type) ? d.reward !== null : d.reward === null).toBe(true);
     }
   });
 
@@ -64,8 +64,19 @@ describe('doors', () => {
   it('an elite room is one wave: 1 elite plus 3 of the act mob', () => {
     const w = planElite(3, 2);
     expect(w).toHaveLength(1);
-    expect(w[0].filter(m => m.elite)).toEqual([{ id: 'frenzyBoar', n: 1, elite: true }]);
+    expect(w[0].filter(m => m.elite)).toMatchObject([{ id: 'frenzyBoar', n: 1, elite: true }]);
     expect(w[0].find(m => !m.elite)).toEqual({ id: 'frenzyBoar', n: 3 });
+  });
+
+  it('each elite gets one modifier from the seed; every modifier shows up across seeds', () => {
+    const seen = new Set<string>();
+    for (let s = 1; s < 80; s++) {
+      const e = planElite(s, 2)[0].find(m => m.elite)!;
+      expect(ELITE_MODS).toContain(e.mod);
+      expect(planElite(s, 2)[0].find(m => m.elite)!.mod).toBe(e.mod); // deterministic
+      seen.add(e.mod!);
+    }
+    expect([...seen].sort()).toEqual([...ELITE_MODS].sort());
   });
 
   it('rewards grow with the act', () => {

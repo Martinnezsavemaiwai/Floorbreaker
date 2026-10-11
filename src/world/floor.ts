@@ -7,7 +7,7 @@ import { FLOORS, TREE_TYPES } from '../data/floors.ts';
 import { PLAYER } from '../data/player.ts';
 import { SKILLS } from '../data/skills.ts';
 import type { ElementId } from '../data/elements.ts';
-import { FLOOR_COUNT, actOf, kindOf, mobScale, pickPreset, ROOM_PRESETS, type Room } from '../data/run.ts';
+import { FLOOR_COUNT, actOf, kindOf, mobScale, SHRINE_RULES, pickPreset, ROOM_PRESETS, ROOM_POINT, type Room } from '../data/run.ts';
 import { clock } from '../core/app.ts';
 import { emit } from '../core/events.ts';
 import { rng } from '../core/rng.ts';
@@ -25,7 +25,7 @@ export const floorLabel = (i: number) => tr(`ชั้น ${i + 1}/${FLOOR_COUNT
 
 // Mob stats scaled for the floor (+8% HP and damage per floor inside an act)
 export const scaled = (M: MobStats, i = G.floorIdx): MobStats => {
-  const k = mobScale(i);
+  const k = mobScale(i) * (G.cursed ? SHRINE_RULES.curseMult : 1);
   return k === 1 ? M : { ...M, hp: Math.round(M.hp * k), dmg: Math.round(M.dmg * k) };
 };
 export function makeMob(x: number, y: number, summoned = false, M = G.F!.mob): Mob {
@@ -36,10 +36,20 @@ export function makeMob(x: number, y: number, summoned = false, M = G.F!.mob): M
 // Build floor i. `room` is the door the player chose (room floors only); null falls back to a battle room.
 export function loadFloor(i: number, room: Room | null = null) {
   G.floorIdx = i; const act = actOf(i), kind = kindOf(i), F = G.F = actData(act), L = G.L = layoutFor(kind);
+  if (room?.type === 'spring') L.fountain = { ...ROOM_POINT };
+  if (room?.type === 'shop') L.merchant = { ...ROOM_POINT };
+  if (room?.type === 'shrine') L.shrine = { ...ROOM_POINT };
+  // only floors with enemies carry (and use up) the curse
+  G.cursed = (kind === 'boss' || ['battle', 'elite', 'challenge'].includes((room ?? { type: 'battle' }).type)) && kind !== 'town' && (G.run?.curse ?? 0) > 0;
+  if (G.cursed && kind === 'boss') { // the boss and its summons get stronger too
+    const k = SHRINE_RULES.curseMult, b = F.boss;
+    F.boss = { ...b, hp: Math.round(b.hp * k), dmg: Object.fromEntries(Object.entries(b.dmg).map(([m, d]) => [m, Math.round(d * k)])) };
+    F.mob = { ...F.mob, hp: Math.round(F.mob.hp * k), dmg: Math.round(F.mob.dmg * k) };
+  }
   const preset = kind === 'room' ? ROOM_PRESETS[pickPreset(G.run?.seed ?? 0, i)] : null;
   G.trees = (preset?.trees ?? []).map(([x, y, k]) => [x, y, act === 2 && k === 'big' ? 'dark' : k]);
   G.ponds = preset?.ponds ?? [];
-  G.WALLS = [...L.gate, ...(L.fountain ? [fountainHit(L.fountain)] : []),
+  G.WALLS = [...L.gate, ...(L.fountain ? [fountainHit(L.fountain)] : []), ...(L.shrine ? [{ x: L.shrine.x - 22, y: L.shrine.y - 18, w: 44, h: 22 }] : []),
     ...G.trees.map(([x, y, k]) => { const h = TREE_TYPES[k].hit; return { x: x + h[0], y: y + h[1], w: h[2], h: h[3] }; }), ...G.ponds];
   G.mobs = []; G.doors = [];
   G.room = kind === 'room' ? startRoom(i, room ?? { type: 'battle', reward: 'xp' }) : null;
@@ -53,6 +63,7 @@ export function loadFloor(i: number, room: Room | null = null) {
   G.texts = []; G.parts = []; G.shots = []; G.rings = []; G.bolts = []; G.doorClosed = false; G.portal = null; clock.hitStop = 0; G.shake = 0;
   if (G.run) G.run.floor = Math.max(G.run.floor, i + 1);
   G.entry = snapshotRun();
+  if (G.cursed) G.run!.curse!--; // after the snapshot, so resuming this floor pays it exactly once
   emit('floorLoaded', i);
 }
 
@@ -69,14 +80,14 @@ function newPlayer() {
   G.P = { r: PLAYER.radius, maxHp: PLAYER.hp, hp: PLAYER.hp, lag: PLAYER.hp, atk: PLAYER.atk, lv: 1, xp: 0, ang: 0, atkCd: 0,
           skills: ['sonicLeap', null, null], skillCd: [0, 0, 0], mods: {}, evolved: [], stormHits: 0, spin: 0, thrust: 0, thrustAng: 0, beam: 0,
           hurt: 0, swing: 0, swingDir: 1, hitSet: null, x: 0, y: 0, dash: 0, delay: 0, trail: [], kx: 0, ky: 0, inv: 0, buf: null,
-          up: {}, pendingUpgrades: 0, col: 0, potions: 0, scrolls: 0,
+          up: {}, pendingUpgrades: 0, col: 0, potions: 0, scrolls: 0, modBuys: 0,
           combo: 0, comboT: 0, finisher: false, roll: 0, rollCd: 0, rollAng: 0 };
 }
 export const assistOn = () => settings.assistDamage < 1 || settings.assistSpeed < 1;
 
 export function newRun() {
   newPlayer();
-  G.run = { floor: 1, kills: 0, time: 0, seed: Math.floor(rng() * 2 ** 31), bosses: 0, assisted: assistOn() };
+  G.run = { floor: 1, kills: 0, time: 0, seed: Math.floor(rng() * 2 ** 31), bosses: 0, assisted: assistOn(), curse: 0 };
   G.rewards = [];
   loadFloor(0);
 }
@@ -87,8 +98,8 @@ export function snapshotRun(): Suspend {
   const { P, run } = G;
   return { floorIdx: G.floorIdx, room: G.room ? { type: G.room.type, reward: G.room.reward } : null,
     player: { lv: P!.lv, xp: P!.xp, hp: P!.hp, maxHp: P!.maxHp, atk: P!.atk, up: { ...P!.up }, pendingUpgrades: P!.pendingUpgrades,
-      build: { arts: [P!.skills[1], P!.skills[2]], mods: structuredClone(P!.mods), evolved: [...P!.evolved] }, col: P!.col, potions: P!.potions, scrolls: P!.scrolls },
-    run: { floor: run!.floor, kills: run!.kills, time: run!.time, assisted: !!run!.assisted, seed: run!.seed, bosses: run!.bosses } };
+      build: { arts: [P!.skills[1], P!.skills[2]], mods: structuredClone(P!.mods), evolved: [...P!.evolved] }, col: P!.col, potions: P!.potions, scrolls: P!.scrolls, modBuys: P!.modBuys },
+    run: { floor: run!.floor, kills: run!.kills, time: run!.time, assisted: !!run!.assisted, seed: run!.seed, bosses: run!.bosses, curse: run!.curse ?? 0 } };
 }
 export function resumeRun(s: Suspend) {
   newPlayer(); const { build, hp, ...player } = s.player, b = cleanBuild(build as Parameters<typeof cleanBuild>[0]);

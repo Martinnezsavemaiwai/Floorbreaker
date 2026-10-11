@@ -1,9 +1,9 @@
 // Damage, death, XP. Sounds, music and result screens hang off the events emitted here.
 import { G, rage } from '../world/state.ts';
 import { tr } from '../core/i18n.ts';
-import { knock } from '../world/physics.ts';
+import { knock, hitWall } from '../world/physics.ts';
 import { makeMob } from '../world/floor.ts';
-import { isFinalFloor } from '../data/run.ts';
+import { isFinalFloor, ELITE_RULES } from '../data/run.ts';
 import { PLAYER } from '../data/player.ts';
 import { BOSS_RULES } from '../data/bosses.ts';
 import { clamp } from '../core/math.ts';
@@ -35,7 +35,7 @@ export function hurtEnemy(e, d, big, crit = false, art = null) {
     e.armorT = e.def.armor.regen; text(e.x, e.y - e.r - 26, 'BREAK!', '#9fd8ff', true);
     ring(e.x, e.y, 10, 60, 0.3, '159,216,255'); emit('guardBreak');
   } else if (guarded) { d = Math.max(1, Math.round(d * 0.25)); text(e.x, e.y - e.r - 26, 'GUARD', '#c8d0dc'); }
-  e.hp -= d; e.hurt = 0.1; text(e.x, e.y - e.r - (e.z || 0), crit ? d + '!' : d, crit ? '#ffe14d' : big ? '#ffb347' : '#fff', big || crit); emit('hit', { big });
+  e.hp -= d; e.hurt = 0.1; e.sinceHit = 0; text(e.x, e.y - e.r - (e.z || 0), crit ? d + '!' : d, crit ? '#ffe14d' : big ? '#ffb347' : '#fff', big || crit); emit('hit', { big });
   const steal = mods().lifesteal; // every enemy hit comes from the player
   if (steal) P.hp = Math.min(P.maxHp, P.hp + steal);
   burst(e.x, e.y - (e.z || 0), big ? 14 : 7, '#fff3c4', 320, 0.25, 3, false);
@@ -72,6 +72,16 @@ export function kill(e) {
   } else {
     e.dead = Infinity; gainXp(e.def.xp); gainCol(e.def.col, e); emit('mobDeath'); run.kills++;
     burst(e.x, e.y, 26, '#8fe3ff', 260, 0.9, 9, true); ring(e.x, e.y, 5, 50, 0.3, '143,227,255');
+    if (e.mod === 'split') { // the elite falls apart into two smaller copies
+      const R = ELITE_RULES, kid = { ...e.def, hp: Math.round(e.maxHp * R.splitHp), scale: (e.def.scale ?? 1) * R.splitScale, radius: Math.round(e.def.radius * R.splitScale), armor: undefined };
+      for (const side of [-1, 1]) {
+        const k = makeMob(e.x, e.y, false, kid), L = G.L;
+        k.x = clamp(e.x + side * 30, L.townX + k.r, L.roomX - k.r);
+        if (hitWall(k)) k.x = e.x; // no room beside it: spawn on top of the elite instead of inside a wall
+        k.aggro = true; k.elite = false; k.sinceHit = 0; G.mobs.push(k);
+        ring(k.x, k.y, 5, 40, 0.3, '166,136,255');
+      }
+    }
   }
 }
 

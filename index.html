@@ -149,6 +149,14 @@
   </div></div>
 </section>
 
+<section id="shrine" class="screen" role="dialog" aria-labelledby="shrine-h">
+  <div class="win wide" style="--glass:var(--hornfield)"><header id="shrine-h" data-en="Shrine">ศาลเจ้า</header><div class="body">
+    <p class="result-msg" data-en="Take one offer, or walk past. Each one has a price.">รับข้อเสนอได้ 1 อย่าง หรือเดินผ่านไป ทุกข้อเสนอมีราคา</p>
+    <div class="cards" id="shrine-offers"><!-- filled by ui/screens.js --></div>
+    <button class="btn" data-act="closeShrine"><span class="ic"><svg class="ico"><use href="#i-back"/></svg></span><span data-en="Walk past">เดินผ่าน</span><kbd>Esc</kbd></button>
+  </div></div>
+</section>
+
 <section id="shop" class="screen" role="dialog" aria-labelledby="shop-h">
   <div class="win wide"><header id="shop-h" data-en="Merchant">ร้านค้า</header><div class="body">
     <p class="result-msg" id="shop-col"></p>

@@ -47,7 +47,10 @@ async function finishFloor(page: Page) {
     await until(page, 's.portal.armed && s.portal.wait <= 0');
     await hook(page, 's.P.x = s.portal.x, s.P.y = s.portal.y');
   } else {
-    if (kind === 'room') await until(page, '(s.mobs.forEach(m => m.hp > 0 && s.hurtEnemy(m, m.hp + 1, true)), s.doors.length > 0)', 30_000);
+    if (kind === 'room') {
+      await hook(page, 's.room.challenge && (s.room.challenge.left = 0.1)'); // fast-forward the 30 s challenge timer
+      await until(page, '(s.mobs.forEach(m => m.hp > 0 && s.hurtEnemy(m, m.hp + 1, true)), s.doors.length > 0)', 30_000);
+    }
     await until(page, 's.doors[0]?.armed'); // a door only works once you have been outside it
     await hook(page, 's.P.x = s.doors[0].x + 30, s.P.y = s.doors[0].y + 55');
   }
@@ -177,5 +180,21 @@ test('an elite room awards a new Blade Art through the picker', async ({ page })
   await expect(page.locator('#upgrade')).toBeVisible({ timeout: 5_000 });
   await page.keyboard.press('Digit1');
   await expect.poll(() => hook(page, 's.P.skills[1]')).not.toBeNull();
+  expect(errors).toEqual([]);
+});
+
+test('a shrine offer goes through the window and the picker', async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto('/');
+  await diveIn(page);
+  await hook(page, "s.loadFloor(2, { type: 'shrine', reward: null })");
+  await settle(page);
+  await hook(page, 's.P.skills[1] = "vorpal", s.P.col = 999, s.room.offers = ["gold", "curse"], s.P.x = 600, s.P.y = 450');
+  await page.keyboard.press('KeyE');
+  await expect(page.locator('#shrine')).toBeVisible();
+  await page.keyboard.press('Digit1');
+  await expect(page.locator('#upgrade')).toBeVisible({ timeout: 5_000 }); // evolve pick
+  await page.keyboard.press('Digit1');
+  await expect.poll(() => hook(page, 's.P.evolved.length')).toBeGreaterThan(0);
   expect(errors).toEqual([]);
 });

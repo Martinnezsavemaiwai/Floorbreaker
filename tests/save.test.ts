@@ -61,8 +61,8 @@ describe('loading', () => {
 
 describe('suspend + export/import', () => {
   const suspend = { floorIdx: 7, room: { type: 'battle' as const, reward: 'gold' as const },
-    player: { lv: 7, xp: 40, hp: 150, maxHp: 220, atk: 28, up: { keenEdge: 2 }, pendingUpgrades: 1, build: { arts: ['vorpal', null] as [string, string | null], mods: { blade: ['ember'], vorpal: ['storm', 'storm'] } as Record<string, ('ember' | 'storm')[]>, evolved: ['vorpal'] }, col: 120, potions: 2, scrolls: 1 },
-    run: { floor: 8, kills: 41, time: 300, assisted: false, seed: 12345, bosses: 1 } };
+    player: { lv: 7, xp: 40, hp: 150, maxHp: 220, atk: 28, up: { keenEdge: 2 }, pendingUpgrades: 1, build: { arts: ['vorpal', null] as [string, string | null], mods: { blade: ['ember'], vorpal: ['storm', 'storm'] } as Record<string, ('ember' | 'storm')[]>, evolved: ['vorpal'] }, col: 120, potions: 2, scrolls: 1, modBuys: 2 },
+    run: { floor: 8, kills: 41, time: 300, assisted: false, seed: 12345, bosses: 1, curse: 0 } };
 
   it('round-trips a suspended run and clears it', async () => {
     const s = await boot();
@@ -72,10 +72,25 @@ describe('suspend + export/import', () => {
     expect(s.loadSuspend()).toBeNull();
   });
 
+  it('keeps the curse count, and a suspend without one loads as 0', async () => {
+    const s = await boot();
+    s.writeSuspend({ ...suspend, run: { ...suspend.run, curse: 1 } });
+    expect(s.loadSuspend()!.run.curse).toBe(1);
+
+    const s2 = await boot({ 'saoy.suspend': JSON.stringify({ v: 3, savedAt: '', data: { ...suspend, run: { ...suspend.run, curse: undefined } } }) });
+    expect(s2.loadSuspend()!.run.curse).toBe(0);
+  });
+
   it('loads a suspend written before upgrades and Gold existed', async () => {
-    const { up, pendingUpgrades, build, col, potions, scrolls, ...oldPlayer } = suspend.player;
+    const { up, pendingUpgrades, build, col, potions, scrolls, modBuys, ...oldPlayer } = suspend.player;
     const s = await boot({ 'saoy.suspend': JSON.stringify({ v: 3, savedAt: '', data: { ...suspend, player: oldPlayer } }) });
     expect(s.loadSuspend()?.player).toMatchObject({ up: {}, col: 0, potions: 0 });
+  });
+
+  it('loads a v3 suspend without modBuys as zero', async () => {
+    const { modBuys, ...oldPlayer } = suspend.player;
+    const s = await boot({ 'saoy.suspend': JSON.stringify({ v: 3, savedAt: '', data: { ...suspend, player: oldPlayer } }) });
+    expect(s.loadSuspend()?.player.modBuys).toBe(0);
   });
 
   it('rejects a suspend for a floor that does not exist', async () => {

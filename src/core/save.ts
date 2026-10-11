@@ -51,9 +51,9 @@ const SuspendSchema = z.object({
       mods: z.record(z.string(), z.array(z.enum(ELEMENT_IDS)).max(2)),
       evolved: z.array(z.string()),
     }).default({ arts: [null, null], mods: {}, evolved: [] }),
-    col: z.number().int().min(0).default(0), potions: z.number().int().min(0).default(0), scrolls: z.number().int().min(0).default(0) }),
+    col: z.number().int().min(0).default(0), potions: z.number().int().min(0).default(0), scrolls: z.number().int().min(0).default(0), modBuys: z.number().int().min(0).default(0) }),
   run: z.object({ floor: z.number().int().min(1), kills: z.number().int().min(0), time: z.number().min(0), assisted: z.boolean().default(false),
-    seed: z.number().int(), bosses: z.number().int().min(0).default(0) }),
+    seed: z.number().int(), bosses: z.number().int().min(0).default(0), curse: z.number().int().min(0).default(0) }),
 });
 export type Settings = z.infer<typeof SettingsSchema>;
 export type Lang = Settings['lang'];

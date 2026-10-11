@@ -12,8 +12,9 @@ import { updateGame, updateFx } from '../systems/index.js';
 import { drawWorld } from '../render/world.js';
 import { refreshMenuBg, drawMenuBg, drawIntro, INTRO_TIME } from '../render/menu.js';
 import { initAudio, stopMusic, playMusic, pauseMusic, resumeMusic, SFX } from '../audio/audio.js';
-import { screen, showPicker, renderShop, showStoryLine, confirmDialog, $ } from '../ui/screens.js';
-import { nearMerchant, buy } from '../systems/shop.js';
+import { screen, showPicker, renderShop, renderShrine, showStoryLine, confirmDialog, $ } from '../ui/screens.js';
+import { nearMerchant, buy, price, canBuy } from '../systems/shop.js';
+import { nearShrine, take } from '../systems/shrine.js';
 import { kindOf, actOf } from '../data/run.ts';
 import { STORY } from '../data/story.ts';
 import { meta, saveMeta } from '../core/save.ts';
@@ -62,7 +63,7 @@ export const picking = () => scenes.top === pickScene;
 export function pickUpgrade(i) {
   if (!picking() || !cards[i]) return;
   const follow = applyCard(cards[i], pickKind);
-  if (follow) { cards = follow; showPicker('replace', cards); return; }
+  if (follow) { cards = follow; showPicker(follow[0].kind === 'replace' || follow[0].kind === 'skip' ? 'replace' : 'modart', cards); return; }
   scenes.pop(); // play re-pushes the scene next step while picks remain
 }
 $('upgrade-cards').addEventListener('click', e => {
@@ -81,12 +82,32 @@ export function openShop() { if (playing() && nearMerchant()) scenes.push(shopSc
 export function closeShop() { if (shopping()) scenes.pop(); }
 export function buyItem(id) {
   if (!shopping() || !SHOP[id]) return;
-  renderShop(buy(id) ? tr(`ซื้อ ${SHOP[id].name} แล้ว`, `Bought: ${SHOP[id].name}`) : tr('Gold ไม่พอ หรือพกเต็มแล้ว', "Not enough Gold, or you can't carry more"));
+  const noRoom = id === 'mod' && G.P.col >= price(id) && !canBuy(id);
+  renderShop(buy(id) ? tr(`ซื้อ ${SHOP[id].name} แล้ว`, `Bought: ${SHOP[id].name}`)
+    : noRoom ? tr('ไม่มีท่าไหนใส่ธาตุเพิ่มได้แล้ว', 'None of your Arts has room for another element.')
+    : tr('Gold ไม่พอ หรือพกเต็มแล้ว', "Not enough Gold, or you can't carry more"));
 }
 $('shop-items').addEventListener('click', e => {
   const card = /** @type {HTMLElement | null} */ (/** @type {Element} */ (e.target).closest('[data-buy]'));
   if (card) buyItem(card.dataset.buy);
 });
+
+// Shrine: freezes play like the shop. An offer that needs a choice queues a pick, which opens after leaving.
+const shrineScene = {
+  name: 'shrine', blocksUpdate: true,
+  enter() { releaseAll(); renderShrine(); screen('shrine'); },
+  exit() { screen(null); },
+};
+export const atShrine = () => scenes.top === shrineScene;
+export function openShrine() { if (playing() && nearShrine()) scenes.push(shrineScene); }
+export function closeShrine() { if (atShrine()) scenes.pop(); }
+export function takeOffer(id) { if (atShrine() && take(id)) scenes.pop(); }
+$('shrine-offers').addEventListener('click', e => {
+  const card = /** @type {HTMLElement | null} */ (/** @type {Element} */ (e.target).closest('[data-offer]'));
+  if (card) takeOffer(card.dataset.offer);
+});
+// Interact: the merchant if one is near, else the shrine
+export function interact() { if (nearMerchant()) openShop(); else openShrine(); }
 
 // Story: a floor's beat plays once per save, the first time that floor loads (queued, shown on the next play step)
 const storyQueue = [];
@@ -114,7 +135,7 @@ export function storyNext() {
 }
 export function storySkip() { if (reading()) scenes.pop(); }
 
-const liveRun = () => G.run && !G.run.over && (scenes.top === playScene || scenes.top === pauseScene || scenes.top === pickScene || scenes.top === shopScene || scenes.top === storyScene);
+const liveRun = () => G.run && !G.run.over && (scenes.top === playScene || scenes.top === pauseScene || scenes.top === pickScene || scenes.top === shopScene || scenes.top === shrineScene || scenes.top === storyScene);
 export const playing = () => scenes.top === playScene && !G.run?.over; // in control of a live character
 
 export function newGame() {

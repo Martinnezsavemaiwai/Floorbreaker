@@ -4,17 +4,21 @@ import { SHOP, MERCHANT_REACH, POTION_HEAL } from '../data/shop.ts';
 import { dist } from '../core/math.ts';
 import { emit } from '../core/events.ts';
 import { text, burst } from './fx.js';
+import { freeModSlots } from './build.js';
 
 export const nearMerchant = () => !!G.P && !!G.L?.merchant && dist(G.P, G.L.merchant) < MERCHANT_REACH;
-export const price = id => SHOP[id].price(G.P.scrolls);
-export const canBuy = id => G.P.col >= price(id) && (id !== 'potion' || G.P.potions < SHOP.potion.max);
+// The town merchant sells Potions and Skill Scrolls; the wandering shop adds a chosen element mod
+export const shopItems = () => Object.keys(SHOP).filter(id => id !== 'mod' || G.room?.type === 'shop');
+export const price = id => SHOP[id].price(id === 'mod' ? G.P.modBuys : G.P.scrolls);
+export const canBuy = id => G.P.col >= price(id) && (id !== 'potion' || G.P.potions < SHOP.potion.max) && (id !== 'mod' || freeModSlots() > G.rewards.filter(r => r === 'mod').length) // bought mods wait in G.rewards until the shop closes;
 
 export function buy(id) {
   if (!canBuy(id)) return false;
   const P = G.P;
   P.col -= price(id);
   if (id === 'potion') P.potions++;
-  else { P.scrolls++; P.pendingUpgrades++; } // the play scene opens the picker once the shop closes
+  else if (id === 'pick') { P.scrolls++; P.pendingUpgrades++; } // the play scene opens the picker once the shop closes
+  else { P.modBuys++; G.rewards.push('mod'); }
   emit('bought', id);
   return true;
 }

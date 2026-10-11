@@ -123,3 +123,23 @@ describe('evolution shard (boss reward)', () => {
     expect(G.P!.potions).toBe(SHOP.potion.max); expect(G.P!.col).toBe(100 + SHOP.potion.price());
   });
 });
+
+describe('a chosen element mod (shop / shrine)', () => {
+  beforeEach(() => { startRun(1); enterRoom(1); });
+
+  it('first the element, then the Art; only Arts with room for a mod', () => {
+    G.P!.mods = { blade: ['ember', 'storm'] }; G.rewards = ['mod'];
+    const els = cardsFor('mod');
+    expect(els.map(c => c.kind === 'element' && c.el)).toEqual(['ember', 'storm', 'thorn', 'tide']);
+    const arts = applyCard({ kind: 'element', el: 'tide' }, 'mod')!;
+    expect(arts.map(c => c.kind === 'mod' && c.art)).toEqual(['sonicLeap']); // the sword is full
+    expect(G.rewards).toEqual(['mod']);
+    applyCard(arts[0], 'mod');
+    expect(G.P!.mods.sonicLeap).toEqual(['tide']); expect(G.rewards).toEqual([]);
+  });
+
+  it('with no Art able to take a mod, the pick is a lone skip', () => {
+    G.P!.mods = { blade: ['ember', 'ember'], sonicLeap: ['tide', 'tide'] }; G.rewards = ['mod'];
+    expect(cardsFor('mod')).toEqual([{ kind: 'skip' }]);
+  });
+});

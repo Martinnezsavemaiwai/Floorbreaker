@@ -17,8 +17,11 @@ const MAX_MODS = 2, OFFER = 3, MOD_WEIGHT = 2, STAT_WEIGHT = 1, SHARD_GOLD = 100
 
 export const ownedArts = () => ['blade', ...G.P.skills.filter(Boolean)];
 const mods = art => G.P.mods[art] ?? [];
+export const freeModSlots = () => ownedArts().reduce((n, a) => n + MAX_MODS - mods(a).length, 0);
 export const modCards = () => ownedArts().filter(a => mods(a).length < MAX_MODS)
   .flatMap(art => ELEMENT_IDS.map(el => ({ kind: 'mod', art, el })));
+// A chosen mod: the element first, then an Art that still has room for it
+export const elementCards = () => ELEMENT_IDS.filter(el => modCards().some(c => c.el === el)).map(el => ({ kind: 'element', el }));
 export const statCards = () => Object.keys(UPGRADES).filter(id => (G.P.up[id] ?? 0) < UPGRADES[id].max).map(id => ({ kind: 'stat', id }));
 
 // n distinct cards, weighted, drawn with the seeded rng
@@ -40,10 +43,10 @@ export const evolveCards = () => ownedArts().filter(a => !G.P.evolved.includes(a
 
 export const hasLevelPick = () => !!G.P && G.P.pendingUpgrades > 0 && (modCards().length + statCards().length) > 0;
 export const nextPick = () => (G.rewards.length ? G.rewards[0] : hasLevelPick() ? 'level' : null);
-// An Art reward with nothing to offer (no new Art, every upgrade maxed) shows a lone skip so the reward still drains
+// A reward with nothing to offer (no new Art, every upgrade maxed) shows a lone skip so the reward still drains
 export const cardsFor = kind => {
-  if (kind !== 'art') return kind === 'evolve' ? evolveCards() : rollLevelCards();
-  const cards = rollArtCards();
+  if (kind === 'level') return rollLevelCards();
+  const cards = kind === 'art' ? rollArtCards() : kind === 'mod' ? elementCards() : evolveCards();
   return cards.length ? cards : [{ kind: 'skip' }];
 };
 
@@ -64,7 +67,8 @@ export function applyCard(card, kind) {
   } else if (card.kind === 'replace') {
     delete P.mods[P.skills[card.slot]]; P.evolved = P.evolved.filter(a => a !== P.skills[card.slot]);
     P.skills[card.slot] = card.id; P.skillCd[card.slot] = 0;
-  } else if (card.kind === 'mod') {
+  } else if (card.kind === 'element') return modCards().filter(c => c.el === card.el); // second step: which Art
+  else if (card.kind === 'mod') {
     P.mods[card.art] = [...mods(card.art), card.el];
     if (P.mods[card.art].length >= MAX_MODS) evolve(card.art);
   } else if (card.kind === 'evolve') evolve(card.art);

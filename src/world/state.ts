@@ -5,7 +5,7 @@ import type { MobStats } from '../data/mobs.ts';
 import type { FloorDef, TreeType } from '../data/floors.ts';
 import type { Point, Rect } from '../core/math.ts';
 import type { Layout } from './layout.ts';
-import type { Room, WaveMob } from '../data/run.ts';
+import type { Room, WaveMob, EliteMod, ShrineId } from '../data/run.ts';
 import type { Suspend } from '../core/save.ts';
 import type { ElementId } from '../data/elements.ts';
 
@@ -22,6 +22,7 @@ export interface Player extends Point {
   mods: Record<string, ElementId[]>; evolved: string[]; // element mods per Art id ('blade' = the sword) and evolved Art ids
   stormHits: number; // Art hits counted for the Storm set bonus
   col: number; potions: number; scrolls: number;       // money, potions carried, Skill Scrolls bought (sets their price)
+  modBuys: number; // element mods bought this run (sets their price)
 }
 export interface Mob extends Point {
   sx: number; sy: number; wx: number; wy: number; r: number; hp: number; maxHp: number;
@@ -29,7 +30,7 @@ export interface Mob extends Point {
   wind: number; lunge: number; kx: number; ky: number; summoned: boolean; def: MobStats;
   armorT: number; // > 0 while an armored mob's guard is broken
   burn?: { dps: number; t: number; stacks: number }; poison?: { dps: number; t: number }; slowT?: number; slowK?: number;
-  frozen?: number; tide?: { n: number; t: number }; dotAcc?: number; dotTick?: number; elite?: boolean;
+  frozen?: number; tide?: { n: number; t: number }; dotAcc?: number; dotTick?: number; elite?: boolean; mod?: EliteMod; sinceHit?: number;
   aggro?: boolean; // room mobs chase from anywhere
 }
 export interface Shot extends Point { vx: number; vy: number; r: number; dmg: number; col: string; life: number }
@@ -42,8 +43,8 @@ export interface Boss extends Point {
   frozen?: number; tide?: { n: number; t: number }; dotAcc?: number; dotTick?: number;
 }
 export type Floor = Omit<FloorDef, 'mob' | 'boss' | 'ranged'> & { mob: MobStats; ranged: MobStats; boss: ResolvedBoss };
-export interface Run { floor: number; kills: number; time: number; seed: number; bosses: number; assisted?: boolean; over?: 'dead' | 'win' }
-export interface RoomState extends Room { waves: WaveMob[][]; wave: number; next: number; cleared: boolean }
+export interface Run { curse?: number; floor: number; kills: number; time: number; seed: number; bosses: number; assisted?: boolean; over?: 'dead' | 'win' }
+export interface RoomState extends Room { waves: WaveMob[][]; wave: number; next: number; cleared: boolean; healed?: boolean; shrineUsed?: boolean; offers?: ShrineId[]; challenge?: { left: number; hits: number; spawnT: number; failed?: boolean } }
 export interface Door extends Rect { to: Room | null; armed: boolean } // to = null: the fixed exit (first room, boss, next town)
 
 export interface FloatText extends Point { s: string; col: string; big?: boolean; t: number }
@@ -60,8 +61,8 @@ export const G = {
   doorClosed: false, portal: null as Portal | null,
   floorIdx: 0, F: null as Floor | null, WALLS: [] as Rect[],
   L: null as Layout | null, room: null as RoomState | null, doors: [] as Door[], trees: [] as [number, number, TreeType][], ponds: [] as Rect[],
-  run: null as Run | null,
-  rewards: [] as ('art' | 'evolve')[], // non-level picks waiting for the player (elite Art, boss shard)
+  run: null as Run | null, cursed: false, // cursed: enemies on this floor are stronger (laid by a shrine)
+  rewards: [] as ('art' | 'evolve' | 'mod')[], // non-level picks waiting for the player (elite Art, boss shard, bought mod)
   entry: null as Suspend | null, // snapshot taken as the current floor loaded: what a suspend writes (Continue restarts the floor)
   cam: { x: 0, y: 0 },
   shake: 0, time: 0, introT: 0,

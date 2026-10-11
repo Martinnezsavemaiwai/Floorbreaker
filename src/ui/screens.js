@@ -3,11 +3,12 @@ import { G } from '../world/state.ts';
 import { meta, saveMeta, loadSuspend, takeLegacyNotice } from '../core/save.ts';
 import { on, emit } from '../core/events.ts';
 import { keyLabel } from '../core/input.ts';
-import { FLOOR_COUNT } from '../data/run.ts';
+import { FLOOR_COUNT, SHRINE, ROOM_RULES } from '../data/run.ts';
 import { floorLabel } from '../world/floor.ts';
 import { UPGRADES } from '../data/upgrades.ts';
 import { SHOP } from '../data/shop.ts';
-import { price, canBuy } from '../systems/shop.js';
+import { price, canBuy, shopItems } from '../systems/shop.js';
+import { canTake } from '../systems/shrine.js';
 import { SKILLS, artName } from '../data/skills.ts';
 import { ELEMENTS } from '../data/elements.ts';
 import { awardShards, isUnlocked, unlockSkill } from '../systems/meta.js';
@@ -64,6 +65,7 @@ export function showPauseStats() {
 const PICK_TITLE = {
   level: { th: 'เลเวลอัป', en: 'Level Up' }, art: { th: 'ท่าใหม่', en: 'New Blade Art' },
   evolve: { th: 'เศษกระจกวิวัฒน์', en: 'Evolution Shard' }, replace: { th: 'ช่องเต็มแล้ว', en: 'Slots full' },
+  mod: { th: 'เลือกธาตุ', en: 'Choose an element' }, modart: { th: 'ใส่ให้ท่าไหน', en: 'Which Art gets it?' },
 };
 const name = a => (a === 'blade' ? tr('ฟันปกติ', 'Slash') : artName(a));
 function cardHtml(c, i) {
@@ -74,6 +76,7 @@ function cardHtml(c, i) {
     glass = E.color; title = `${name(c.art)} + ${E.name}`; body = t(E.hit);
     extra = `<span class="pips" aria-hidden="true">${[0, 1].map(k => `<i class="${k < had.length ? 'got' : k === had.length ? 'next' : ''}"></i>`).join('')}</span>`
       + (evolves ? `<span class="price">${tr('วิวัฒน์!', 'Evolves!')}</span>` : '');
+  } else if (c.kind === 'element') { glass = ELEMENTS[c.el].color; title = ELEMENTS[c.el].name; body = t(ELEMENTS[c.el].hit);
   } else if (c.kind === 'stat') {
     const u = UPGRADES[c.id], have = P.up[c.id] ?? 0;
     title = t(u.name); body = t(u.desc);
@@ -90,6 +93,8 @@ export function showPicker(kind, cards) {
     ? tr(`เลเวล ${G.P.lv}! เลือกอัปเกรด 1 อย่าง (กด 1 ถึง ${cards.length} หรือคลิก)`, `Level ${G.P.lv}! Choose an upgrade (press 1 to ${cards.length}, or click).`)
     : kind === 'art' ? (cards.length === 1 && cards[0].kind === 'skip' ? tr('ไม่มีท่าใหม่ให้เลือกแล้ว', 'No new Blade Arts left to pick.') : tr('เลือกท่าใหม่ 1 ท่า', 'Choose a new Blade Art.'))
     : kind === 'evolve' ? tr('เลือกท่าที่จะวิวัฒน์', 'Choose an Art to evolve.')
+    : kind === 'mod' ? tr('เลือกธาตุที่จะใส่', 'Choose the element.')
+    : kind === 'modart' ? tr('เลือกท่าที่จะได้ธาตุนี้', 'Choose the Art that gets it.')
     : tr('ช่องท่าเต็มแล้ว จะแทนท่าไหน', 'Both slots are full. Which Art should it replace?');
   $('upgrade-cards').innerHTML = cards.map(cardHtml).join('');
   screen('upgrade');
@@ -100,13 +105,23 @@ export function showPicker(kind, cards) {
 export function renderShop(status = '') {
   const P = G.P;
   $('shop-col').textContent = tr(`มี ${P.col} Gold`, `${P.col} Gold`) + ` · Potion ${P.potions}/${SHOP.potion.max}`;
-  $('shop-items').innerHTML = Object.entries(SHOP).map(([id, it], i) => {
+  $('shop-items').innerHTML = shopItems().map((id, i) => {
+    const it = SHOP[id];
     const full = id === 'potion' && P.potions >= it.max, ok = canBuy(id), cost = full ? tr('เต็มแล้ว', 'Full') : price(id) + ' Gold';
     return `<button class="card" data-buy="${id}" ${ok ? '' : 'aria-disabled="true"'}
       aria-label="${i + 1}: ${it.name}, ${cost}. ${t(it.desc)}">
       <kbd>${i + 1}</kbd><b>${it.name}</b><span>${t(it.desc)}</span><span class="price">${cost}</span></button>`;
   }).join('');
   $('shop-status').textContent = status;
+}
+
+// Shrine: two offers, each card shows what you get then the price; offers you can't take are disabled
+export function renderShrine() {
+  $('shrine-offers').innerHTML = (G.room?.offers ?? []).map((id, i) => {
+    const o = SHRINE[id], ok = canTake(id);
+    return `<button class="card" data-offer="${id}" ${ok ? '' : 'aria-disabled="true"'} aria-label="${i + 1}: ${t(o.cost)}. ${t(o.gain)}">
+      <kbd>${i + 1}</kbd><b>${t(o.gain)}</b><span>${t(o.cost)}</span></button>`;
+  }).join('');
 }
 
 // Story window: one line at a time, the speaker as the title
@@ -160,7 +175,7 @@ function renderHowTo() {
     [`${k('skill2')} / ` + tr('ปุ่มกลางเมาส์', 'middle click'), tr('Blade Art ช่อง 2 (ได้จากห้อง Elite)', 'Blade Art 2 (from Elite rooms)')],
     [k('skill3'), tr('Blade Art ช่อง 3 (ได้จากห้อง Elite)', 'Blade Art 3 (from Elite rooms)')],
     [k('dodge'), tr('กลิ้งหลบ ตอนกลิ้งจะไม่โดนดาเมจ', 'Dodge roll. Nothing hits you mid-roll.')],
-    [k('potion'), tr('ดื่ม Potion (ซื้อได้ที่ร้านในเมือง)', 'Drink a Potion (sold in town)')], [k('interact'), tr('คุยกับพ่อค้า', 'Talk to the merchant')],
+    [k('potion'), tr('ดื่ม Potion (ซื้อที่ร้านในเมืองหรือพ่อค้าเร่ร่อน)', 'Drink a Potion (sold in town and by wandering merchants)')], [k('interact'), tr('คุยกับพ่อค้า หรือใช้ศาลเจ้า', 'Talk to a merchant or use a shrine')],
     [k('pause'), tr('หยุดเกม', 'Pause')],
     [tr('จอย', 'Gamepad'), tr('สติ๊กซ้ายเดิน สติ๊กขวาเล็ง X ฟัน A กลิ้ง RB/RT/LT Blade Art 1/2/3 LB Potion Y คุย Start หยุดเกม ในเมนูใช้ D-pad เลื่อน A เลือก B ย้อนกลับ',
       'Left stick walks, right stick aims. X attacks, A rolls, RB/RT/LT use Blade Art 1/2/3, LB drinks a Potion, Y talks, Start pauses. In menus: D-pad moves, A selects, B goes back.')],
@@ -206,11 +221,17 @@ on('langChanged', () => {
   else if (current === 'skills') renderSkills();
 });
 on('floorLoaded', i => {
-  const k = G.L.kind, sub = k === 'boss' ? tr('บอส: ', 'Boss: ') + G.F.boss.name
+  const k = G.L.kind, type = G.room?.type, sub = k === 'boss' ? tr('บอส: ', 'Boss: ') + G.F.boss.name
     : k === 'town' ? tr('ฟื้น HP เต็มแล้ว พ่อค้าอยู่ข้างน้ำพุ', 'Fully healed. The merchant is by the fountain.')
+    : type === 'spring' ? tr('เดินไปที่น้ำพุเพื่อฟื้น HP ครึ่งหลอด', 'Walk to the fountain to heal half your HP.')
+    : type === 'challenge' ? tr(`รอด ${ROOM_RULES.challengeTime} วินาที โดนตีไม่เกิน ${ROOM_RULES.challengeHits} ครั้ง ได้รางวัลสองเท่า`, `Survive ${ROOM_RULES.challengeTime} s and take ${ROOM_RULES.challengeHits} hits or fewer for a double reward.`)
+    : type === 'shop' ? tr(`มีพ่อค้าเร่อยู่กลางห้อง กด ${keyLabel('interact')} เพื่อซื้อของ`, `A wandering merchant stands in the middle. Press ${keyLabel('interact')} to shop.`)
+    : type === 'shrine' ? tr(`ศาลเจ้าอยู่กลางห้อง กด ${keyLabel('interact')} เพื่อดูข้อเสนอ`, `A shrine stands in the middle. Press ${keyLabel('interact')} to see its offers.`)
+    : type === 'elite' ? tr('ล้ม Elite แล้วเลือกท่าใหม่', 'Beat the Elite to pick a new Blade Art.')
     : tr('เคลียร์ห้องเพื่อเปิดประตู', 'Clear the room to open the doors.');
   toast(`${floorLabel(i)} · ${G.F.town}`, sub);
 });
+on('challengeOver', ok => toast(ok ? tr('ผ่านการท้าทาย', 'Challenge passed') : tr('ไม่ผ่านการท้าทาย', 'Challenge failed'), ok ? tr('ได้รางวัลสองเท่า', 'Double reward.') : tr(`โดนตีเกิน ${ROOM_RULES.challengeHits} ครั้ง ไม่ได้รางวัล`, `More than ${ROOM_RULES.challengeHits} hits. No reward.`)));
 on('portalOpen', () => toast(tr(`ผ่าน ${floorLabel(G.floorIdx)} แล้ว`, `${floorLabel(G.floorIdx)} Cleared`), tr('เดินเข้าประตูสีฟ้าเพื่อขึ้นชั้นต่อไป', 'Step into the blue portal to go up.'), 4.5));
 on('hint', ({ title, sub }) => toast(title, sub, 4.5));
 

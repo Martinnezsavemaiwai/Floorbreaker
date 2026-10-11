@@ -1,13 +1,14 @@
 // Drawing the live world: terrain, telegraphs, y-sorted actors, effects, fog and screen tint.
 import { G, rage } from '../world/state.ts';
 import { tr, t } from '../core/i18n.ts';
-import { kindOf } from '../data/run.ts';
+import { kindOf, ELITE_MOD_NAME } from '../data/run.ts';
 import { W, H } from '../world/constants.ts';
 import { PLAYER } from '../data/player.ts';
 import { MOVES, BOSS_RULES } from '../data/bosses.ts';
 import { SKILLS } from '../data/skills.ts';
 import { keyLabel } from '../core/input.ts';
 import { nearMerchant } from '../systems/shop.js';
+import { nearShrine } from '../systems/shrine.js';
 import { IMG } from '../core/assets.ts';
 import { settings } from '../core/save.ts';
 import { clamp } from '../core/math.ts';
@@ -55,6 +56,10 @@ function drawMob(m) {
     ctx.fillStyle = '#ff4d4d'; ctx.fillRect(m.x - 18, m.y - 44, 36 * m.hp / m.maxHp, 5);
   }
   if (m.elite) { ctx.fillStyle = '#a688ff'; ctx.fillRect(m.x - 18, m.y - 50, 36, 3); }
+  if (m.elite && m.mod) {
+    ctx.save(); ctx.textAlign = 'center'; ctx.font = `700 12px ${FT}`; ctx.lineJoin = 'round'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.85)';
+    const s = t(ELITE_MOD_NAME[m.mod]); ctx.strokeText(s, m.x, m.y - 56); ctx.fillStyle = '#c9b6ff'; ctx.fillText(s, m.x, m.y - 56); ctx.restore();
+  }
 }
 
 function drawBoss() {
@@ -244,10 +249,26 @@ function drawDoor() {
 const DOOR_LOOK = {
   gold: ['#ffd35a', { th: 'Gold', en: 'Gold' }], xp: ['#5fc3ff', { th: 'XP', en: 'XP' }], potion: ['#7dff8a', { th: 'Potion', en: 'Potion' }],
 };
+// Shrine altar: stone plinth with a violet crystal; dim once used, key prompt only when close
+function drawShrine() {
+  const s = G.L.shrine, used = G.room?.shrineUsed, glow = used ? 0.15 : 0.6 + 0.25 * Math.sin(G.time * 3);
+  shadow(s.x, s.y, 22);
+  ctx.fillStyle = '#4a4d5c'; ctx.fillRect(s.x - 22, s.y - 18, 44, 22); ctx.fillStyle = '#5f6375'; ctx.fillRect(s.x - 16, s.y - 30, 32, 14);
+  ctx.save(); ctx.globalAlpha = glow; ctx.shadowColor = '#a688ff'; ctx.shadowBlur = used ? 0 : 18; ctx.fillStyle = '#c9b6ff';
+  ctx.beginPath(); ctx.moveTo(s.x, s.y - 62); ctx.lineTo(s.x + 9, s.y - 44); ctx.lineTo(s.x, s.y - 30); ctx.lineTo(s.x - 9, s.y - 44); ctx.closePath(); ctx.fill(); ctx.restore();
+  if (used) return;
+  ctx.textAlign = 'center'; ctx.font = `700 13px ${FT}`; ctx.lineJoin = 'round'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.8)';
+  const name = tr('ศาลเจ้า', 'Shrine'), tag = nearShrine() ? `[${keyLabel('interact')}] ${name}` : name;
+  ctx.strokeText(tag, s.x, s.y - 72); ctx.fillStyle = nearShrine() ? '#e7dcff' : '#fff'; ctx.fillText(tag, s.x, s.y - 72);
+}
 function doorLook(d) {
   const i = G.floorIdx + 1;
   if (!d.to) return kindOf(i) === 'boss' ? ['#ff6b5f', { th: 'บอส', en: 'Boss' }] : ['#f4ecd8', { th: 'ไปต่อ', en: 'Onward' }];
   if (d.to.type === 'elite') return ['#a688ff', { th: 'Elite: ท่าใหม่', en: 'Elite: new Art' }];
+  if (d.to.type === 'spring') return ['#7dff8a', { th: 'น้ำพุ', en: 'Spring' }];
+  if (d.to.type === 'shrine') return ['#c9b6ff', { th: 'ศาลเจ้า', en: 'Shrine' }];
+  if (d.to.type === 'shop') return ['#ffd35a', { th: 'ร้านเร่', en: 'Wandering shop' }];
+  if (d.to.type === 'challenge') { const r = DOOR_LOOK[d.to.reward][1]; return ['#ff8a5f', { th: `ท้าทาย: ${r.th} ×2`, en: `Challenge: ${r.en} ×2` }]; }
   return DOOR_LOOK[d.to.reward] ?? ['#f4ecd8', { th: 'ห้องถัดไป', en: 'Next room' }];
 }
 function drawDoors() {
@@ -337,6 +358,7 @@ export function drawWorld() {
   const actors = G.mobs.filter(m => m.hp > 0).map(m => ({ y: m.y, draw: () => drawMob(m) }));
   actors.push({ y: P.y, draw: drawPlayer });
   if (G.L.merchant) actors.push({ y: G.L.merchant.y, draw: drawMerchant });
+  if (G.L.shrine) actors.push({ y: G.L.shrine.y, draw: drawShrine });
   if (G.boss.hp > 0) actors.push({ y: G.boss.y, draw: drawBoss });
   for (const a of actors.sort((a, b) => a.y - b.y)) a.draw();
   drawShots();

@@ -19,8 +19,7 @@ import { PAD, PAD_BUTTONS } from './data/controls.ts';
 import { on } from './core/events.ts';
 import { settings } from './core/save.ts';
 import { keys, mouse, actionForKey, actionForButton, releaseAll, keyLabel } from './core/input.ts';
-import { drinkPotion } from './systems/shop.js';
-import { SHOP } from './data/shop.ts';
+import { drinkPotion, shopItems } from './systems/shop.js';
 import { attack, skill, roll, hurtPlayer, hurtEnemy, startBossMove, updateGame, updateFx } from './systems/index.js';
 import { drawWorld } from './render/world.js';
 import { cv } from './render/canvas.js';
@@ -28,7 +27,7 @@ import { toggleMute, initAudio, playMusic } from './audio/audio.js';
 import { $, current, closeSub, inSubScreen, openSub, toast, bindActions, dialogOpen } from './ui/screens.js';
 import { resetKeys, downloadSave, pickImport } from './ui/settings.js';
 import { titleScene, playing, newGame, pauseGame, resumeGame, startIntro, continueRun, goHome, saveAndQuit, suspendRun, picking, pickUpgrade,
-  shopping, openShop, closeShop, buyItem, reading, storyNext, storySkip } from './scenes/index.js';
+  shopping, interact, closeShop, atShrine, closeShrine, takeOffer, buyItem, reading, storyNext, storySkip } from './scenes/index.js';
 
 function toggleFullscreen() {
   if (document.fullscreenElement) document.exitFullscreen();
@@ -40,11 +39,11 @@ bindActions({
   start: () => ready.then(startIntro), continue: () => ready.then(continueRun),
   howto: () => openSub('howto'), skills: () => openSub('skills'), settings: () => openSub('settings'), back: closeSub,
   resume: resumeGame, saveQuit: saveAndQuit, home: goHome, fullscreen: toggleFullscreen,
-  resetKeys, exportSave: downloadSave, importSave: pickImport, closeShop, storyNext, storySkip,
+  resetKeys, exportSave: downloadSave, importSave: pickImport, closeShop, closeShrine, storyNext, storySkip,
 });
 
 // Keyboard: physical keys -> actions (data/controls.ts + rebinding). Gameplay keys only count while a live character is in control.
-const GAME_ACTIONS = { attack, skill: () => skill(0), skill2: () => skill(1), skill3: () => skill(2), dodge: roll, mute, potion: drinkPotion, interact: openShop };
+const GAME_ACTIONS = { attack, skill: () => skill(0), skill2: () => skill(1), skill3: () => skill(2), dodge: roll, mute, potion: drinkPotion, interact };
 addEventListener('keydown', e => {
   if (dialogOpen()) return; // the confirm <dialog> handles its own keys (Esc = cancel)
   if (picking() && /^(Digit|Numpad)[1-9]$/.test(e.code)) return pickUpgrade(+e.code.at(-1) - 1);
@@ -56,8 +55,13 @@ addEventListener('keydown', e => {
     return;
   }
   if (shopping()) { // number keys buy, Esc / interact leaves
-    if (/^(Digit|Numpad)[1-9]$/.test(e.code)) buyItem(Object.keys(SHOP)[+e.code.at(-1) - 1]);
+    if (/^(Digit|Numpad)[1-9]$/.test(e.code)) buyItem(shopItems()[+e.code.at(-1) - 1]);
     else if ((action === 'pause' || action === 'interact') && !e.repeat) closeShop();
+    return;
+  }
+  if (atShrine()) { // number keys take an offer, Esc / interact walks past
+    if (/^(Digit|Numpad)[1-9]$/.test(e.code)) takeOffer(G.room?.offers?.[+e.code.at(-1) - 1]);
+    else if ((action === 'pause' || action === 'interact') && !e.repeat) closeShrine();
     return;
   }
   if (action === 'fullscreen' && !e.repeat) return toggleFullscreen();
@@ -73,6 +77,7 @@ function back() {
   if (playing()) pauseGame();
   else if (reading()) storySkip();
   else if (shopping()) closeShop();
+  else if (atShrine()) closeShrine();
   else if (current === 'pause') resumeGame();
   else if (inSubScreen()) closeSub();
   else if (current === 'result') goHome();

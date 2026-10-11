@@ -305,6 +305,31 @@ describe('col and shop', () => {
     expect(G.P!.col).toBe(1000 - 3 * 40 - p1);
   });
 
+  it('the wandering shop sells a chosen mod for 90 Gold, then 130; the town does not sell it', async () => {
+    const { buy, price, shopItems, canBuy } = await import('../src/systems/shop.js');
+    startRun(1);
+    expect(shopItems()).not.toContain('mod');
+    loadFloor(2, { type: 'shop', reward: null });
+    expect(shopItems()).toContain('mod');
+    G.P!.col = 1000;
+    expect(price('mod')).toBe(90);
+    expect(buy('mod')).toBe(true);
+    expect(G.rewards).toEqual(['mod']); expect(price('mod')).toBe(130); expect(G.P!.col).toBe(910);
+    G.P!.mods = { blade: ['ember', 'ember'], sonicLeap: ['tide', 'tide'] };
+    expect(canBuy('mod')).toBe(false); // nothing could take it
+  });
+
+  it('a mod is refused once the free slots are all spoken for by queued mods', async () => {
+    const { buy, canBuy } = await import('../src/systems/shop.js');
+    loadFloor(2, { type: 'shop', reward: null });
+    G.P!.skills = [null, null, null]; G.P!.mods = { blade: ['ember'] }; G.P!.col = 1000;
+    expect(buy('mod')).toBe(true);
+    const gold = G.P!.col;
+    expect(canBuy('mod')).toBe(false);
+    expect(buy('mod')).toBe(false);
+    expect(G.P!.col).toBe(gold); expect(G.rewards).toEqual(['mod']);
+  });
+
   it('a potion heals half of max HP and is used up', async () => {
     const { drinkPotion } = await import('../src/systems/shop.js');
     G.P!.potions = 1; G.P!.hp = 10;

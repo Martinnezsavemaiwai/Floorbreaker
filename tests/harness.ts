@@ -97,7 +97,14 @@ export function createBot() {
       if (dist(P, L.merchant) > 40) return walkTo(L.merchant.x, L.merchant.y + 30);
       buy('potion'); return;
     }
-    if (G.doors.length) { const d = G.doors[0]; return walkTo(d.x + d.w / 2, d.y + d.h / 2); }
+    const R = G.room;
+    if (R?.type === 'spring' && !R.healed && L.fountain) return walkTo(L.fountain.x, L.fountain.y + 70); // drink first
+    if (R?.type === 'shop' && L.merchant && P.col >= 40 && P.potions < 3) { // a Potion if affordable
+      if (dist(P, L.merchant) > 40) return walkTo(L.merchant.x, L.merchant.y + 30);
+      buy('potion'); return;
+    }
+    // shrines: the bot walks past (offers have prices the scripted player can't weigh)
+    if (G.doors.length) { const d = G.doors.find(d => d.armed) ?? G.doors[0]; return walkTo(d.x + d.w / 2, d.y + d.h / 2); } // an unarmed door only works after you step out of it
     if (L.kind === 'room') {
       const tg = mobs.filter(m => m.hp > 0).sort((a, b) => dist(P, a) - dist(P, b))[0];
       return tg ? fight(tg) : walkTo(L.w / 2, L.h / 2);

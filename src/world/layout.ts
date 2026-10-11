@@ -7,7 +7,7 @@ export interface Layout {
   kind: FloorKind; w: number; h: number;
   townX: number;   // x < townX is the safe zone (HP regen, mobs stay out): the whole town, nowhere else
   roomX: number;   // x > roomX is the boss room (the boss wakes past roomX + 60); = w on floors without one
-  gate: Rect[]; door: Rect | null; fountain: Point | null; merchant: Point | null;
+  gate: Rect[]; door: Rect | null; fountain: Point | null; merchant: Point | null; shrine?: Point;
   torches: [number, number][]; start: Point; bossAt: Point | null;
 }
 

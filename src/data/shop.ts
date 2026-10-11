@@ -7,6 +7,8 @@ export const SHOP = {
   potion: { name: 'Healing Potion', desc: { th: 'ฟื้น HP ครึ่งหลอด ใช้ที่ไหนก็ได้ พกได้ 3 ขวด', en: 'Heals half your HP. Works anywhere. Carry up to 3.' }, price: () => 40, max: 3 },
   // an extra level-up pick; each one costs more than the last
   pick: { name: 'Skill Scroll', desc: { th: 'ได้เลือกอัปเกรดเพิ่มอีก 1 ครั้ง', en: 'One extra upgrade pick.' }, price: (bought: number) => 150 + 100 * bought, max: Infinity },
+  // an element mod of your choice (wandering shop only); each one costs more than the last
+  mod: { name: 'Element Mod', desc: { th: 'เลือกธาตุแล้วเลือกท่าที่จะใส่เอง', en: 'Choose an element, then the Art it goes on.' }, price: (bought: number) => 90 + 40 * bought, max: Infinity },
 } satisfies Record<string, { name: string; desc: Text; price: (bought: number) => number; max: number }>;
 export type ShopItem = keyof typeof SHOP;
 export const POTION_HEAL = 0.5; // fraction of max HP

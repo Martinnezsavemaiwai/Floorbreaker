@@ -3,6 +3,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { G, startRun, frame } from './harness.ts';
 import { loadFloor } from '../src/world/floor.ts';
 import { hitWall } from '../src/world/physics.ts';
+import { hurtEnemy, hurtPlayer } from '../src/systems/combat.js';
+import { MOBS } from '../src/data/mobs.ts';
 import { rewardValue, mobScale } from '../src/data/run.ts';
 
 const frames = (n: number) => { for (let i = 0; i < n; i++) frame(); };
@@ -111,6 +113,109 @@ describe('an elite room', () => {
     expect(G.P!.skills[1]).not.toBeNull(); // the harness resolves G.rewards right away, like the bots
     expect(G.rewards).toEqual([]);
     expect(G.P!.col).toBe(0);
+    expect(G.doors.length).toBeGreaterThan(0);
+  });
+});
+
+describe('elite modifiers', () => {
+  const spawnElite = (mod: string) => {
+    startRun(1); loadFloor(2, { type: 'elite', reward: null });
+    G.room!.waves = [[{ id: 'frenzyBoar', n: 1, elite: true, mod } as any]];
+    frames(60);
+    return G.mobs.find(m => m.elite)!;
+  };
+
+  it('fast: 40% faster than the plain elite', () => {
+    const e = spawnElite('fast');
+    expect(e.def.speed).toBe(Math.round(MOBS.frenzyBoar.speed * 1.4)); // floor scaling leaves speed alone
+  });
+
+  it('shield: guard up, normal hits take a quarter until a heavy hit breaks it', () => {
+    const e = spawnElite('shield'), hp = e.hp;
+    hurtEnemy(e, 40, false); expect(hp - e.hp).toBe(10);
+    expect(e.def.knockback.light).toBe(0);
+    const hp2 = e.hp; hurtEnemy(e, 40, true); expect(hp2 - e.hp).toBe(40); // heavy breaks the guard: full damage
+  });
+
+  it('split: dies into 2 small copies with 30% of its max HP each, which must die too', () => {
+    const e = spawnElite('split'), max = e.maxHp;
+    hurtEnemy(e, e.hp + 1, true);
+    const kids = G.mobs.filter(m => m.hp > 0);
+    expect(kids).toHaveLength(2);
+    for (const k of kids) { expect(k.maxHp).toBe(Math.round(max * 0.3)); expect(k.elite).toBe(false); }
+    expect(G.room!.cleared).toBe(false);
+  });
+
+  it('split: copies of an elite killed against a wall are not inside it', () => {
+    const e = spawnElite('split'), w = G.WALLS[0];
+    e.x = w.x + w.w + e.r + 1; e.y = w.y + w.h / 2; // flush against the wall's right face, so the -30 copy would sit inside
+    hurtEnemy(e, e.hp + 1, true);
+    const kids = G.mobs.filter(m => m.hp > 0);
+    expect(kids).toHaveLength(2);
+    for (const k of kids) expect(hitWall(k)).toBe(false);
+  });
+
+  it('regen: heals 3%/s of max HP after 2 s without a hit', () => {
+    const e = spawnElite('regen'); G.P!.x = 60; G.P!.y = 60; // keep away from it
+    e.hp = Math.round(e.maxHp / 2); e.sinceHit = 0;
+    const low = e.hp; frames(60); expect(e.hp).toBe(low);      // within 2 s: no regen
+    frames(120); expect(e.hp).toBeGreaterThan(low);              // after: heals
+  });
+});
+
+describe('a spring room', () => {
+  beforeEach(() => { startRun(1); loadFloor(2, { type: 'spring', reward: null }); });
+
+  it('has no enemies and open doors from the start', () => {
+    frames(60);
+    expect(G.mobs.filter(m => m.hp > 0)).toHaveLength(0);
+    expect(G.doors.length).toBeGreaterThan(0);
+  });
+
+  it('walking to the fountain heals 50% of max HP once', () => {
+    G.P!.hp = 10;
+    G.P!.x = 600; G.P!.y = 480; frame();
+    expect(G.P!.hp).toBe(10 + Math.round(G.P!.maxHp * 0.5));
+    G.P!.hp = 10; frame();
+    expect(G.P!.hp).toBe(10); // only once
+  });
+
+  it('the fountain is solid', () => {
+    expect(hitWall({ x: 600, y: 400, r: 14 })).toBe(true);
+  });
+});
+
+describe('a challenge room', () => {
+  beforeEach(() => { startRun(1); loadFloor(2, { type: 'challenge', reward: 'gold' }); });
+
+  it('keeps sending waves for 30 s, then clears the leftovers and pays the reward twice with <= 3 hits', () => {
+    G.P!.inv = 999; // unhurt for the whole test
+    frames(60 * 10);
+    expect(G.mobs.some(m => m.hp > 0)).toBe(true);
+    for (const m of G.mobs) { m.hp = 0; m.dead = Infinity; }
+    frames(60 * 21);
+    expect(G.room!.cleared).toBe(true);
+    expect(G.mobs.filter(m => m.hp > 0)).toHaveLength(0);
+    expect(G.P!.col).toBe(2 * rewardValue('gold', 0));
+    expect(G.doors.length).toBeGreaterThan(0);
+  });
+
+  it('more than 3 hits: no reward, doors still open', () => {
+    for (let i = 0; i < 4; i++) { G.P!.inv = 0; hurtPlayer(1); }
+    expect(G.room!.challenge!.hits).toBe(4);
+    G.P!.inv = 999; frames(60 * 31);
+    expect(G.room!.cleared).toBe(true);
+    expect(G.P!.col).toBe(0);
+    expect(G.doors.length).toBeGreaterThan(0);
+  });
+});
+
+describe('a wandering shop room', () => {
+  beforeEach(() => { startRun(1); loadFloor(2, { type: 'shop', reward: null }); });
+  it('has a merchant at the room centre, no enemies and open doors', () => {
+    frames(30);
+    expect(G.L!.merchant).toEqual({ x: 600, y: 400 });
+    expect(G.mobs.filter(m => m.hp > 0)).toHaveLength(0);
     expect(G.doors.length).toBeGreaterThan(0);
   });
 });

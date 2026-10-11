@@ -6,6 +6,7 @@ import { makeRng } from '../core/rng.ts';
 import { FLOORS, type TreeType } from './floors.ts';
 import type { MobId } from './mobs.ts';
 import type { Rect } from '../core/math.ts';
+import type { Text } from '../core/i18n.ts';
 
 export const FLOOR_COUNT = 20, ACT_LEN = 5;
 export type FloorKind = 'town' | 'room' | 'boss';
@@ -23,7 +24,25 @@ export interface Room { type: RoomType; reward: Reward | null }
 
 export const ROOM_WEIGHTS: Record<RoomType, number> = { battle: 35, elite: 20, shop: 15, shrine: 12, challenge: 10, spring: 8 };
 // Room types this build can actually run; later rounds add to it
-export const AVAILABLE_ROOMS: RoomType[] = ['battle', 'elite'];
+export const AVAILABLE_ROOMS: RoomType[] = ['battle', 'elite', 'spring', 'challenge', 'shop', 'shrine'];
+export const SHRINE_IDS = ['blood', 'gold', 'curse', 'potion'] as const;
+export type ShrineId = (typeof SHRINE_IDS)[number];
+export const SHRINE_RULES = { bloodHp: 0.15, goldCost: 120, curseFloors: 2, curseMult: 1.25, curseGold: 150, potionMaxHp: 10, reach: 70 };
+// What each offer costs and gives (shown on the shrine's cards)
+export const SHRINE: Record<ShrineId, { cost: Text; gain: Text }> = {
+  blood: { cost: { th: 'เสีย HP สูงสุด 15%', en: 'Lose 15% max HP' }, gain: { th: 'ได้ mod ธาตุที่เลือกเอง', en: 'Gain an element mod of your choice' } },
+  gold: { cost: { th: 'จ่าย 120 Gold', en: 'Pay 120 Gold' }, gain: { th: 'วิวัฒน์ท่าที่เลือกทันที', en: 'Evolve an Art of your choice now' } },
+  curse: { cost: { th: 'ศัตรูแรงขึ้น 25% ใน 2 ชั้นถัดไปที่มีศัตรู', en: 'Enemies +25% for the next 2 floors with enemies' }, gain: { th: 'ได้ 150 Gold และ Potion 1 ขวด', en: 'Gain 150 Gold and a Potion' } },
+  potion: { cost: { th: 'เสีย Potion 1 ขวด', en: 'Give up a Potion' }, gain: { th: 'ฟื้น HP เต็ม และ HP สูงสุด +10', en: 'Full heal and +10 max HP' } },
+};
+export function rollShrine(seed: number, i: number): ShrineId[] {
+  const r = makeRng(seed * 23 + i * 31), left = [...SHRINE_IDS], out: ShrineId[] = [];
+  while (out.length < 2) out.push(left.splice(Math.floor(r() * left.length), 1)[0]);
+  return out;
+}
+// The room centre every preset keeps clear: the spring's fountain, the shop's merchant and the shrine stand here
+export const ROOM_POINT = { x: 600, y: 400 };
+export const ROOM_RULES = { springHeal: 0.5, springReach: 110, challengeTime: 30, challengeHits: 3, challengeEvery: 6 };
 const HAS_REWARD: RoomType[] = ['battle', 'challenge']; // rooms whose door names a reward
 
 export const rewardValue = (r: Reward, act: number) => (r === 'gold' ? 40 + 30 * act : r === 'xp' ? 120 + 80 * act : 1);
@@ -48,12 +67,20 @@ export function rollDoors(seed: number, from: number, available: readonly RoomTy
   return out;
 }
 
-export type WaveMob = { id: MobId; n: number; elite?: boolean };
+export type WaveMob = { id: MobId; n: number; elite?: boolean; mod?: EliteMod };
+// One modifier per elite, from the run seed: a guard to break, speed, splitting on death, or regeneration
+export const ELITE_MODS = ['shield', 'fast', 'split', 'regen'] as const;
+export type EliteMod = (typeof ELITE_MODS)[number];
+export const ELITE_MOD_NAME: Record<EliteMod, Text> = {
+  shield: { th: 'มีโล่', en: 'Shielded' }, fast: { th: 'ว่องไว', en: 'Swift' },
+  split: { th: 'แตกตัว', en: 'Splitting' }, regen: { th: 'ฟื้นเลือด', en: 'Regenerating' },
+};
+export const ELITE_RULES = { fast: 1.4, splitHp: 0.3, splitScale: 0.75, regen: 0.03, regenDelay: 2, shieldRegen: 3 };
 // Elite room: the act's melee mob as an elite (x4 HP, x1.5 damage, bigger) with 3 of the same as escorts
 export const ELITE = { hp: 4, dmg: 1.5, radius: 1.3, scale: 1.4 };
-export const planElite = (_seed: number, i: number): WaveMob[][] => {
-  const F = FLOORS[actOf(i)];
-  return [[{ id: F.mob, n: 1, elite: true }, { id: F.mob, n: 3 }]];
+export const planElite = (seed: number, i: number): WaveMob[][] => {
+  const F = FLOORS[actOf(i)], mod = ELITE_MODS[Math.floor(makeRng(seed * 19 + i * 3)() * ELITE_MODS.length)];
+  return [[{ id: F.mob, n: 1, elite: true, mod }, { id: F.mob, n: 3 }]];
 };
 // What a room on floor i spawns, wave by wave: mostly the act's melee mob, its ranged mob, and one swarm/armored
 // group from the act's extras in the last wave

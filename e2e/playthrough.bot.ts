@@ -32,6 +32,7 @@ const BOT = `(() => {
     if (visible('story')) { note('story ' + document.getElementById('story-who').textContent); tap('Enter'); return true; }
     if (visible('upgrade')) { note('picker'); tap(document.getElementById('upgrade-cards').children.length < 3 ? 'Digit1' : 'Digit' + (1 + (frames % 3))); return true; }
     if (visible('shop')) { note('shop'); tap('Digit1'); tap('Digit2'); tap('Escape'); return true; }
+    if (visible('shrine')) { note('shrine (unexpected)'); tap('Escape'); return true; }
     if (visible('pause')) { note('paused (unexpected)'); tap('Escape'); return true; }
     return false;
   }
@@ -54,7 +55,14 @@ const BOT = `(() => {
       if (dist(P, L.merchant) > 40) return walkTo(L.merchant.x, L.merchant.y + 30);
       stop(); tap('KeyE'); return;
     }
-    if (s.doors.length) { const d = s.doors[0]; return walkTo(d.x + d.w / 2, d.y + d.h / 2); }
+    const R = s.room;
+    if (R && R.type === 'spring' && !R.healed && L.fountain) return walkTo(L.fountain.x, L.fountain.y + 70); // drink first
+    if (R && R.type === 'shop' && L.merchant && P.col >= 40 && P.potions < 3) { // the shop overlay above does the buying
+      if (dist(P, L.merchant) > 40) return walkTo(L.merchant.x, L.merchant.y + 30);
+      stop(); tap('KeyE'); return;
+    }
+    // shrines: walk past
+    if (s.doors.length) { const d = s.doors.find(x => x.armed) || s.doors[0]; return walkTo(d.x + d.w / 2, d.y + d.h / 2); }
     if (L.kind === 'room') {
       const tg = mobs.filter(m => m.hp > 0).sort((a, b) => dist(P, a) - dist(P, b))[0];
       return tg ? fight(tg) : walkTo(L.w / 2, L.h / 2);

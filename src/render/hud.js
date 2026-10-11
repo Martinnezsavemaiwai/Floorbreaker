@@ -3,7 +3,7 @@ import { G, rage } from '../world/state.ts';
 import { tr } from '../core/i18n.ts';
 import { W, H } from '../world/constants.ts';
 import { floorLabel } from '../world/floor.ts';
-import { actOf } from '../data/run.ts';
+import { actOf, ROOM_RULES } from '../data/run.ts';
 import { PLAYER } from '../data/player.ts';
 import { SKILLS } from '../data/skills.ts';
 import { on } from '../core/events.ts';
@@ -55,7 +55,7 @@ function drawPlayerPanel() {
   ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.fillRect(78, 59, 240, 3);
   ctx.fillStyle = '#5fc3ff'; ctx.fillRect(78, 59, 240 * P.xp / PLAYER.xpToNext(P.lv), 3);
   const L = G.L, where = L.kind === 'town' ? ['SAFE ZONE · ' + tr('HP ฟื้นฟู', 'HP regen'), '#9fe89f'] : L.kind === 'boss' ? ['BOSS', '#ff8a7a'] : ['', '#cfd8e6'];
-  ctx.textAlign = 'left'; label([floorLabel(G.floorIdx), F.town, where[0]].filter(Boolean).join(' · '), 22, 92, where[1], `600 13px ${FT}`);
+  ctx.textAlign = 'left'; label([floorLabel(G.floorIdx), F.town, where[0], G.cursed && tr('คำสาป', 'Cursed')].filter(Boolean).join(' · '), 22, 92, G.cursed ? '#c9b6ff' : where[1], `600 13px ${FT}`);
   label(`${P.col} Gold`, 22, 110, '#ffe14d', `700 13px ${FN}`);
 }
 
@@ -163,7 +163,14 @@ function drawMinimap() {
   ctx.textAlign = 'left'; ctx.font = `600 11px ${FT}`; ctx.fillStyle = '#e8eef7'; ctx.fillText(`${floorLabel(G.floorIdx)} · ${F.town}`, x, y + h + 16);
 }
 
+// Challenge room: seconds left and hits taken, top centre (red once the hit budget is gone)
+function drawChallenge() {
+  const C = G.room?.challenge;
+  if (!C || G.room.cleared) return;
+  const over = C.hits > ROOM_RULES.challengeHits, s = `${Math.max(0, C.left).toFixed(1)} · ` + tr(`โดน ${C.hits}/${ROOM_RULES.challengeHits}`, `Hits ${C.hits}/${ROOM_RULES.challengeHits}`);
+  ctx.textAlign = 'center'; label(s, W / 2, 30, over ? '#ff6b5f' : '#ffd35a', `800 18px ${FN}`);
+}
 export function drawHud() {
   if (G.run.over) return; // the death/clear screen takes over; a stale HP bar behind it only confuses
-  drawPlayerPanel(); drawBossBar(); drawSkillSlots(); drawMinimap();
+  drawPlayerPanel(); drawBossBar(); drawSkillSlots(); drawMinimap(); drawChallenge();
 }
