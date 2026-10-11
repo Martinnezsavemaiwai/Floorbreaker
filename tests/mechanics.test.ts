@@ -134,6 +134,20 @@ describe('clock', () => {
 });
 
 describe('assist mode and suspend', () => {
+  it('the build survives suspend and resume; unknown Art ids are dropped', async () => {
+    const { snapshotRun, resumeRun } = await import('../src/world/floor.ts');
+    quietField();
+    G.P!.skills[1] = 'vorpal'; G.P!.mods = { blade: ['ember'], vorpal: ['tide'] }; G.P!.evolved = [];
+    const snap = snapshotRun();
+    startRun(2); resumeRun(snap);
+    expect(G.P!.skills).toEqual(['sonicLeap', 'vorpal', null]);
+    expect(G.P!.mods).toEqual({ blade: ['ember'], vorpal: ['tide'] });
+    const odd = { ...snap, player: { ...snap.player, build: { arts: ['nope', 'sonicLeap'] as [string, string], mods: { nope: ['ember'] }, evolved: ['nope'] } } };
+    startRun(3); resumeRun(odd as any);
+    expect(G.P!.skills).toEqual(['sonicLeap', null, null]);
+    expect(G.P!.mods).toEqual({}); expect(G.P!.evolved).toEqual([]);
+  });
+
   it('assist damage scales hits taken and marks the run as assisted', async () => {
     const { settings } = await import('../src/core/save.ts');
     quietField();
@@ -199,18 +213,14 @@ describe('assist mode and suspend', () => {
 describe('upgrades', () => {
   beforeEach(quietField);
 
-  it('each level-up earns one pick, offered as 3 different non-maxed upgrades', async () => {
-    const { rollOffer, hasPendingUpgrade } = await import('../src/systems/upgrades.js');
+  it('each level-up earns one pick; stat cards never offer a maxed upgrade', async () => {
+    const { statCards, hasLevelPick } = await import('../src/systems/build.js');
     gainXp(PLAYER.xpToNext(1));
     expect(G.P!.pendingUpgrades).toBe(1);
-    expect(hasPendingUpgrade()).toBe(true);
-    G.P!.up = { keenEdge: 5, vitality: 5 }; // maxed: never offered
-    for (let i = 0; i < 20; i++) {
-      const offer = rollOffer();
-      expect(new Set(offer).size).toBe(3);
-      expect(offer).not.toContain('keenEdge');
-      expect(offer).not.toContain('vitality');
-    }
+    expect(hasLevelPick()).toBe(true);
+    G.P!.up = { keenEdge: 5, vitality: 5 };
+    const ids = statCards().map(c => c.id);
+    expect(ids).not.toContain('keenEdge'); expect(ids).not.toContain('vitality');
   });
 
   it('a pick applies its effect and spends the pending level', async () => {
@@ -383,10 +393,13 @@ describe('sword skills and memory shards', () => {
   };
   const aim = (x: number, y: number) => { mouse.x = x - G.cam.x; mouse.y = y - G.cam.y; frame(); };
 
-  it('slot 2 is empty by default and does nothing', () => {
-    expect(G.P!.skills).toEqual(['sonicLeap', null]);
-    skill(1);
-    expect(G.P!.skillCd[1]).toBe(0);
+  it('slots 2 and 3 start empty and do nothing; slot 3 fires when filled', async () => {
+    const { SKILLS } = await import('../src/data/skills.ts');
+    expect(G.P!.skills).toEqual(['sonicLeap', null, null]);
+    skill(1); skill(2);
+    expect(G.P!.skillCd).toEqual([0, 0, 0]);
+    G.P!.skills[2] = 'horizontal'; skill(2);
+    expect(G.P!.skillCd[2]).toBeCloseTo(SKILLS.horizontal.cd);
   });
 
   it('Cyclone Edge hits all around, Piercing Fang hits far down the aim line only', async () => {
@@ -405,22 +418,16 @@ describe('sword skills and memory shards', () => {
     expect(side.hp).toBe(9999);
   });
 
-  it('shards are earned per run, unlock a skill once and equip it for the next character', async () => {
+  it('starting Arts are in the pool for free; unlocking never equips; shards are earned per run', async () => {
     const { meta } = await import('../src/core/save.ts');
-    const { awardShards, unlockSkill, equipSkill } = await import('../src/systems/meta.js');
-    const { SKILLS } = await import('../src/data/skills.ts');
-    meta.shards = 0; meta.unlocked = ['sonicLeap']; meta.loadout = null;
+    const { awardShards, unlockSkill, isUnlocked } = await import('../src/systems/meta.js');
+    meta.shards = 0; meta.unlocked = ['sonicLeap'];
+    expect(isUnlocked('horizontal')).toBe(true); expect(isUnlocked('vorpal')).toBe(true);
+    expect(unlockSkill('horizontal')).toBe(false); // already in the pool, nothing to buy
     G.run!.kills = 80; G.run!.floor = 6; G.run!.bosses = 1;
     expect(awardShards(false)).toBe(45);
-    expect(unlockSkill('vorpal')).toBe(false); // 45 < 60
-    expect(unlockSkill('horizontal')).toBe(true);
-    expect(meta.shards).toBe(45 - SKILLS.horizontal.cost);
-    expect(unlockSkill('horizontal')).toBe(false); // already owned
-    expect(meta.loadout).toBe('horizontal');
     startRun(3);
-    expect(G.P!.skills).toEqual(['sonicLeap', 'horizontal']);
-    equipSkill('horizontal'); expect(meta.loadout).toBeNull();
-    meta.unlocked = ['sonicLeap']; meta.shards = 0;
+    expect(G.P!.skills).toEqual(['sonicLeap', null, null]);
   });
 });
 

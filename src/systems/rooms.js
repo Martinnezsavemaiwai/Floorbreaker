@@ -2,7 +2,7 @@
 // A room spawns its waves one by one; when the last one dies it pays the reward its door promised and opens
 // the doors for the next floor (see data/run.ts for the door table).
 import { G } from '../world/state.ts';
-import { planWaves, rollDoors, rewardValue, kindOf, stepOf, actOf, ACT_LEN } from '../data/run.ts';
+import { planWaves, planElite, ELITE, rollDoors, rewardValue, kindOf, stepOf, actOf, ACT_LEN } from '../data/run.ts';
 import { MOBS } from '../data/mobs.ts';
 import { SHOP } from '../data/shop.ts';
 import { makeMob, scaled, loadFloor } from '../world/floor.ts';
@@ -15,7 +15,7 @@ import { gainXp, gainCol } from './combat.js';
 const WAVE_GAP = 0.8; // seconds between a wave dying and the next one appearing
 
 export function startRoom(i, room) {
-  return { ...room, waves: planWaves(G.run?.seed ?? 0, i), wave: -1, next: WAVE_GAP, cleared: false };
+  return { ...room, waves: (room.type === 'elite' ? planElite : planWaves)(G.run?.seed ?? 0, i), wave: -1, next: WAVE_GAP, cleared: false };
 }
 
 // Door rects on the right wall, top to bottom; `to` = what the next floor will be (null = the fixed exit)
@@ -34,11 +34,12 @@ function spawnPoint(r) {
 }
 
 function spawnWave(wave) {
-  for (const { id, n } of wave) {
-    const M = scaled(MOBS[id]);
+  for (const { id, n, elite } of wave) {
+    const base = scaled(MOBS[id]), M = elite ? { ...base, hp: Math.round(base.hp * ELITE.hp), dmg: Math.round(base.dmg * ELITE.dmg),
+      radius: Math.round(base.radius * ELITE.radius), scale: (base.scale ?? 1) * ELITE.scale } : base;
     for (let k = 0; k < n; k++) {
       const p = spawnPoint(M.radius), m = makeMob(p.x, p.y, false, M);
-      m.aggro = true; G.mobs.push(m); ring(p.x, p.y, 5, 50, 0.4, '255,120,120');
+      m.elite = !!elite; m.aggro = true; G.mobs.push(m); ring(p.x, p.y, 5, 50, 0.4, '255,120,120');
     }
   }
 }
@@ -57,6 +58,7 @@ export function updateRoom(dt) {
   if (R.wave + 1 < R.waves.length) { R.wave++; spawnWave(R.waves[R.wave]); R.next = WAVE_GAP; return; }
   R.cleared = true;
   payReward(R.reward);
+  if (R.type === 'elite') G.rewards.push('art');
   const i = G.floorIdx, last = stepOf(i) === ACT_LEN - 2; // the room right before the boss
   G.doors = makeDoors(last ? [null] : rollDoors(G.run.seed, i));
   emit('roomCleared');

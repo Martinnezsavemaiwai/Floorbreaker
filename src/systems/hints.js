@@ -23,6 +23,8 @@ const HINTS = [
     sub: () => tr('ฟันต่อกัน 3 ครั้ง ครั้งที่สามเป็นท่าปิดสีทอง แรงกว่าเดิมและกระแทกศัตรูกระเด็น', 'Swing three times in a row. The third is a gold finisher that hits harder and knocks enemies back.') },
   { id: 'skill2', when: () => !!G.P.skills[1], title: () => SKILLS[G.P.skills[1]].name,
     sub: () => tr(`Blade Art ช่อง 2 กด ${k('skill2')} หรือคลิกปุ่มกลางเมาส์`, `Your slot 2 Blade Art. Press ${k('skill2')} or middle click.`) },
+  { id: 'skill3', when: () => !!G.P.skills[2], title: () => SKILLS[G.P.skills[2]].name,
+    sub: () => tr(`Blade Art ช่อง 3 กด ${k('skill3')}`, `Your slot 3 Blade Art. Press ${k('skill3')}.`) },
   { id: 'heal', when: () => G.L.kind !== 'town' && G.P.hp < G.P.maxHp * 0.4, title: () => tr('HP ต่ำ', 'Low HP'),
     sub: () => tr(`กด ${k('potion')} เพื่อดื่ม Potion ส่วนเมืองขององก์ถัดไปจะฟื้น HP ให้เต็ม`, `Press ${k('potion')} to drink a Potion. The next act's town heals you fully.`) },
   { id: 'shop', when: () => G.L.kind === 'town' && G.P.col >= 40, title: () => tr('มี Gold แล้ว', "You've got Gold"),

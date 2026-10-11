@@ -28,8 +28,11 @@ function drawMob(m) {
   const flash = settings.flash && (m.hurt > 0 || (m.wind > 0 && Math.floor(time * 16) % 2 === 0));
   const img = flash ? IMG[M.white] : IMG[M.img], k = M.scale ?? 1;
   ctx.save();
+  if (m.elite) { ctx.shadowColor = '#a688ff'; ctx.shadowBlur = 18; }
   if (m.wind > 0 && m.hurt <= 0) { ctx.shadowColor = '#ff2020'; ctx.shadowBlur = 14; }
   else if (M.armor && m.armorT <= 0) { ctx.shadowColor = '#9fd8ff'; ctx.shadowBlur = 10; } // steady blue rim = guard up
+  const tint = m.frozen > 0 ? '#5ac8ff' : m.burn?.t > 0 ? '#ff963c' : m.poison?.t > 0 ? '#78ff96' : null; // element status rim
+  if (tint && !(m.wind > 0 && m.hurt <= 0)) { ctx.shadowColor = tint; ctx.shadowBlur = 12; }
   if (M.kind === 'beast') {
     const f = Math.floor(time * 6 + m.sx) % 2, s = 48 * k; // sheet faces left
     ctx.translate(x, y); if (Math.cos(m.face) > 0) ctx.scale(-1, 1);
@@ -51,6 +54,7 @@ function drawMob(m) {
     ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(m.x - 18, m.y - 44, 36, 5);
     ctx.fillStyle = '#ff4d4d'; ctx.fillRect(m.x - 18, m.y - 44, 36 * m.hp / m.maxHp, 5);
   }
+  if (m.elite) { ctx.fillStyle = '#a688ff'; ctx.fillRect(m.x - 18, m.y - 50, 36, 3); }
 }
 
 function drawBoss() {
@@ -243,6 +247,7 @@ const DOOR_LOOK = {
 function doorLook(d) {
   const i = G.floorIdx + 1;
   if (!d.to) return kindOf(i) === 'boss' ? ['#ff6b5f', { th: 'บอส', en: 'Boss' }] : ['#f4ecd8', { th: 'ไปต่อ', en: 'Onward' }];
+  if (d.to.type === 'elite') return ['#a688ff', { th: 'Elite: ท่าใหม่', en: 'Elite: new Art' }];
   return DOOR_LOOK[d.to.reward] ?? ['#f4ecd8', { th: 'ห้องถัดไป', en: 'Next room' }];
 }
 function drawDoors() {
@@ -254,7 +259,8 @@ function drawDoors() {
     ctx.globalAlpha = glow; ctx.fillStyle = col; ctx.fillRect(d.x + 6, d.y + 6, d.w - 12, d.h - 6); // light inside
     ctx.globalAlpha = 1;
     ctx.textAlign = 'center'; ctx.font = `800 15px ${FN}`; ctx.lineJoin = 'round'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,.85)';
-    ctx.strokeText(t(name), d.x + d.w / 2, d.y - 18); ctx.fillStyle = col; ctx.fillText(t(name), d.x + d.w / 2, d.y - 18);
+    const sx = Math.min(d.x + d.w / 2, G.L.w - 6 - ctx.measureText(t(name)).width / 2); // long signs stay inside the wall
+    ctx.strokeText(t(name), sx, d.y - 18); ctx.fillStyle = col; ctx.fillText(t(name), sx, d.y - 18);
     ctx.restore();
   }
 }
@@ -284,6 +290,12 @@ function drawFx() {
     const k = 1 - r.t / r.life; ctx.globalAlpha = r.t / r.life;
     ctx.strokeStyle = `rgb(${r.col})`; ctx.lineWidth = 6 * (1 - k) + 1;
     ctx.beginPath(); ctx.arc(r.x, r.y, r.r0 + (r.r1 - r.r0) * k, 0, 7); ctx.stroke();
+  }
+  for (const b of G.bolts) { // Storm chains: a jagged violet line
+    ctx.globalAlpha = Math.min(1, b.t / 0.15); ctx.strokeStyle = '#c9b6ff'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(b.x1, b.y1);
+    const mx = (b.x1 + b.x2) / 2 + (Math.random() - 0.5) * 24, my = (b.y1 + b.y2) / 2 + (Math.random() - 0.5) * 24;
+    ctx.lineTo(mx, my); ctx.lineTo(b.x2, b.y2); ctx.stroke();
   }
   ctx.restore();
   ctx.textAlign = 'center'; ctx.lineJoin = 'round';

@@ -5,8 +5,9 @@
 // so export/import is the one reliable backup.
 import { z } from 'zod';
 import { FLOOR_COUNT, ROOM_TYPES, REWARDS } from '../data/run.ts';
+import { ELEMENT_IDS } from '../data/elements.ts';
 
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 const PREFIX = 'saoy.';
 
 // Storage that never throws: private mode, blocked iframes and Node tests all behave like "empty"
@@ -45,7 +46,11 @@ const SuspendSchema = z.object({
   room: z.object({ type: z.enum(ROOM_TYPES), reward: z.enum(REWARDS).nullable() }).nullable().default(null),
   player: z.object({ lv: z.number().int().min(1), xp: z.number().min(0), hp: z.number().positive().optional(), maxHp: z.number().positive(), atk: z.number().positive(),
     up: z.record(z.string(), z.number().int().min(0)).default({}), pendingUpgrades: z.number().int().min(0).default(0),
-    skill2: z.string().nullable().default(null),
+    build: z.object({
+      arts: z.tuple([z.string().nullable(), z.string().nullable()]),
+      mods: z.record(z.string(), z.array(z.enum(ELEMENT_IDS)).max(2)),
+      evolved: z.array(z.string()),
+    }).default({ arts: [null, null], mods: {}, evolved: [] }),
     col: z.number().int().min(0).default(0), potions: z.number().int().min(0).default(0), scrolls: z.number().int().min(0).default(0) }),
   run: z.object({ floor: z.number().int().min(1), kills: z.number().int().min(0), time: z.number().min(0), assisted: z.boolean().default(false),
     seed: z.number().int(), bosses: z.number().int().min(0).default(0) }),
@@ -67,6 +72,16 @@ const MIGRATIONS: Record<number, (data: any, slot: string) => any> = {
   0: data => data,
   1: (data, slot) => slot === 'suspend' ? null
     : slot === 'meta' ? { ...data, bestLegacy: data.best ?? null, best: null } : data,
+  2: (data, slot) => {
+    // v2 -> v3: the build. A v2 slot-2 Art moves into build.arts; Cyclone Edge and Piercing Fang became free,
+    // so Shards spent on them come back (30 / 60, the v2 prices).
+    if (slot === 'suspend') { const { skill2 = null, ...p } = data.player ?? {}; return { ...data, player: { ...p, build: { arts: [skill2, null], mods: {}, evolved: [] } } }; }
+    if (slot === 'meta') {
+      const paid: Record<string, number> = { horizontal: 30, vorpal: 60 }, had: string[] = data.unlocked ?? [];
+      return { ...data, shards: (data.shards ?? 0) + had.reduce((s, id) => s + (paid[id] ?? 0), 0) };
+    }
+    return data;
+  },
 };
 let legacySuspendDropped = false; // set when a v1 suspend is dropped; read once through takeLegacyNotice
 function migrate(data: unknown, from: number, slot: string) {

@@ -9,7 +9,9 @@ export const keys: Record<string, boolean> = {}; // held physical keys (e.code -
 export const mouse = { x: 0, y: 0 };              // in canvas pixels
 export const ACTIONS = Object.keys(BINDINGS) as Action[];
 
-export const codesFor = (action: Action): string[] => settings.bindings[action] ?? BINDINGS[action];
+// A default key yields to any custom binding that claims it, so a rebind never loses to an action added later
+export const codesFor = (action: Action): string[] => settings.bindings[action]
+  ?? BINDINGS[action].filter(c => !Object.entries(settings.bindings).some(([a, cs]) => a !== action && cs.includes(c)));
 const held = (action: Action) => codesFor(action).some(code => keys[code]);
 export function moveVector() {
   let x = (held('right') ? 1 : 0) - (held('left') ? 1 : 0), y = (held('down') ? 1 : 0) - (held('up') ? 1 : 0);

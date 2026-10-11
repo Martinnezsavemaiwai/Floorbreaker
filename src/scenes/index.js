@@ -12,13 +12,13 @@ import { updateGame, updateFx } from '../systems/index.js';
 import { drawWorld } from '../render/world.js';
 import { refreshMenuBg, drawMenuBg, drawIntro, INTRO_TIME } from '../render/menu.js';
 import { initAudio, stopMusic, playMusic, pauseMusic, resumeMusic, SFX } from '../audio/audio.js';
-import { screen, showUpgradePicker, renderShop, showStoryLine, confirmDialog, $ } from '../ui/screens.js';
+import { screen, showPicker, renderShop, showStoryLine, confirmDialog, $ } from '../ui/screens.js';
 import { nearMerchant, buy } from '../systems/shop.js';
 import { kindOf, actOf } from '../data/run.ts';
 import { STORY } from '../data/story.ts';
 import { meta, saveMeta } from '../core/save.ts';
 import { SHOP } from '../data/shop.ts';
-import { rollOffer, applyUpgrade, hasPendingUpgrade } from '../systems/upgrades.js';
+import { nextPick, cardsFor, applyCard } from '../systems/build.js';
 
 let resume = null; // suspend data to continue from once the intro finishes
 
@@ -40,7 +40,7 @@ const playScene = {
     updateFx(dt); // after death/clear the shatter FX keep playing
     if (G.run.over) return;
     if (storyQueue.length) scenes.push(storyScene);
-    else if (hasPendingUpgrade()) scenes.push(upgradeScene);
+    else if (nextPick()) scenes.push(pickScene);
   },
   draw: drawWorld,
 };
@@ -50,18 +50,20 @@ const pauseScene = {
   exit() { screen(null); resumeMusic(); },
 };
 
-// Level-up picker: freezes play like pause; one pick per pending level, then back to the fight
-let offer = [];
-const upgradeScene = {
+// Pick scene: freezes play like pause. Shows a level-up, a new-Art (elite) or an evolution (boss) pick;
+// a new Art with both slots full asks which slot to replace in a second step.
+let pickKind = null, cards = [];
+const pickScene = {
   name: 'upgrade', blocksUpdate: true,
-  enter() { releaseAll(); offer = rollOffer(); showUpgradePicker(offer); },
+  enter() { releaseAll(); pickKind = nextPick(); cards = cardsFor(pickKind); showPicker(pickKind, cards); },
   exit() { screen(null); },
 };
-export const picking = () => scenes.top === upgradeScene;
+export const picking = () => scenes.top === pickScene;
 export function pickUpgrade(i) {
-  if (!picking() || !offer[i]) return;
-  applyUpgrade(offer[i]);
-  scenes.pop(); // play re-pushes the picker next step if another level is still pending
+  if (!picking() || !cards[i]) return;
+  const follow = applyCard(cards[i], pickKind);
+  if (follow) { cards = follow; showPicker('replace', cards); return; }
+  scenes.pop(); // play re-pushes the scene next step while picks remain
 }
 $('upgrade-cards').addEventListener('click', e => {
   const card = /** @type {HTMLElement | null} */ (/** @type {Element} */ (e.target).closest('[data-pick]'));
@@ -112,7 +114,7 @@ export function storyNext() {
 }
 export function storySkip() { if (reading()) scenes.pop(); }
 
-const liveRun = () => G.run && !G.run.over && (scenes.top === playScene || scenes.top === pauseScene || scenes.top === upgradeScene || scenes.top === shopScene || scenes.top === storyScene);
+const liveRun = () => G.run && !G.run.over && (scenes.top === playScene || scenes.top === pauseScene || scenes.top === pickScene || scenes.top === shopScene || scenes.top === storyScene);
 export const playing = () => scenes.top === playScene && !G.run?.over; // in control of a live character
 
 export function newGame() {

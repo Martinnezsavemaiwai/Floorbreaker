@@ -22,6 +22,7 @@ export function updateFx(dt) {
   for (const p of G.parts) { p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= f; p.vy *= f; p.rot += p.vr * dt; p.t -= dt; }
   for (const t of G.texts) { t.t -= dt; t.y -= 30 * dt; }
   for (const r of G.rings) r.t -= dt;
+  for (const b of G.bolts) b.t -= dt; G.bolts = G.bolts.filter(b => b.t > 0);
   for (const p of G.P.trail) p.t -= dt;
   G.parts = G.parts.filter(p => p.t > 0); G.texts = G.texts.filter(t => t.t > 0);
   G.rings = G.rings.filter(r => r.t > 0); G.P.trail = G.P.trail.filter(p => p.t > 0);

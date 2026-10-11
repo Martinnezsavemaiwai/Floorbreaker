@@ -1,6 +1,8 @@
 // Whole-game simulations: a scripted bot plays real runs headlessly.
 import { describe, it, expect } from 'vitest';
-import { G, STEP, startRun, frame, snapshot, createBot, playRun } from './harness.ts';
+import { G, STEP, startRun, enterRoom, frame, snapshot, createBot, playRun } from './harness.ts';
+import { MOBS } from '../src/data/mobs.ts';
+import { makeMob, scaled } from '../src/world/floor.ts';
 import { keys, mouse } from '../src/core/input.ts';
 import { skill } from '../src/systems/index.js';
 
@@ -19,6 +21,17 @@ describe('bot playthroughs', () => {
     // Balance guard: if a change makes this fail, the game got much harder (or broke a floor transition)
     expect(runs.some(r => r.over === 'win'), JSON.stringify(runs)).toBe(true);
     expect(runs.filter(r => r.floor >= 5).length, JSON.stringify(runs)).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe('bot pathing', () => {
+  it('walks around a rock to a ranged mob that stands in range behind it (seed 109 stalled here)', () => {
+    startRun(109); enterRoom(7); G.WALLS = [{ x: 284, y: 572, w: 80, h: 60 }]; // one rock between the player and the mob
+    G.P!.x = 276.3; G.P!.y = 560.1; // the stall: on the rock's corner, 184 px from the mob: past its keep, inside its range, so it never moves
+    const m = makeMob(325.4, 737.5, false, scaled(MOBS.taurusJavelineer)); m.aggro = true; G.mobs = [m];
+    const think = createBot();
+    for (let i = 0; i < 60 * 60 && m.hp > 0; i++) { think(); frame(); }
+    expect(m.hp).toBeLessThanOrEqual(0);
   });
 });
 

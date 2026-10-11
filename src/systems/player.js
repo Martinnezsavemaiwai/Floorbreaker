@@ -3,7 +3,7 @@ import { G } from '../world/state.ts';
 import { move, applyKnock } from '../world/physics.ts';
 import { loadFloor } from '../world/floor.ts';
 import { PLAYER } from '../data/player.ts';
-import { SKILLS } from '../data/skills.ts';
+import { SKILLS, EVOLVED_DMG } from '../data/skills.ts';
 import { dist, rand } from '../core/math.ts';
 import { emit } from '../core/events.ts';
 import { moveVector, mouse } from '../core/input.ts';
@@ -11,6 +11,7 @@ import { pad } from '../core/gamepad.ts';
 import { settings } from '../core/save.ts';
 import { text, burst, ring, kick } from './fx.js';
 import { targets, hurtEnemy } from './combat.js';
+import { frostRing } from './elements.js';
 import { mods } from './upgrades.js';
 import { rng } from '../core/rng.ts';
 
@@ -21,9 +22,10 @@ const canSkill = slot => !!G.P.skills[slot] && G.P.skillCd[slot] <= 0 && free();
 const live = () => G.P && !G.run.over;
 
 // A player hit: critical roll (only drawn when the upgrade exists, so plain runs keep their RNG sequence)
-function hit(e, dmg, big, m) {
+const evo = art => (G.P.evolved.includes(art) ? EVOLVED_DMG : 1);
+function hit(e, dmg, big, m, art) {
   const crit = m.crit > 0 && rng() < m.crit;
-  hurtEnemy(e, crit ? dmg * 2 : dmg, big, crit);
+  hurtEnemy(e, crit ? dmg * 2 : dmg, big, crit, art);
 }
 
 export function attack() {
@@ -42,8 +44,8 @@ export function attack() {
     if (dist(P, e) > range + e.r) continue;
     let a = Math.atan2(e.y - P.y, e.x - P.x) - P.ang;
     a = Math.atan2(Math.sin(a), Math.cos(a));
-    const dmg = P.atk + m.atkBonus + rand(0, A.dmgRand);
-    if (Math.abs(a) <= arc) hit(e, fin ? Math.round(dmg * C.mult) : dmg, fin, m);
+    const dmg = (P.atk + m.atkBonus + rand(0, A.dmgRand)) * evo('blade');
+    if (Math.abs(a) <= arc) hit(e, fin ? Math.round(dmg * C.mult) : Math.round(dmg), fin, m, 'blade');
   }
 }
 // Dodge roll toward the movement keys (or the aim when standing still)
@@ -54,7 +56,7 @@ export function roll() {
   const v = moveVector();
   P.rollAng = v.moving ? Math.atan2(v.y, v.x) : P.ang;
   P.roll = RL.time; P.rollCd = RL.cd; P.combo = 0; P.comboT = 0; P.buf = null;
-  burst(P.x, P.y + 10, 8, '#c8b89a', 140, 0.35, 4, false); emit('roll');
+  burst(P.x, P.y + 10, 8, '#c8b89a', 140, 0.35, 4, false); emit('roll'); frostRing(P.x, P.y);
 }
 // Without a pointer to aim with, swings and skills turn toward the nearest enemy roughly in front
 const facingMove = () => pad.active || settings.aim === 'move';
@@ -68,7 +70,7 @@ function assistAim() {
   }
   if (best) P.ang = Math.atan2(best.y - P.y, best.x - P.x);
 }
-const skillDmg = (S, m) => Math.round((G.P.atk + m.atkBonus) * S.dmgMult * m.skillDmg);
+const skillDmg = (S, m, art) => Math.round((G.P.atk + m.atkBonus) * S.dmgMult * m.skillDmg * evo(art));
 export function skill(slot = 0) {
   if (!live()) return;
   const P = G.P, id = P.skills[slot];
@@ -78,10 +80,10 @@ export function skill(slot = 0) {
   const S = SKILLS[id], m = mods();
   P.skillCd[slot] = S.cd * m.skillCd; P.combo = 0; P.comboT = 0; emit('skill');
   text(P.x, P.y - 30, S.name + '!', '#ffb347', true);
-  if (id === 'sonicLeap') { P.dash = SK.dashTime; P.hitSet = new Set(); }
+  if (id === 'sonicLeap') { P.dash = SK.dashTime; P.hitSet = new Set(); frostRing(P.x, P.y); }
   else if (id === 'horizontal') { // one full turn: everything in reach gets hit once
     const H = SKILLS.horizontal;
-    for (const e of targets()) if (dist(P, e) < H.radius + e.r) hit(e, skillDmg(H, m), true, m);
+    for (const e of targets()) if (dist(P, e) < H.radius + e.r) hit(e, skillDmg(H, m, 'horizontal'), true, m, 'horizontal');
     P.spin = 0.25; P.delay = H.delay; ring(P.x, P.y, 20, H.radius, 0.3, '255,215,130'); kick(0.05, 6);
   } else { P.thrust = SKILLS.vorpal.windup; P.thrustAng = P.ang; } // vorpal: rooted wind-up, the stab lands when it runs out
 }
@@ -90,7 +92,7 @@ function stab() {
   const P = G.P, V = SKILLS.vorpal, m = mods(), cx = Math.cos(P.thrustAng), cy = Math.sin(P.thrustAng);
   for (const e of targets()) {
     const dx = e.x - P.x, dy = e.y - P.y, along = dx * cx + dy * cy, side = Math.abs(dx * -cy + dy * cx);
-    if (along > -e.r && along < V.length + e.r && side < V.width / 2 + e.r) hit(e, skillDmg(V, m), true, m);
+    if (along > -e.r && along < V.length + e.r && side < V.width / 2 + e.r) hit(e, skillDmg(V, m, 'vorpal'), true, m, 'vorpal');
   }
   P.beam = 0.18; P.delay = V.delay; kick(0.07, 10);
   burst(P.x + cx * V.length, P.y + cy * V.length, 14, '#ffd27a', 300, 0.35, 4, false);
@@ -106,7 +108,7 @@ function dashMove(P, dx, dy) {
 // Returns true when the player stepped into the portal and a new floor was loaded (skip the rest of this step)
 export function updatePlayer(dt) {
   const P = G.P;
-  P.atkCd -= dt; P.skillCd[0] -= dt; P.skillCd[1] -= dt; P.spin -= dt; P.beam -= dt; P.hurt -= dt; P.swing -= dt; P.inv -= dt; P.comboT -= dt; P.rollCd -= dt;
+  P.atkCd -= dt; P.skillCd[0] -= dt; P.skillCd[1] -= dt; P.skillCd[2] -= dt; P.spin -= dt; P.beam -= dt; P.hurt -= dt; P.swing -= dt; P.inv -= dt; P.comboT -= dt; P.rollCd -= dt;
   if (P.buf) {
     const b = P.buf;
     if (b.kind === 'attack' ? canAttack() : canSkill(b.slot)) { P.buf = null; b.kind === 'attack' ? attack() : skill(b.slot); }
@@ -121,7 +123,7 @@ export function updatePlayer(dt) {
     P.trail.push({ x: P.x, y: P.y, t: 0.25 });
     for (const e of targets()) if (!P.hitSet.has(e) && dist(P, e) < e.r + SK.hitRadius) {
       const m = mods();
-      P.hitSet.add(e); hit(e, skillDmg(SK, m), true, m);
+      P.hitSet.add(e); hit(e, skillDmg(SK, m, 'sonicLeap'), true, m, 'sonicLeap');
     }
     if (P.dash <= 0) P.delay = SK.delay;
   } else if (P.thrust > 0) {

@@ -12,7 +12,7 @@ import { settings } from '../src/core/save.ts';
 import { keys, mouse, releaseAll } from '../src/core/input.ts';
 import { dist, clamp, type Point } from '../src/core/math.ts';
 import { updateGame, updateFx, attack, skill, roll } from '../src/systems/index.js';
-import { rollOffer, applyUpgrade, hasPendingUpgrade } from '../src/systems/upgrades.js';
+import { nextPick, cardsFor, applyCard } from '../src/systems/build.js';
 import { buy, drinkPotion } from '../src/systems/shop.js';
 
 export { G, STEP };
@@ -20,7 +20,11 @@ export { G, STEP };
 const playScene = { name: 'play', update(dt: number) {
   if (!G.run!.over) updateGame(dt);
   updateFx(dt);
-  while (!G.run!.over && hasPendingUpgrade()) applyUpgrade(rollOffer()[0]);
+  for (let kind = nextPick(); !G.run!.over && kind; kind = nextPick()) { // take the first card, like the bots in e2e
+    let cards = cardsFor(kind), follow;
+    while ((follow = applyCard(cards[0], kind))) cards = follow;
+    clock.hitStop = 0; // an evolution's flash freezes real play, but the instant pick has no screen to wait behind
+  }
 } };
 
 export function startRun(seed = 1) {
@@ -60,13 +64,16 @@ export const snapshot = () => JSON.stringify({
 // A scripted player for the 20-floor run: buys Potions in town, clears rooms (stepping out of telegraphs),
 // takes the first door, and fights bosses the way the old bot did.
 export function createBot() {
-  let last = { x: 0, y: 0 }, stuck = 0, detour = 0, side = 1; // walking straight into a tree: sidestep for a bit
+  let last = { x: 0, y: 0 }, stuck = 0, detour = 0, side = 1, dx = 0, dy = 0, tries = 0, free = 0; // walking straight into a tree: sidestep for a bit
   const walkTo = (tx: number, ty: number) => {
     const P = G.P!;
-    if (detour > 0) { detour--; [tx, ty] = [P.x - (ty - P.y) * side, P.y + (tx - P.x) * side]; }
+    // A straight sidestep, fixed at the start (re-aiming it every frame circles a near target and never clears the tree),
+    // alternating sides and growing each try so any obstacle with one open side gets cleared; 5 s of free walking resets it
+    if (detour > 0) { detour--; [tx, ty] = [P.x + dx, P.y + dy]; }
     else if (Math.hypot(P.x - last.x, P.y - last.y) < 0.5 && Math.hypot(tx - P.x, ty - P.y) > 30) {
-      if (++stuck > 60) { stuck = 0; detour = 40; side = -side; }
-    } else stuck = 0;
+      free = 0;
+      if (++stuck > 60) { stuck = 0; detour = 40 * ++tries; side = -side; [dx, dy] = [-(ty - P.y) * side, (tx - P.x) * side]; }
+    } else { stuck = 0; if (++free > 300) tries = 0; }
     last = { x: P.x, y: P.y };
     keys.KeyD = tx > P.x + 5; keys.KeyA = tx < P.x - 5; keys.KeyS = ty > P.y + 5; keys.KeyW = ty < P.y - 5;
   };
@@ -80,7 +87,7 @@ export function createBot() {
     const P = G.P!; aim(tg);
     if (tg.wind && tg.wind > 0 && tg.wind < 0.2) { away(tg, 3); if (dist(P, tg) < 80) roll(); return; }
     walkTo(tg.x, tg.y);
-    if (dist(P, tg) < tg.r + 50) { attack(); if (P.skillCd[0] <= 0) skill(); }
+    if (dist(P, tg) < tg.r + 50) { attack(); if (P.skillCd[0] <= 0) skill(); if (P.skills[1] && P.skillCd[1] <= 0) skill(1); if (P.skills[2] && P.skillCd[2] <= 0) skill(2); }
   };
   return function think() {
     const { P, boss, mobs, L } = G as Required<typeof G>;
@@ -107,7 +114,7 @@ export function createBot() {
     else if (act === 'charge') walkTo(P.x, P.y + (Math.sin(boss.ang) > 0 ? -200 : 200));
     else if (act === 'wave' && Math.abs(dist(boss, P) - boss.waveR!) < 70 && dist(boss, P) > boss.waveR! && P.skillCd[0] <= 0) skill();
     else if (adds && dist(P, adds) < 120) fight(adds);
-    else { walkTo(boss.x, boss.y); if (dist(P, boss) < boss.r + 50) { attack(); if (P.skillCd[0] <= 0) skill(); } }
+    else { walkTo(boss.x, boss.y); if (dist(P, boss) < boss.r + 50) { attack(); if (P.skillCd[0] <= 0) skill(); if (P.skills[1] && P.skillCd[1] <= 0) skill(1); if (P.skills[2] && P.skillCd[2] <= 0) skill(2); } }
   };
 }
 

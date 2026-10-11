@@ -7,6 +7,7 @@ import { clamp, dist, lerp, pick, rand } from '../core/math.ts';
 import { emit } from '../core/events.ts';
 import { text, burst, ring, kick } from './fx.js';
 import { hurtPlayer } from './combat.js';
+import { tickStatus, speedFactor } from './elements.js';
 
 const bossDmg = k => Math.round(G.F.boss.dmg[k] * (rage() ? BOSS_RULES.rageDmgMult : 1));
 const wind = mv => MOVES[mv].wind[rage() ? 1 : 0];
@@ -88,10 +89,11 @@ export function updateBoss(dt) {
     text(b.x, b.y - 70, F.boss.name, '#ff7043', true);
   }
   if (!b.awake || b.hp <= 0) return;
+  tickStatus(b, dt); if (b.hp <= 0) return;
   b.hurt -= dt;
   if (!b.act) {
     b.cd -= dt;
-    const a = Math.atan2(P.y - b.y, P.x - b.x), sp = F.boss.speed[rage() ? 1 : 0];
+    const a = Math.atan2(P.y - b.y, P.x - b.x), sp = F.boss.speed[rage() ? 1 : 0] * speedFactor(b);
     b.ang = a;
     if (dist(b, P) > b.r + P.r) move(b, Math.cos(a) * sp * dt, Math.sin(a) * sp * dt, G.L.roomX + 40);
     if (b.cd <= 0) startBossMove(pick(rage() ? F.boss.rageMoves : F.boss.moves));

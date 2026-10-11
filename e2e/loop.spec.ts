@@ -77,7 +77,10 @@ test('clear loop: title -> 20 floors (towns, rooms, doors, bosses, portals) -> e
   await settle(page);
   expect(await hook(page, 's.P.potions')).toBeGreaterThan(0);
 
-  for (let f = 0; f < 20; f++) await finishFloor(page);
+  for (let f = 0; f < 20; f++) {
+    await finishFloor(page);
+    if (f === 4) expect(await hook(page, 's.P.evolved.length')).toBeGreaterThan(0); // first boss shard evolves an Art
+  }
 
   // last boss down: ending story, then the clear result
   await expect.poll(() => state(page)).toBe('win');
@@ -161,5 +164,18 @@ test('language switch from the pause menu re-renders the pause stats', async ({ 
   await page.keyboard.press('Escape');
   await expect(page.locator('#pause')).toBeVisible();
   await expect(page.locator('#pause-stats')).toContainText('Level');
+  expect(errors).toEqual([]);
+});
+
+test('an elite room awards a new Blade Art through the picker', async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto('/');
+  await diveIn(page);
+  await hook(page, "s.loadFloor(2, { type: 'elite', reward: null })");
+  await settle(page);
+  await until(page, '(s.mobs.forEach(m => m.hp > 0 && s.hurtEnemy(m, m.hp + 1, true)), s.rewards.length > 0 || s.P.skills[1] !== null)', 30_000);
+  await expect(page.locator('#upgrade')).toBeVisible({ timeout: 5_000 });
+  await page.keyboard.press('Digit1');
+  await expect.poll(() => hook(page, 's.P.skills[1]')).not.toBeNull();
   expect(errors).toEqual([]);
 });

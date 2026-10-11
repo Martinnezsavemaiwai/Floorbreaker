@@ -92,3 +92,25 @@ describe('fixed exits', () => {
     for (const m of melee) expect(m.maxHp).toBe(Math.round(base.hp * mobScale(3)));
   });
 });
+
+describe('an elite room', () => {
+  beforeEach(() => { startRun(1); loadFloor(2, { type: 'elite', reward: null }); });
+
+  it('spawns one elite with 4x HP and 1.5x damage among 3 normal mobs', () => {
+    frames(60);
+    const elites = G.mobs.filter(m => m.elite), base = G.F!.mob;
+    expect(elites).toHaveLength(1);
+    expect(elites[0].maxHp).toBe(Math.round(Math.round(base.hp * mobScale(2)) * 4));
+    expect(elites[0].def.dmg).toBe(Math.round(Math.round(base.dmg * mobScale(2)) * 1.5));
+    expect(G.mobs.filter(m => !m.elite)).toHaveLength(3);
+  });
+
+  it('clearing it awards a new Art (the test harness takes the first card) and opens doors; it pays no Gold', () => {
+    expect(G.P!.skills[1]).toBeNull();
+    clearRoom();
+    expect(G.P!.skills[1]).not.toBeNull(); // the harness resolves G.rewards right away, like the bots
+    expect(G.rewards).toEqual([]);
+    expect(G.P!.col).toBe(0);
+    expect(G.doors.length).toBeGreaterThan(0);
+  });
+});

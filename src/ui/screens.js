@@ -8,8 +8,9 @@ import { floorLabel } from '../world/floor.ts';
 import { UPGRADES } from '../data/upgrades.ts';
 import { SHOP } from '../data/shop.ts';
 import { price, canBuy } from '../systems/shop.js';
-import { SKILLS } from '../data/skills.ts';
-import { awardShards, isUnlocked, unlockSkill, equipSkill } from '../systems/meta.js';
+import { SKILLS, artName } from '../data/skills.ts';
+import { ELEMENTS } from '../data/elements.ts';
+import { awardShards, isUnlocked, unlockSkill } from '../systems/meta.js';
 import { SFX } from '../audio/audio.js';
 import { t, tr } from '../core/i18n.ts';
 
@@ -59,15 +60,38 @@ export function showPauseStats() {
   $('pause-upgrades').textContent = list ? tr('อัปเกรด: ', 'Upgrades: ') + list : '';
 }
 
-// Level-up picker: one card per offered upgrade, with how many times it's been taken already
-export function showUpgradePicker(offer) {
-  $('upgrade-msg').textContent = tr(`เลเวล ${G.P.lv}! เลือกอัปเกรด 1 อย่าง (กด 1 ถึง ${offer.length} หรือคลิก)`, `Level ${G.P.lv}! Choose an upgrade (press 1 to ${offer.length}, or click).`);
-  $('upgrade-cards').innerHTML = offer.map((id, i) => {
-    const u = UPGRADES[id], have = G.P.up[id] ?? 0, name = t(u.name), desc = t(u.desc);
-    const pips = Array.from({ length: u.max }, (_, k) => `<i class="${k < have ? 'got' : k === have ? 'next' : ''}"></i>`).join('');
-    return `<button class="card" data-pick="${i}" aria-label="${i + 1}: ${name}. ${desc} (${have}/${u.max})">
-      <kbd>${i + 1}</kbd><b>${name}</b><span>${desc}</span><span class="pips" aria-hidden="true">${pips}</span></button>`;
-  }).join('');
+// One picker for every pick: level-up (mods + stats), a new Art (elite), an evolution shard (boss), or which slot to replace
+const PICK_TITLE = {
+  level: { th: 'เลเวลอัป', en: 'Level Up' }, art: { th: 'ท่าใหม่', en: 'New Blade Art' },
+  evolve: { th: 'เศษกระจกวิวัฒน์', en: 'Evolution Shard' }, replace: { th: 'ช่องเต็มแล้ว', en: 'Slots full' },
+};
+const name = a => (a === 'blade' ? tr('ฟันปกติ', 'Slash') : artName(a));
+function cardHtml(c, i) {
+  const P = G.P, key = `<kbd>${i + 1}</kbd>`;
+  let glass = '', title = '', body = '', extra = '';
+  if (c.kind === 'mod') {
+    const E = ELEMENTS[c.el], had = P.mods[c.art] ?? [], evolves = had.length + 1 >= 2 && !P.evolved.includes(c.art);
+    glass = E.color; title = `${name(c.art)} + ${E.name}`; body = t(E.hit);
+    extra = `<span class="pips" aria-hidden="true">${[0, 1].map(k => `<i class="${k < had.length ? 'got' : k === had.length ? 'next' : ''}"></i>`).join('')}</span>`
+      + (evolves ? `<span class="price">${tr('วิวัฒน์!', 'Evolves!')}</span>` : '');
+  } else if (c.kind === 'stat') {
+    const u = UPGRADES[c.id], have = P.up[c.id] ?? 0;
+    title = t(u.name); body = t(u.desc);
+    extra = `<span class="pips" aria-hidden="true">${Array.from({ length: u.max }, (_, k) => `<i class="${k < have ? 'got' : k === have ? 'next' : ''}"></i>`).join('')}</span>`;
+  } else if (c.kind === 'art') { title = SKILLS[c.id].name; body = t(SKILLS[c.id].desc); }
+  else if (c.kind === 'replace') { title = tr(`แทน ${SKILLS[P.skills[c.slot]].name}`, `Replace ${SKILLS[P.skills[c.slot]].name}`); body = tr(`ช่อง ${c.slot + 1} ได้ ${SKILLS[c.id].name} มอดของท่าเดิมจะหายไป`, `Slot ${c.slot + 1} gets ${SKILLS[c.id].name}. The old Art's mods are lost.`); }
+  else if (c.kind === 'skip') { title = tr('ไม่เอาท่านี้', 'Keep my Arts'); body = tr('เก็บท่าที่มีอยู่ไว้ทั้งหมด', 'Keep everything as it is.'); }
+  else if (c.kind === 'evolve') { title = name(c.art); body = tr('วิวัฒน์ท่านี้ทันที ดาเมจท่านี้แรงขึ้น 30%', 'Evolve this Art now. It hits 30% harder.'); }
+  return `<button class="card" data-pick="${i}" ${glass ? `style="--glass:${glass}"` : ''} aria-label="${i + 1}: ${title}. ${body}">${key}<b>${title}</b><span>${body}</span>${extra}</button>`;
+}
+export function showPicker(kind, cards) {
+  $('upgrade-h').textContent = t(PICK_TITLE[kind]);
+  $('upgrade-msg').textContent = kind === 'level'
+    ? tr(`เลเวล ${G.P.lv}! เลือกอัปเกรด 1 อย่าง (กด 1 ถึง ${cards.length} หรือคลิก)`, `Level ${G.P.lv}! Choose an upgrade (press 1 to ${cards.length}, or click).`)
+    : kind === 'art' ? (cards.length === 1 && cards[0].kind === 'skip' ? tr('ไม่มีท่าใหม่ให้เลือกแล้ว', 'No new Blade Arts left to pick.') : tr('เลือกท่าใหม่ 1 ท่า', 'Choose a new Blade Art.'))
+    : kind === 'evolve' ? tr('เลือกท่าที่จะวิวัฒน์', 'Choose an Art to evolve.')
+    : tr('ช่องท่าเต็มแล้ว จะแทนท่าไหน', 'Both slots are full. Which Art should it replace?');
+  $('upgrade-cards').innerHTML = cards.map(cardHtml).join('');
   screen('upgrade');
   $('upgrade-cards').querySelector('.card')?.focus();
 }
@@ -91,23 +115,23 @@ export function showStoryLine(line, i, n) {
   if (current !== 'story') screen('story');
 }
 
-// Blade Arts: unlock with Memory Shards, pick the slot-2 skill for the next run
+// Blade Arts: the pool a run's Art picks draw from; Memory Shards unlock more Arts for it
 function renderSkills(status = '') {
   $('shards-have').textContent = tr(`มี ${meta.shards} Memory Shard`, `${meta.shards} Memory Shards`);
   $('skill-cards').innerHTML = Object.entries(SKILLS).map(([id, S]) => {
-    const own = isUnlocked(id), slot = id === 'sonicLeap' ? tr('ช่อง 1 (เปลี่ยนไม่ได้)', 'Slot 1 (always)') : meta.loadout === id ? tr('ใส่ช่อง 2 อยู่', 'In slot 2') : null;
-    const state = slot ?? (own ? tr('ใส่ช่อง 2', 'Put in slot 2') : tr(`ปลดล็อก ${S.cost} Shard`, `Unlock for ${S.cost} Shards`));
-    const off = id === 'sonicLeap' || (!own && meta.shards < S.cost);
-    return `<button class="card${slot ? ' on' : ''}" data-skill="${id}" ${off ? 'aria-disabled="true"' : ''} aria-label="${S.name}, ${state}. ${t(S.desc)}">
+    const own = isUnlocked(id);
+    const state = S.pool === 'fixed' ? tr('ช่อง 1 ติดตัวเสมอ', 'Always in slot 1') : own ? tr('อยู่ในกองสุ่มแล้ว', 'In the pool') : tr(`ปลดล็อก ${S.cost} Shard`, `Unlock for ${S.cost} Shards`);
+    const off = own || meta.shards < S.cost;
+    return `<button class="card${own ? ' on' : ''}" data-skill="${id}" ${off ? 'aria-disabled="true"' : ''} aria-label="${S.name}, ${state}. ${t(S.desc)}">
       <b lang="en">${S.name}</b><span>${t(S.desc)}</span><span class="price">${state}</span></button>`;
   }).join('');
   $('skills-status').textContent = status;
 }
 $('skill-cards').addEventListener('click', e => {
   const id = /** @type {HTMLElement | null} */ (/** @type {Element} */ (e.target).closest('[data-skill]'))?.dataset.skill;
-  if (!id || id === 'sonicLeap') return;
-  if (isUnlocked(id)) { equipSkill(id); renderSkills(); }
-  else renderSkills(unlockSkill(id) ? tr(`ปลดล็อก ${SKILLS[id].name} แล้ว และใส่ไว้ในช่อง 2`, `${SKILLS[id].name} unlocked and put in slot 2`) : tr('Shard ยังไม่พอ ได้เพิ่มทุกครั้งที่จบรอบ', 'Not enough Shards yet. You earn more at the end of every run.'));
+  if (!id || isUnlocked(id)) return;
+  renderSkills(unlockSkill(id) ? tr(`ปลดล็อก ${SKILLS[id].name} แล้ว จะโผล่ให้เลือกหลังเคลียร์ห้อง Elite`, `${SKILLS[id].name} unlocked. It can now show up after Elite rooms.`)
+    : tr('Shard ยังไม่พอ ได้เพิ่มทุกครั้งที่จบรอบ', 'Not enough Shards yet. You earn more at the end of every run.'));
   SFX.ui();
 });
 
@@ -123,7 +147,7 @@ function renderTitle() {
   $('continue-btn').hidden = !s;
   if (s) $('continue-info').textContent = `${floorLabel(s.floorIdx)} · Lv.${s.player.lv} · ${fmtTime(s.run.time)}`;
   $('start-btn').classList.toggle('lit', !s); $('continue-btn').classList.toggle('lit', !!s); // the likely next step is the lit pane
-  $('shards-info').textContent = tr(`${meta.shards} Shard · ช่อง 2: `, `${meta.shards} Shards · slot 2: `) + (meta.loadout ? SKILLS[meta.loadout]?.name ?? '—' : tr('ว่าง', 'empty'));
+  $('shards-info').textContent = tr(`${meta.shards} Shard`, `${meta.shards} Shards`);
 }
 
 // How-to: key list from the current bindings
@@ -133,12 +157,13 @@ function renderHowTo() {
     [`${k('up')}${k('left')}${k('down')}${k('right')}`, tr('เดิน (ใช้เมาส์เล็ง)', 'Walk (aim with the mouse)')],
     [`${k('attack')} / ` + tr('คลิกซ้าย', 'left click'), tr('ฟันดาบ', 'Slash')],
     [`${k('skill')} / ` + tr('คลิกขวา', 'right click'), 'Blade Art 1: Gale Rush'],
-    [`${k('skill2')} / ` + tr('ปุ่มกลางเมาส์', 'middle click'), tr('Blade Art ช่อง 2 (เลือกได้ที่ Blade Arts ในหน้าแรก)', 'Blade Art 2 (pick it in Blade Arts on the title screen)')],
+    [`${k('skill2')} / ` + tr('ปุ่มกลางเมาส์', 'middle click'), tr('Blade Art ช่อง 2 (ได้จากห้อง Elite)', 'Blade Art 2 (from Elite rooms)')],
+    [k('skill3'), tr('Blade Art ช่อง 3 (ได้จากห้อง Elite)', 'Blade Art 3 (from Elite rooms)')],
     [k('dodge'), tr('กลิ้งหลบ ตอนกลิ้งจะไม่โดนดาเมจ', 'Dodge roll. Nothing hits you mid-roll.')],
     [k('potion'), tr('ดื่ม Potion (ซื้อได้ที่ร้านในเมือง)', 'Drink a Potion (sold in town)')], [k('interact'), tr('คุยกับพ่อค้า', 'Talk to the merchant')],
     [k('pause'), tr('หยุดเกม', 'Pause')],
-    [tr('จอย', 'Gamepad'), tr('สติ๊กซ้ายเดิน สติ๊กขวาเล็ง X ฟัน A กลิ้ง RB/RT Blade Art 1/2 LB Potion Y คุย Start หยุดเกม ในเมนูใช้ D-pad เลื่อน A เลือก B ย้อนกลับ',
-      'Left stick walks, right stick aims. X attacks, A rolls, RB/RT use Blade Art 1/2, LB drinks a Potion, Y talks, Start pauses. In menus: D-pad moves, A selects, B goes back.')],
+    [tr('จอย', 'Gamepad'), tr('สติ๊กซ้ายเดิน สติ๊กขวาเล็ง X ฟัน A กลิ้ง RB/RT/LT Blade Art 1/2/3 LB Potion Y คุย Start หยุดเกม ในเมนูใช้ D-pad เลื่อน A เลือก B ย้อนกลับ',
+      'Left stick walks, right stick aims. X attacks, A rolls, RB/RT/LT use Blade Art 1/2/3, LB drinks a Potion, Y talks, Start pauses. In menus: D-pad moves, A selects, B goes back.')],
     [k('mute'), tr('ปิด/เปิดเสียง', 'Sound on/off')], [k('fullscreen'), tr('เต็มจอ', 'Fullscreen')],
   ].map(([keys, what]) => `<span>${keys}</span><span>${what}</span>`).join('');
 }

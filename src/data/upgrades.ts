@@ -16,4 +16,3 @@ export const UPGRADES = {
 } satisfies Record<string, UpgradeDef>;
 
 export type UpgradeId = keyof typeof UPGRADES;
-export const OFFER_SIZE = 3;

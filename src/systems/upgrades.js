@@ -1,8 +1,7 @@
 // Upgrade picks and their effects. P.up counts how many times each upgrade was taken;
 // mods() turns those counts into the multipliers the combat/movement code reads (keep data/upgrades.ts descs in sync).
 import { G } from '../world/state.ts';
-import { UPGRADES, OFFER_SIZE } from '../data/upgrades.ts';
-import { rng } from '../core/rng.ts';
+import { UPGRADES } from '../data/upgrades.ts';
 import { emit } from '../core/events.ts';
 
 const n = id => G.P.up?.[id] ?? 0;
@@ -20,15 +19,6 @@ export function mods() {
   };
 }
 
-const available = () => Object.keys(UPGRADES).filter(id => n(id) < UPGRADES[id].max);
-
-// 3 different upgrades that aren't maxed yet (seeded, so test runs are reproducible)
-export function rollOffer() {
-  const pool = available();
-  for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
-  return pool.slice(0, OFFER_SIZE);
-}
-
 export function applyUpgrade(id) {
   const P = G.P;
   P.up[id] = n(id) + 1;
@@ -36,7 +26,3 @@ export function applyUpgrade(id) {
   P.pendingUpgrades = Math.max(0, P.pendingUpgrades - 1);
   emit('upgradePicked', id);
 }
-
-// Every level-up earns one pick; the play scene opens the picker when one is pending
-// (pure check: must not consume the gameplay RNG, it runs every step)
-export const hasPendingUpgrade = () => !!G.P && G.P.pendingUpgrades > 0 && available().length > 0;

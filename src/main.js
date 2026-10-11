@@ -44,7 +44,7 @@ bindActions({
 });
 
 // Keyboard: physical keys -> actions (data/controls.ts + rebinding). Gameplay keys only count while a live character is in control.
-const GAME_ACTIONS = { attack, skill: () => skill(0), skill2: () => skill(1), dodge: roll, mute, potion: drinkPotion, interact: openShop };
+const GAME_ACTIONS = { attack, skill: () => skill(0), skill2: () => skill(1), skill3: () => skill(2), dodge: roll, mute, potion: drinkPotion, interact: openShop };
 addEventListener('keydown', e => {
   if (dialogOpen()) return; // the confirm <dialog> handles its own keys (Esc = cancel)
   if (picking() && /^(Digit|Numpad)[1-9]$/.test(e.code)) return pickUpgrade(+e.code.at(-1) - 1);
@@ -129,7 +129,7 @@ addEventListener('keydown', unlockAudio, { once: true });
 // Dev-only handle for console/bot playtests; stripped from production builds.
 if (import.meta.env.DEV) {
   const live = { state: () => G.run?.over || scenes.top?.name, P: () => G.P, mobs: () => G.mobs, shots: () => G.shots, boss: () => G.boss, F: () => G.F,
-                 floorIdx: () => G.floorIdx, L: () => G.L, doors: () => G.doors, room: () => G.room, portal: () => G.portal, run: () => G.run, clock: () => clock, scenes: () => scenes, cam: () => G.cam };
+                 floorIdx: () => G.floorIdx, L: () => G.L, doors: () => G.doors, room: () => G.room, portal: () => G.portal, run: () => G.run, clock: () => clock, scenes: () => scenes, cam: () => G.cam, rewards: () => G.rewards };
   /** @type {any} */ (window).__saoy = Object.defineProperties(
     { tick: dt => clock.advance(dt), update: updateGame, updateFx, draw: drawWorld, newGame, loadFloor, attack, skill, hurtPlayer, hurtEnemy,
       hitWall, startBossMove, keys, mouse, ready, consts: { W, H } },

@@ -23,7 +23,7 @@ export interface Room { type: RoomType; reward: Reward | null }
 
 export const ROOM_WEIGHTS: Record<RoomType, number> = { battle: 35, elite: 20, shop: 15, shrine: 12, challenge: 10, spring: 8 };
 // Room types this build can actually run; later rounds add to it
-export const AVAILABLE_ROOMS: RoomType[] = ['battle'];
+export const AVAILABLE_ROOMS: RoomType[] = ['battle', 'elite'];
 const HAS_REWARD: RoomType[] = ['battle', 'challenge']; // rooms whose door names a reward
 
 export const rewardValue = (r: Reward, act: number) => (r === 'gold' ? 40 + 30 * act : r === 'xp' ? 120 + 80 * act : 1);
@@ -48,7 +48,13 @@ export function rollDoors(seed: number, from: number, available: readonly RoomTy
   return out;
 }
 
-export type WaveMob = { id: MobId; n: number };
+export type WaveMob = { id: MobId; n: number; elite?: boolean };
+// Elite room: the act's melee mob as an elite (x4 HP, x1.5 damage, bigger) with 3 of the same as escorts
+export const ELITE = { hp: 4, dmg: 1.5, radius: 1.3, scale: 1.4 };
+export const planElite = (_seed: number, i: number): WaveMob[][] => {
+  const F = FLOORS[actOf(i)];
+  return [[{ id: F.mob, n: 1, elite: true }, { id: F.mob, n: 3 }]];
+};
 // What a room on floor i spawns, wave by wave: mostly the act's melee mob, its ranged mob, and one swarm/armored
 // group from the act's extras in the last wave
 export function planWaves(seed: number, i: number): WaveMob[][] {

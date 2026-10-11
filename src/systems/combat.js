@@ -11,6 +11,8 @@ import { emit } from '../core/events.ts';
 import { settings } from '../core/save.ts';
 import { text, burst, ring, kick } from './fx.js';
 import { mods } from './upgrades.js';
+import { bossReward } from './build.js';
+import { applyElements, onElementKill } from './elements.js';
 
 export const targets = () => [...G.mobs, G.boss].filter(e => e.hp > 0 && (e !== G.boss || G.boss.awake));
 
@@ -25,7 +27,7 @@ export function gainXp(n) {
   }
 }
 
-export function hurtEnemy(e, d, big, crit = false) {
+export function hurtEnemy(e, d, big, crit = false, art = null) {
   if (e.hp <= 0) return;
   const { P, F, boss, run } = G;
   const guarded = e !== boss && e.def.armor && e.armorT <= 0;
@@ -47,13 +49,23 @@ export function hurtEnemy(e, d, big, crit = false) {
       m.x = clamp(m.x, G.L.roomX + 60, G.L.w - 20); G.mobs.push(m); ring(m.x, m.y, 5, 60, 0.4, '255,80,200');
     }
   }
-  if (e.hp > 0) return;
+  if (art) applyElements(e, art, d); // only Art hits carry elements (chains, bolts and blasts pass no art)
+  if (e.hp <= 0) kill(e);
+}
+
+// Death of a mob or the boss: shared by hits and damage-over-time
+export function kill(e) {
+  const { F, boss, run } = G;
+  if (e.dead === Infinity) return;
+  onElementKill(e);
   if (e === boss) {
+    e.dead = Infinity;
     G.doorClosed = false; kick(0.35, 20); run.kills++; run.bosses++;
     burst(e.x, e.y, 90, '#8fe3ff', 420, 1.6, 12, true); burst(e.x, e.y, 40, '#ffd54a', 300, 1.4, 8, true);
     ring(e.x, e.y, 20, 260, 0.8, '143,227,255');
     for (const m of G.mobs) if (m.summoned && m.hp > 0) { m.hp = 0; m.dead = Infinity; burst(m.x, m.y, 20, '#8fe3ff', 260, 0.9, 8, true); }
     emit('bossDeath');
+    if (!isFinalFloor(G.floorIdx)) bossReward();
     gainXp(F.mob.xp * BOSS_RULES.xpMult); gainCol(F.mob.col * BOSS_RULES.xpMult, e);
     if (!isFinalFloor(G.floorIdx)) { G.portal = { x: boss.x, y: boss.y, wait: BOSS_RULES.portalDelay, armed: false }; emit('portalOpen'); }
     else { run.over = 'win'; emit('runOver', { cleared: true }); }
@@ -61,6 +73,13 @@ export function hurtEnemy(e, d, big, crit = false) {
     e.dead = Infinity; gainXp(e.def.xp); gainCol(e.def.col, e); emit('mobDeath'); run.kills++;
     burst(e.x, e.y, 26, '#8fe3ff', 260, 0.9, 9, true); ring(e.x, e.y, 5, 50, 0.3, '143,227,255');
   }
+}
+
+// Damage from burn/poison: a number pops, no knockback, no hit-stop, no elements
+export function dot(e, n) {
+  if (e.hp <= 0) return;
+  e.hp -= n; text(e.x + 10, e.y - e.r - 16, n, e.poison?.t > 0 ? '#78ff96' : '#ff963c');
+  if (e.hp <= 0) kill(e);
 }
 
 export function hurtPlayer(d, from) {

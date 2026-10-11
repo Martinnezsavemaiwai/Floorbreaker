@@ -6,12 +6,13 @@ import { BOSSES, BOSS_DEFAULTS, BOSS_RULES } from '../data/bosses.ts';
 import { FLOORS, TREE_TYPES } from '../data/floors.ts';
 import { PLAYER } from '../data/player.ts';
 import { SKILLS } from '../data/skills.ts';
+import type { ElementId } from '../data/elements.ts';
 import { FLOOR_COUNT, actOf, kindOf, mobScale, pickPreset, ROOM_PRESETS, type Room } from '../data/run.ts';
 import { clock } from '../core/app.ts';
 import { emit } from '../core/events.ts';
 import { rng } from '../core/rng.ts';
 import { tr } from '../core/i18n.ts';
-import { settings, meta, type Suspend } from '../core/save.ts';
+import { settings, type Suspend } from '../core/save.ts';
 import { startRoom, makeDoors } from '../systems/rooms.js';
 
 // An act's data with its mob/boss ids swapped for the actual stat objects (fails loudly on a typo'd id)
@@ -49,18 +50,24 @@ export function loadFloor(i: number, room: Room | null = null) {
              act: null, t: 0, tMax: 1, ang: 0, hurt: 0, hitP: false, summoned: false };
   const hp = kind === 'town' ? G.P!.maxHp : G.P!.hp; // only towns heal you fully
   Object.assign(G.P, { x: L.start.x, y: L.start.y, hp, lag: hp, dash: 0, delay: 0, trail: [], kx: 0, ky: 0, inv: 0, buf: null });
-  G.texts = []; G.parts = []; G.shots = []; G.rings = []; G.doorClosed = false; G.portal = null; clock.hitStop = 0; G.shake = 0;
+  G.texts = []; G.parts = []; G.shots = []; G.rings = []; G.bolts = []; G.doorClosed = false; G.portal = null; clock.hitStop = 0; G.shake = 0;
   if (G.run) G.run.floor = Math.max(G.run.floor, i + 1);
   G.entry = snapshotRun();
   emit('floorLoaded', i);
 }
 
-// slot 2 only takes a real, non-Sonic-Leap skill id (a hand-edited save can't crash the run)
-const slot2 = (id: string | null | undefined) => (id && id in SKILLS && id !== 'sonicLeap' ? id : null);
+// A slotted Art must be a real, non-fixed Art; mods/evolved only for Arts the player has (+ the sword and Gale Rush)
+const slotArt = (id: string | null | undefined) => (id && id in SKILLS && SKILLS[id as keyof typeof SKILLS].pool !== 'fixed' ? id : null);
+function cleanBuild(b: { arts: (string | null)[]; mods: Record<string, ElementId[]>; evolved: string[] }) {
+  const arts = [slotArt(b.arts[0]), slotArt(b.arts[1])] as [string | null, string | null];
+  const owned = new Set(['blade', 'sonicLeap', ...arts.filter(Boolean)]);
+  const mods = Object.fromEntries(Object.entries(b.mods).filter(([id]) => owned.has(id)).map(([id, els]) => [id, els.slice(0, 2)]));
+  return { arts, mods, evolved: b.evolved.filter(id => owned.has(id)) };
+}
 function newPlayer() {
   // position/HP/transient fields are (re)set by loadFloor
   G.P = { r: PLAYER.radius, maxHp: PLAYER.hp, hp: PLAYER.hp, lag: PLAYER.hp, atk: PLAYER.atk, lv: 1, xp: 0, ang: 0, atkCd: 0,
-          skills: ['sonicLeap', slot2(meta.loadout)], skillCd: [0, 0], spin: 0, thrust: 0, thrustAng: 0, beam: 0,
+          skills: ['sonicLeap', null, null], skillCd: [0, 0, 0], mods: {}, evolved: [], stormHits: 0, spin: 0, thrust: 0, thrustAng: 0, beam: 0,
           hurt: 0, swing: 0, swingDir: 1, hitSet: null, x: 0, y: 0, dash: 0, delay: 0, trail: [], kx: 0, ky: 0, inv: 0, buf: null,
           up: {}, pendingUpgrades: 0, col: 0, potions: 0, scrolls: 0,
           combo: 0, comboT: 0, finisher: false, roll: 0, rollCd: 0, rollAng: 0 };
@@ -70,6 +77,7 @@ export const assistOn = () => settings.assistDamage < 1 || settings.assistSpeed 
 export function newRun() {
   newPlayer();
   G.run = { floor: 1, kills: 0, time: 0, seed: Math.floor(rng() * 2 ** 31), bosses: 0, assisted: assistOn() };
+  G.rewards = [];
   loadFloor(0);
 }
 
@@ -79,13 +87,13 @@ export function snapshotRun(): Suspend {
   const { P, run } = G;
   return { floorIdx: G.floorIdx, room: G.room ? { type: G.room.type, reward: G.room.reward } : null,
     player: { lv: P!.lv, xp: P!.xp, hp: P!.hp, maxHp: P!.maxHp, atk: P!.atk, up: { ...P!.up }, pendingUpgrades: P!.pendingUpgrades,
-      skill2: P!.skills[1], col: P!.col, potions: P!.potions, scrolls: P!.scrolls },
+      build: { arts: [P!.skills[1], P!.skills[2]], mods: structuredClone(P!.mods), evolved: [...P!.evolved] }, col: P!.col, potions: P!.potions, scrolls: P!.scrolls },
     run: { floor: run!.floor, kills: run!.kills, time: run!.time, assisted: !!run!.assisted, seed: run!.seed, bosses: run!.bosses } };
 }
 export function resumeRun(s: Suspend) {
-  newPlayer(); const { skill2, hp, ...player } = s.player;
-  Object.assign(G.P!, player, { up: { ...s.player.up }, skills: ['sonicLeap', slot2(skill2)] });
+  newPlayer(); const { build, hp, ...player } = s.player, b = cleanBuild(build as Parameters<typeof cleanBuild>[0]);
+  Object.assign(G.P!, player, { up: { ...s.player.up }, skills: ['sonicLeap', b.arts[0], b.arts[1]], mods: b.mods, evolved: b.evolved });
   if (hp !== undefined) G.P!.hp = Math.min(hp, G.P!.maxHp); // the HP saved at floor entry (a town heals to full in loadFloor)
-  G.run = { ...s.run };
+  G.run = { ...s.run }; G.rewards = [];
   loadFloor(s.floorIdx, s.room as Room | null); // cast: tsconfig isn't strict, so zod drops null from the inferred type
 }

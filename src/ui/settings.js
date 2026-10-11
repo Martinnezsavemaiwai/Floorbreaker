@@ -9,7 +9,7 @@ import { on } from '../core/events.ts';
 
 const ACTION_TEXT = {
   up: { th: 'เดินขึ้น', en: 'Walk up' }, down: { th: 'เดินลง', en: 'Walk down' }, left: { th: 'เดินซ้าย', en: 'Walk left' }, right: { th: 'เดินขวา', en: 'Walk right' },
-  attack: { th: 'ฟันดาบ', en: 'Slash' }, skill: 'Blade Art 1', skill2: 'Blade Art 2', dodge: { th: 'กลิ้งหลบ', en: 'Dodge roll' }, potion: { th: 'ดื่ม Potion', en: 'Drink Potion' },
+  attack: { th: 'ฟันดาบ', en: 'Slash' }, skill: 'Blade Art 1', skill2: 'Blade Art 2', skill3: 'Blade Art 3', dodge: { th: 'กลิ้งหลบ', en: 'Dodge roll' }, potion: { th: 'ดื่ม Potion', en: 'Drink Potion' },
   interact: { th: 'คุย / เปิดร้าน', en: 'Talk / shop' }, pause: { th: 'หยุดเกม', en: 'Pause' }, mute: { th: 'ปิด/เปิดเสียง', en: 'Sound on/off' }, fullscreen: { th: 'เต็มจอ', en: 'Fullscreen' },
 };
 const ACTION_NAMES = new Proxy(ACTION_TEXT, { get: (o, k) => t(o[k]) }); // reads in the current language
@@ -35,7 +35,7 @@ applyAssist();
 
 // ---------- key rebinding ----------
 /** @type {[import('../core/i18n.ts').Text, import('../data/controls.ts').Action[]][]} */
-const GROUPS = [[{ th: 'เดิน', en: 'Move' }, ['up', 'down', 'left', 'right']], [{ th: 'ต่อสู้', en: 'Combat' }, ['attack', 'skill', 'skill2', 'dodge', 'potion', 'interact']], [{ th: 'ระบบ', en: 'System' }, ['pause', 'mute', 'fullscreen']]];
+const GROUPS = [[{ th: 'เดิน', en: 'Move' }, ['up', 'down', 'left', 'right']], [{ th: 'ต่อสู้', en: 'Combat' }, ['attack', 'skill', 'skill2', 'skill3', 'dodge', 'potion', 'interact']], [{ th: 'ระบบ', en: 'System' }, ['pause', 'mute', 'fullscreen']]];
 let listening = null; // the action waiting for a key, or null
 export const isRebinding = () => listening !== null;
 const keysText = a => codesFor(a).map(codeLabel).join(' / ') || '—';

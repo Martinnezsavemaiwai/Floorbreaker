@@ -1,6 +1,6 @@
 // Run rules: floor kinds, door rolls, wave plans, presets and the shards formula. Pure data, no DOM.
 import { describe, it, expect } from 'vitest';
-import { FLOOR_COUNT, actOf, stepOf, kindOf, isFinalFloor, mobScale, rollDoors, planWaves, ROOM_PRESETS, pickPreset,
+import { FLOOR_COUNT, actOf, stepOf, kindOf, isFinalFloor, mobScale, rollDoors, planWaves, planElite, ROOM_PRESETS, pickPreset,
          START_ZONE, DOOR_ZONE, CENTER_ZONE, shardsFor, rewardValue } from '../src/data/run.ts';
 import { TREE_TYPES } from '../src/data/floors.ts';
 import { MOBS } from '../src/data/mobs.ts';
@@ -47,8 +47,25 @@ describe('doors', () => {
     }
   });
 
-  it('only battle rooms exist in round 1, told apart by their reward', () => {
-    expect(rollDoors(3, 1).every(d => d.type === 'battle' && d.reward !== null)).toBe(true);
+  it('round 2 rolls battle and elite rooms; battle doors name a reward, elite doors do not', () => {
+    const all = Array.from({ length: 60 }, (_, s) => rollDoors(s + 1, 1)).flat();
+    expect(all.some(d => d.type === 'elite')).toBe(true);
+    for (const d of all) {
+      expect(['battle', 'elite']).toContain(d.type);
+      expect(d.type === 'battle' ? d.reward !== null : d.reward === null).toBe(true);
+    }
+  });
+
+  it('an act always offers an elite before its boss when elites exist', () => {
+    for (let seed = 1; seed < 60; seed++) for (const from of [2, 7, 12, 17])
+      expect([...rollDoors(seed, from - 1), ...rollDoors(seed, from)].some(d => d.type === 'elite')).toBe(true);
+  });
+
+  it('an elite room is one wave: 1 elite plus 3 of the act mob', () => {
+    const w = planElite(3, 2);
+    expect(w).toHaveLength(1);
+    expect(w[0].filter(m => m.elite)).toEqual([{ id: 'frenzyBoar', n: 1, elite: true }]);
+    expect(w[0].find(m => !m.elite)).toEqual({ id: 'frenzyBoar', n: 3 });
   });
 
   it('rewards grow with the act', () => {

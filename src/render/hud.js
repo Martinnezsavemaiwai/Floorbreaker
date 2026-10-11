@@ -95,7 +95,7 @@ function drawSkillSlots() {
   };
   const slots = [
     { key: keyLabel('attack'), label: tr('ฟัน', 'Slash'), cd: Math.max(0, P.atkCd) / A.cd, glow: false, icon: 'attack' },
-    skill(0, 'skill'), ...(P.skills[1] ? [skill(1, 'skill2')] : []),
+    skill(0, 'skill'), ...(P.skills[1] ? [skill(1, 'skill2')] : []), ...(P.skills[2] ? [skill(2, 'skill3')] : []),
     { key: keyLabel('potion'), label: `Potion ×${P.potions}`, cd: 0, glow: false, potion: true },
   ];
   const x0 = W / 2 - (slots.length * s + (slots.length - 1) * gap) / 2;

@@ -7,7 +7,7 @@ export interface GameEvents {
   swing: void; skill: void; hit: { big: boolean }; dodge: void; levelUp: void;
   playerHurt: void; playerDeath: void; runOver: { cleared: boolean };
   mobWindup: void; mobShot: void; mobDeath: void;
-  bossWake: void; bossSummon: void; bossWind: MoveName; bossImpact: void; bossCharge: void; bossDeath: void;
+  bossWake: void; bossSummon: void; bossWind: MoveName; bossImpact: void; bossCharge: void; bossDeath: void; artEvolved: string;
   portalOpen: void; roomCleared: void; floorLoaded: number;
   hint: { title: string; sub: string };
   langChanged: 'th' | 'en';

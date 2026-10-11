@@ -6,6 +6,7 @@ import { dist, rand } from '../core/math.ts';
 import { emit } from '../core/events.ts';
 import { rng } from '../core/rng.ts';
 import { hurtPlayer } from './combat.js';
+import { tickStatus, speedFactor } from './elements.js';
 
 export function updateMobs(dt) {
   const { P } = G;
@@ -13,6 +14,9 @@ export function updateMobs(dt) {
   for (const m of G.mobs) {
     const L = G.L, M = m.def, R = M.ranged, maxX = m.summoned ? L.w : L.roomX; // field mobs stay out of the boss room
     if (m.hp <= 0) continue; // the dead stay dead: rooms are cleared wave by wave
+    tickStatus(m, dt);
+    if (m.hp <= 0) continue;              // a burn/poison tick can kill
+    if (m.frozen > 0) { applyKnock(m, dt, L.townX, maxX); continue; } // frozen: no thinking, no attacking
     m.cd -= dt; m.hurt -= dt; m.lunge -= dt; m.armorT -= dt;
     applyKnock(m, dt, L.townX, maxX);
     const d = dist(m, P), chase = (m.aggro || d < M.chaseRange) && P.x > L.townX, wr = M.wanderRange;
@@ -36,7 +40,7 @@ export function updateMobs(dt) {
       if (m.cd <= 0) { m.wind = M.wind; emit('mobWindup'); }
       continue;
     }
-    const sp = chase ? M.speed : M.wanderSpeed, ox = m.x, oy = m.y, siding = m.side > 0;
+    const sp = (chase ? M.speed : M.wanderSpeed) * speedFactor(m), ox = m.x, oy = m.y, siding = m.side > 0;
     if (siding) { // walking around an obstacle
       m.side -= dt;
       move(m, -Math.sin(m.face) * m.sideDir * sp * dt, Math.cos(m.face) * m.sideDir * sp * dt, L.townX, maxX);

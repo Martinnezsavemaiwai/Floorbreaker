@@ -61,7 +61,7 @@ describe('loading', () => {
 
 describe('suspend + export/import', () => {
   const suspend = { floorIdx: 7, room: { type: 'battle' as const, reward: 'gold' as const },
-    player: { lv: 7, xp: 40, hp: 150, maxHp: 220, atk: 28, up: { keenEdge: 2 }, pendingUpgrades: 1, skill2: 'vorpal', col: 120, potions: 2, scrolls: 1 },
+    player: { lv: 7, xp: 40, hp: 150, maxHp: 220, atk: 28, up: { keenEdge: 2 }, pendingUpgrades: 1, build: { arts: ['vorpal', null] as [string, string | null], mods: { blade: ['ember'], vorpal: ['storm', 'storm'] } as Record<string, ('ember' | 'storm')[]>, evolved: ['vorpal'] }, col: 120, potions: 2, scrolls: 1 },
     run: { floor: 8, kills: 41, time: 300, assisted: false, seed: 12345, bosses: 1 } };
 
   it('round-trips a suspended run and clears it', async () => {
@@ -73,13 +73,13 @@ describe('suspend + export/import', () => {
   });
 
   it('loads a suspend written before upgrades and Gold existed', async () => {
-    const { up, pendingUpgrades, skill2, col, potions, scrolls, ...oldPlayer } = suspend.player;
-    const s = await boot({ 'saoy.suspend': JSON.stringify({ v: 2, savedAt: '', data: { ...suspend, player: oldPlayer } }) });
+    const { up, pendingUpgrades, build, col, potions, scrolls, ...oldPlayer } = suspend.player;
+    const s = await boot({ 'saoy.suspend': JSON.stringify({ v: 3, savedAt: '', data: { ...suspend, player: oldPlayer } }) });
     expect(s.loadSuspend()?.player).toMatchObject({ up: {}, col: 0, potions: 0 });
   });
 
   it('rejects a suspend for a floor that does not exist', async () => {
-    const s = await boot({ 'saoy.suspend': JSON.stringify({ v: 2, savedAt: '', data: { ...suspend, floorIdx: 42 } }) });
+    const s = await boot({ 'saoy.suspend': JSON.stringify({ v: 3, savedAt: '', data: { ...suspend, floorIdx: 42 } }) });
     expect(s.loadSuspend()).toBeNull();
   });
 
@@ -125,7 +125,7 @@ describe('version 2', () => {
     expect(s.loadSuspend()).toBeNull();
     expect(storage.dump()['saoy.suspend']).toBeUndefined();
     expect(storage.dump()['saoy.suspend.bak']).toBeUndefined();
-    expect(s.meta.shards).toBe(70);
+    expect(s.meta.shards).toBe(70 + 30); // + the v3 Cyclone Edge refund
     expect(s.meta.unlocked).toEqual(['sonicLeap', 'horizontal']);
     expect(s.meta.best).toBeNull();
     expect(s.meta.bestLegacy).toMatchObject({ floor: 3 });
@@ -153,5 +153,40 @@ describe('rebinding', () => {
     expect(input.keyLabel('attack')).toBe('—');
     input.resetBindings();
     expect(input.codesFor('attack')).toEqual(['KeyJ']);
+  });
+});
+
+describe('default keys vs custom bindings', () => {
+  it('a default key yields to a custom binding that claims it', async () => {
+    await boot();
+    const input = await import('../src/core/input.ts'), { settings } = await import('../src/core/save.ts');
+    expect(input.actionForKey('KeyI')).toBe('skill3');
+    settings.bindings.potion = ['KeyI'];
+    expect(input.actionForKey('KeyI')).toBe('potion');
+    expect(input.codesFor('skill3')).toEqual([]);
+  });
+});
+
+describe('version 3', () => {
+  it('moves a v2 suspend slot-2 Art into build.arts and starts with no mods', async () => {
+    const v2 = { floorIdx: 6, room: { type: 'battle', reward: 'xp' },
+      player: { lv: 5, xp: 10, hp: 90, maxHp: 160, atk: 20, up: {}, pendingUpgrades: 0, skill2: 'horizontal', col: 30, potions: 1, scrolls: 0 },
+      run: { floor: 7, kills: 30, time: 200, assisted: false, seed: 99, bosses: 1 } };
+    const s = await boot({ 'saoy.suspend': JSON.stringify({ v: 2, savedAt: '', data: v2 }) });
+    expect(s.loadSuspend()!.player.build).toEqual({ arts: ['horizontal', null], mods: {}, evolved: [] });
+  });
+
+  it('refunds Shards for Arts that became free (Cyclone 30, Fang 60) and keeps the rest', async () => {
+    const s = await boot({ 'saoy.meta': JSON.stringify({ v: 2, savedAt: '', data: { shards: 5, unlocked: ['sonicLeap', 'horizontal', 'vorpal'], hintsSeen: ['move'] } }) });
+    expect(s.meta.shards).toBe(5 + 30 + 60);
+    expect(s.meta.hintsSeen).toEqual(['move']);
+  });
+
+  it('a suspend with an unknown element or more than 2 mods on one Art fails validation instead of loading', async () => {
+    const bad = { floorIdx: 1, room: null,
+      player: { lv: 1, xp: 0, hp: 100, maxHp: 100, atk: 10, build: { arts: [null, null], mods: { blade: ['fire'] }, evolved: [] } },
+      run: { floor: 2, kills: 0, time: 1, seed: 1 } };
+    const s = await boot({ 'saoy.suspend': JSON.stringify({ v: 3, savedAt: '', data: bad }) });
+    expect(s.loadSuspend()).toBeNull();
   });
 });

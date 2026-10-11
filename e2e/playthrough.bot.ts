@@ -13,12 +13,12 @@ const BOT = `(() => {
   const hold = (code, on) => { if (!!held[code] !== on) { held[code] = on; key(code, on); } };
   const visible = id => document.getElementById(id).classList.contains('on');
   const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-  let floor = -1, last = { x: 0, y: 0 }, stuck = 0, detour = 0, side = 1, frames = 0;
+  let floor = -1, last = { x: 0, y: 0 }, stuck = 0, detour = 0, side = 1, dx = 0, dy = 0, tries = 0, free = 0, frames = 0;
   const walkTo = (tx, ty) => {
     const P = s.P;
-    if (detour > 0) { detour--; [tx, ty] = [P.x - (ty - P.y) * side, P.y + (tx - P.x) * side]; }
-    else if (Math.hypot(P.x - last.x, P.y - last.y) < 0.5 && Math.hypot(tx - P.x, ty - P.y) > 30) { if (++stuck > 60) { stuck = 0; detour = 40; side = -side; } }
-    else stuck = 0;
+    if (detour > 0) { detour--; [tx, ty] = [P.x + dx, P.y + dy]; } // fixed straight sidestep, alternating sides and growing per try (see tests/harness.ts)
+    else if (Math.hypot(P.x - last.x, P.y - last.y) < 0.5 && Math.hypot(tx - P.x, ty - P.y) > 30) { free = 0; if (++stuck > 60) { stuck = 0; detour = 40 * ++tries; side = -side; [dx, dy] = [-(ty - P.y) * side, (tx - P.x) * side]; } }
+    else { stuck = 0; if (++free > 300) tries = 0; }
     last = { x: P.x, y: P.y };
     hold('KeyD', tx > P.x + 5); hold('KeyA', tx < P.x - 5); hold('KeyS', ty > P.y + 5); hold('KeyW', ty < P.y - 5);
   };
@@ -30,7 +30,7 @@ const BOT = `(() => {
   function overlays() { // the UI a player has to click through; returns true while one is open
     if (document.querySelector('dialog[open]')) { note('confirm dialog'); tap('Escape'); return true; }
     if (visible('story')) { note('story ' + document.getElementById('story-who').textContent); tap('Enter'); return true; }
-    if (visible('upgrade')) { note('level-up picker'); tap('Digit' + (1 + (frames % 3))); return true; }
+    if (visible('upgrade')) { note('picker'); tap(document.getElementById('upgrade-cards').children.length < 3 ? 'Digit1' : 'Digit' + (1 + (frames % 3))); return true; }
     if (visible('shop')) { note('shop'); tap('Digit1'); tap('Digit2'); tap('Escape'); return true; }
     if (visible('pause')) { note('paused (unexpected)'); tap('Escape'); return true; }
     return false;
@@ -39,7 +39,7 @@ const BOT = `(() => {
     const P = s.P; aim(tg);
     if (tg.wind > 0 && tg.wind < 0.2) { away(tg, 3); if (dist(P, tg) < 80) tap('Space'); return; }
     walkTo(tg.x, tg.y);
-    if (dist(P, tg) < tg.r + 50) { tap('KeyJ'); if (P.skillCd[0] <= 0) tap('KeyK'); }
+    if (dist(P, tg) < tg.r + 50) { tap('KeyJ'); if (P.skillCd[0] <= 0) tap('KeyK'); if (P.skills[1] && P.skillCd[1] <= 0) tap('KeyL'); if (P.skills[2] && P.skillCd[2] <= 0) tap('KeyI'); }
   };
   function think() { // same decision order as the tests/harness.ts bot
     frames++;
@@ -70,7 +70,7 @@ const BOT = `(() => {
     else if (act === 'volley' && dist(P, boss) < 260) away(boss);
     else if (act === 'charge') walkTo(P.x, P.y + (Math.sin(boss.ang) > 0 ? -200 : 200));
     else if (adds && dist(P, adds) < 120) { aim(adds); walkTo(adds.x, adds.y); tap('KeyJ'); }
-    else { walkTo(boss.x, boss.y); if (dist(P, boss) < boss.r + 50) { tap('KeyJ'); if (P.skillCd[0] <= 0) tap('KeyK'); if (P.skills[1] && P.skillCd[1] <= 0) tap('KeyL'); } }
+    else { walkTo(boss.x, boss.y); if (dist(P, boss) < boss.r + 50) { tap('KeyJ'); if (P.skillCd[0] <= 0) tap('KeyK'); if (P.skills[1] && P.skillCd[1] <= 0) tap('KeyL'); if (P.skills[2] && P.skillCd[2] <= 0) tap('KeyI'); } }
   }
   function invariants() {
     const P = s.P; if (!P) return;
@@ -85,7 +85,7 @@ const BOT = `(() => {
   const timer = setInterval(() => {
     for (let i = 0; i < 30 && !window.__bot.done; i++) {
       think(); s.tick(1 / 60); invariants();
-      if (s.run?.over) { stop(); note('run over: ' + s.run.over + ' on floor ' + (s.floorIdx + 1) + ' at Lv.' + s.P.lv); window.__bot.done = true; clearInterval(timer); }
+      if (s.run?.over) { stop(); note('run over: ' + s.run.over + ' on floor ' + (s.floorIdx + 1) + ' at Lv.' + s.P.lv); note('build: ' + JSON.stringify(s.P.skills) + ' mods ' + JSON.stringify(s.P.mods) + ' evolved ' + JSON.stringify(s.P.evolved)); window.__bot.done = true; clearInterval(timer); }
     }
   }, 16);
 })()`;
