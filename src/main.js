@@ -9,6 +9,7 @@ import '@fontsource/exo-2/800.css';
 import './style.css';
 import { W, H } from './world/constants.ts';
 import { G } from './world/state.ts';
+import { ARENA } from './data/bosses.ts';
 import { loadFloor } from './world/floor.ts';
 import { hitWall } from './world/physics.ts';
 import { scenes, clock } from './core/app.ts';
@@ -134,9 +135,9 @@ addEventListener('keydown', unlockAudio, { once: true });
 // Dev-only handle for console/bot playtests; stripped from production builds.
 if (import.meta.env.DEV) {
   const live = { state: () => G.run?.over || scenes.top?.name, P: () => G.P, mobs: () => G.mobs, shots: () => G.shots, waves: () => G.waves, boss: () => G.boss, F: () => G.F,
-                 floorIdx: () => G.floorIdx, L: () => G.L, doors: () => G.doors, room: () => G.room, portal: () => G.portal, run: () => G.run, clock: () => clock, scenes: () => scenes, cam: () => G.cam, rewards: () => G.rewards };
+                 floorIdx: () => G.floorIdx, L: () => G.L, doors: () => G.doors, room: () => G.room, portal: () => G.portal, run: () => G.run, clock: () => clock, scenes: () => scenes, cam: () => G.cam, rewards: () => G.rewards, arena: () => G.arena };
   /** @type {any} */ (window).__saoy = Object.defineProperties(
     { tick: dt => clock.advance(dt), update: updateGame, updateFx, draw: drawWorld, newGame, loadFloor, attack, skill, hurtPlayer, hurtEnemy,
-      hitWall, startBossMove, keys, mouse, ready, consts: { W, H } },
+      hitWall, startBossMove, keys, mouse, ready, ARENA, consts: { W, H } },
     Object.fromEntries(Object.entries(live).map(([k, get]) => [k, { get }])));
 }

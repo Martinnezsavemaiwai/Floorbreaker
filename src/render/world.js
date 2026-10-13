@@ -4,7 +4,7 @@ import { tr, t } from '../core/i18n.ts';
 import { kindOf, ELITE_MOD_NAME } from '../data/run.ts';
 import { W, H } from '../world/constants.ts';
 import { PLAYER } from '../data/player.ts';
-import { MOVES, BOSS_RULES } from '../data/bosses.ts';
+import { MOVES, BOSS_RULES, ARENA } from '../data/bosses.ts';
 import { SKILLS } from '../data/skills.ts';
 import { keyLabel } from '../core/input.ts';
 import { nearMerchant } from '../systems/shop.js';
@@ -15,6 +15,7 @@ import { clamp } from '../core/math.ts';
 import { burst } from '../systems/fx.js';
 import { ctx, frame, shadow, dirCol, FN, FT, sword as drawSword } from './canvas.js';
 import { bg, vig } from './terrain.js';
+import { emit } from '../core/events.ts';
 import { drawHud } from './hud.js';
 
 const SWING = PLAYER.attack.swing;
@@ -22,6 +23,14 @@ const SWING = PLAYER.attack.swing;
 function drawMob(m) {
   const { time } = G, M = m.def;
   shadow(m.x, m.y, m.r);
+  if (m.sprout) { // a small green root shape that sways and shrinks as it withers
+    const k = Math.min(1, m.life / 1.5), sw = Math.sin(time * 5 + m.sx) * 3;
+    ctx.save(); ctx.translate(m.x, m.y); ctx.scale(k, k); ctx.lineCap = 'round';
+    ctx.strokeStyle = m.hurt > 0 ? '#fff' : '#4f7a2c'; ctx.lineWidth = 7;
+    ctx.beginPath(); ctx.moveTo(-8, 0); ctx.quadraticCurveTo(-12 + sw, -16, -4, -28); ctx.moveTo(8, 0); ctx.quadraticCurveTo(12 + sw, -14, 5, -24); ctx.moveTo(0, 2); ctx.lineTo(sw, -32); ctx.stroke();
+    ctx.fillStyle = '#9be05a'; ctx.beginPath(); ctx.arc(sw, -34, 5, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    return;
+  }
   // wind-up: shake + red flash; lunge: hop toward the target
   const jit = m.wind > 0 ? Math.sin(time * 70) * 2 : 0, hop = m.lunge > 0 ? Math.sin((m.lunge / M.lunge) * Math.PI) * 12 : 0;
   const x = Math.round(m.x + jit + Math.cos(m.face) * hop), y = Math.round(m.y + Math.sin(m.face) * hop);
@@ -81,6 +90,10 @@ function drawBoss() {
   const img = b.hurt > 0 && settings.flash ? IMG[F.boss.img + 'White'] : IMG[rage() ? F.boss.rageImg : F.boss.img];
   frame(img, dirCol(b.ang), attacking ? 4 : Math.floor(time * 5) % 4, b.x + jit, b.y - b.z, F.boss.scale);
   ctx.restore();
+  if (b.stun > 0) { // stars circling above the head
+    ctx.fillStyle = '#ffe14d'; ctx.font = '900 22px system-ui'; ctx.textAlign = 'center';
+    for (let i = 0; i < 3; i++) { const a = time * 5 + i * 2.1; ctx.fillText('★', b.x + Math.cos(a) * b.r * 0.8, b.y - b.r * 2.2 + Math.sin(a) * 8); }
+  }
 }
 
 // Town merchant: idles facing down; name tag always, the key prompt only when close enough to open the shop
@@ -126,6 +139,55 @@ function drawWaves() {
     ctx.beginPath(); ctx.arc(w.x - Math.cos(a) * w.r, w.y - Math.sin(a) * w.r, w.r * 1.4, a - 1.1, a + 1.1); ctx.stroke();
   }
   ctx.restore();
+}
+
+function drawArena() {
+  const A = G.arena;
+  if (!A || G.boss.hp <= 0) return;
+  ctx.save();
+  if (A.id === 'flood') {
+    const F = ARENA.flood, f = A.flood, L = G.L, rx = L.roomX, rw = L.w - rx;
+    const plats = () => { for (const [x, y] of F.platforms) { ctx.beginPath(); ctx.arc(x, y, F.platR, 0, 7); ctx.fill(); } };
+    if (f.on > 0) { // water everywhere except the platforms
+      ctx.save(); ctx.beginPath(); ctx.rect(rx, 0, rw, L.h);
+      for (const [x, y] of F.platforms) { ctx.moveTo(x + F.platR, y); ctx.arc(x, y, F.platR, 0, 7, true); }
+      ctx.clip('evenodd');
+      ctx.fillStyle = 'rgba(40,110,190,.42)'; ctx.fillRect(rx, 0, rw, L.h);
+      ctx.strokeStyle = 'rgba(190,230,255,.35)'; ctx.lineWidth = 2;
+      for (let y = 20; y < L.h; y += 36) { ctx.beginPath(); for (let x = rx; x <= L.w; x += 20) ctx.lineTo(x, y + Math.sin(x / 38 + G.time * 3 + y) * 5); ctx.stroke(); }
+      ctx.restore();
+    }
+    ctx.fillStyle = '#6f6a63'; plats(); // stone discs, drawn over the water
+    ctx.strokeStyle = '#4e4945'; ctx.lineWidth = 4; for (const [x, y] of F.platforms) { ctx.beginPath(); ctx.arc(x, y, F.platR, 0, 7); ctx.stroke(); }
+    ctx.strokeStyle = '#8a837c'; ctx.lineWidth = 2; for (const [x, y] of F.platforms) { ctx.beginPath(); ctx.arc(x, y, F.platR * 0.6, 0, 7); ctx.stroke(); }
+    if (f.warn > 0) { // blue creeping in from the room edges
+      const k = 1 - f.warn / F.warn, g = ctx.createRadialGradient(rx + rw / 2, L.h / 2, 150, rx + rw / 2, L.h / 2, rw * 0.62);
+      g.addColorStop(0, 'rgba(60,140,230,0)'); g.addColorStop(1, `rgba(60,140,230,${0.55 * k})`);
+      ctx.fillStyle = g; ctx.fillRect(rx, 0, rw, L.h);
+    }
+  }
+  if (A.id === 'rockfall') { // pillars are drawn with the actors (drawPillar)
+    const R = ARENA.rockfall;
+    for (const r of A.rocks) {
+      const k = 1 - Math.max(0, r.t) / R.warn, rad = R.radius * (0.4 + 0.6 * k);
+      ctx.fillStyle = `rgba(0,0,0,${0.25 + 0.3 * k})`; ctx.beginPath(); ctx.ellipse(r.x, r.y, rad, rad * 0.6, 0, 0, 7); ctx.fill();
+      if (r.t < 0.25) { ctx.strokeStyle = 'rgba(255,60,60,.8)'; ctx.lineWidth = 3; ctx.stroke(); }
+      if (r.t < 0.2) { ctx.fillStyle = '#8a7a6a'; ctx.beginPath(); ctx.arc(r.x, r.y - r.t * 900, 16, 0, 7); ctx.fill(); }
+    }
+  }
+  ctx.restore();
+}
+
+// Stone block; a crack shows after the first hit
+function drawPillar(p) {
+  shadow(p.x + p.w / 2, p.y + p.h, p.w * 0.6);
+  ctx.fillStyle = '#6b6560'; ctx.fillRect(p.x, p.y - 44, p.w, p.h + 44);
+  ctx.fillStyle = '#8a837c'; ctx.fillRect(p.x, p.y - 44, p.w, 14);
+  ctx.fillStyle = '#4e4945'; ctx.fillRect(p.x + p.w - 10, p.y - 30, 10, p.h + 30);
+  if (p.hits > 0) {
+    ctx.strokeStyle = '#1e1b19'; ctx.lineWidth = 3; ctx.beginPath();
+    ctx.moveTo(p.x + 14, p.y - 30); ctx.lineTo(p.x + 26, p.y - 8); ctx.lineTo(p.x + 18, p.y + 12); ctx.lineTo(p.x + 32, p.y + 34); ctx.stroke();
+  }
 }
 
 function drawTelegraph() {
@@ -371,6 +433,24 @@ function drawDanger() { // red edge on hits and at low HP (steady instead of pul
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
 }
 
+// Elderroot's fog: darkness over the world (not the HUD) with a soft hole around the player; sprouts glow through it
+let fogCv = null, fogWarned = false;
+function drawVisionFog() {
+  const A = G.arena; if (A?.id !== 'fog' || !G.boss.awake || G.boss.hp <= 0) return;
+  const v = A.vision, px = G.P.x - G.cam.x, py = G.P.y - G.cam.y;
+  if (v < 220 && !fogWarned) emit('arenaWarn', 'fog'); fogWarned = v < 220;
+  fogCv ??= document.createElement('canvas'); if (fogCv.width !== W || fogCv.height !== H) { fogCv.width = W; fogCv.height = H; }
+  const f = fogCv.getContext('2d');
+  f.fillStyle = 'rgba(4,8,6,.94)'; f.fillRect(0, 0, W, H);
+  const g = f.createRadialGradient(px, py, v * 0.45, px, py, v);
+  g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+  f.globalCompositeOperation = 'destination-out'; f.fillStyle = g; f.fillRect(0, 0, W, H); f.globalCompositeOperation = 'source-over';
+  ctx.drawImage(fogCv, 0, 0);
+  ctx.save(); ctx.globalAlpha = 0.5; ctx.fillStyle = '#78c850';
+  for (const m of G.mobs) if (m.sprout && m.hp > 0) { ctx.beginPath(); ctx.arc(m.x - G.cam.x, m.y - G.cam.y, m.r * 0.7, 0, Math.PI * 2); ctx.fill(); }
+  ctx.restore();
+}
+
 export function drawWorld() {
   const { P, cam } = G;
   cam.x = clamp(P.x - W / 2, 0, G.L.w - W); cam.y = clamp(P.y - H / 2, 0, G.L.h - H);
@@ -378,12 +458,13 @@ export function drawWorld() {
   const sx = (Math.random() - 0.5) * G.shake, sy = (Math.random() - 0.5) * G.shake;
   ctx.save(); ctx.translate(Math.round(-cam.x + sx), Math.round(-cam.y + sy));
   ctx.drawImage(bg, 0, 0);
-  drawTorches(); drawDoor(); drawPortal(); drawDoors(); drawTelegraph();
+  drawTorches(); drawDoor(); drawPortal(); drawDoors(); drawArena(); drawTelegraph();
   // y-sort so whoever is lower on screen is drawn in front
   const actors = G.mobs.filter(m => m.hp > 0).map(m => ({ y: m.y, draw: () => drawMob(m) }));
   actors.push({ y: P.y, draw: drawPlayer });
   if (G.L.merchant) actors.push({ y: G.L.merchant.y, draw: drawMerchant });
   if (G.L.shrine) actors.push({ y: G.L.shrine.y, draw: drawShrine });
+  for (const p of G.arena?.pillars ?? []) actors.push({ y: p.y + p.h, draw: () => drawPillar(p) });
   if (G.boss.hp > 0) actors.push({ y: G.boss.y, draw: drawBoss });
   for (const a of actors.sort((a, b) => a.y - b.y)) a.draw();
   drawShots();
@@ -392,6 +473,7 @@ export function drawWorld() {
   if (G.F.fog && G.L.kind !== 'town') drawFog();
   ctx.restore();
   ctx.drawImage(vig, 0, 0);
+  drawVisionFog();
   if (P.slowmo > 0) { ctx.fillStyle = 'rgba(255,240,200,0.08)'; ctx.fillRect(0, 0, W, H); }
   drawDanger();
   drawHud();

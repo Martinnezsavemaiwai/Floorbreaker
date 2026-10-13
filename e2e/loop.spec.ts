@@ -221,3 +221,21 @@ test('the new Arts fire in the real page: Crescent Wave, Riposte and Shade Step'
   }
   expect(errors).toEqual([]);
 });
+
+test('a boss wakes with an intro card and falls with a defeat card', async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto('/');
+  await diveIn(page);
+  await hook(page, 's.loadFloor(4)');
+  await settle(page);
+  await hook(page, 's.P.x = s.L.roomX + 120, s.P.y = s.L.h / 2');
+  await expect(page.locator('#boss-card')).toHaveClass(/on/, { timeout: 3_000 });
+  await expect(page.locator('#boss-card')).toBeVisible();
+  await expect(page.locator('#boss-card-name')).toContainText('Grask');
+  await hook(page, 's.hurtEnemy(s.boss, s.boss.hp + 1, true)');
+  await expect(page.locator('#boss-card')).toHaveClass(/down/, { timeout: 3_000 });
+  await page.waitForTimeout(300);                       // a stale animationcancel would strip the class by now
+  await expect(page.locator('#boss-card')).toHaveClass(/down/);
+  await expect(page.locator('#boss-card')).toBeVisible();
+  expect(errors).toEqual([]);
+});

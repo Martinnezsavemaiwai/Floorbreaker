@@ -50,6 +50,8 @@ export const MOBS = {
   tidalBoar: { ...BASE, name: 'Tidal Boar', img: 'tidalboar', white: 'tidalboarWhite', kind: 'beast', hp: 200, dmg: 28, speed: 160, wind: 0.32, xp: 100, col: 16 },
   waterWraith: { ...BASE, name: 'Water Wraith', img: 'wraith', white: 'wraithWhite', kind: 'humanoid', hp: 120, dmg: 24, speed: 120, wind: 0.6, xp: 85, col: 18,
     attackCd: 2.2, ranged: { keep: 190, range: 340, shotSpeed: 340, shotR: 9, color: '#6fd8ff' } },
+  // Elderroot's root sprouts: harmless, rooted, cut them down to lift the fog (img is unused, drawn in drawMob)
+  rootSprout: { ...BASE, name: 'Root Sprout', img: 'boar', white: 'boarWhite', kind: 'beast', hp: 30, dmg: 0, speed: 0, wind: 1, xp: 0, col: 0, radius: 18 },
 } satisfies Record<string, MobStats>;
 
 export type MobId = keyof typeof MOBS;

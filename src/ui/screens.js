@@ -221,7 +221,18 @@ on('langChanged', () => {
   else if (current === 'howto') renderHowTo();
   else if (current === 'skills') renderSkills();
 });
+const bossCard = (down) => {
+  const c = $('boss-card'), b = G.F.boss;
+  $('boss-card-name').textContent = b.name;
+  $('boss-card-sub').textContent = down ? tr('ล้มแล้ว', 'Defeated') : t(b.epithet);
+  $('boss-card-hint').textContent = down ? '' : t(b.hint);
+  c.classList.remove('on', 'down'); void c.offsetWidth; c.classList.add('on'); if (down) c.classList.add('down');
+};
+$('boss-card').addEventListener('animationend', e => { if (e.target === e.currentTarget) e.currentTarget.classList.remove('on', 'down'); });
+on('bossWake', () => bossCard(false));
+on('bossDeath', () => bossCard(true));
 on('floorLoaded', i => {
+  $('boss-card').classList.remove('on', 'down');
   const k = G.L.kind, type = G.room?.type, sub = k === 'boss' ? tr('บอส: ', 'Boss: ') + G.F.boss.name
     : k === 'town' ? tr('ฟื้น HP เต็มแล้ว พ่อค้าอยู่ข้างน้ำพุ', 'Fully healed. The merchant is by the fountain.')
     : type === 'spring' ? tr('เดินไปที่น้ำพุเพื่อฟื้น HP ครึ่งหลอด', 'Walk to the fountain to heal half your HP.')

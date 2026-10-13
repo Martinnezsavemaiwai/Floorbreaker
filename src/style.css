@@ -187,8 +187,19 @@ dialog.dialog .btn{justify-content:center}
 @keyframes fade{from{opacity:0}}
 @keyframes settle{0%{opacity:0;transform:translateY(6px)}66%{opacity:1;transform:translateY(-1px)}100%{transform:none}}
 @keyframes light{0%{filter:brightness(.8)}50%{filter:brightness(1.15)}100%{filter:none}}
+#boss-card{--dur:3.4s;position:fixed;left:50%;top:calc(var(--canvas-top) + var(--canvas-h) * .3);transform:translateX(-50%);pointer-events:none;display:none;width:min(440px,calc(100% - 32px))}
+#boss-card.on{display:block;animation:toast var(--dur) steps(24,end) forwards}
+#boss-card .win{animation:none}
+#boss-card .win .body{text-align:center;gap:2px;padding:14px 18px}
+#boss-card b{font:800 24px var(--font-num);letter-spacing:.03em;color:var(--ink)}
+#boss-card span{font-size:14px;color:var(--ink-2);line-height:1.5}
+#boss-card-hint{margin-top:4px;color:var(--ink)}
+#boss-card.down b{text-decoration:line-through;color:var(--ink-2)}
+#boss-card.down #boss-card-hint{display:none}
+@keyframes toast-still{0%,94%{opacity:1}100%{opacity:0}}
 @keyframes toast{0%{opacity:0;transform:translate(-50%,-8px)}8%,86%{opacity:1;transform:translate(-50%,0)}100%{opacity:0}}
-@media (prefers-reduced-motion:reduce){.screen.on,.win,#toast.on,.btn,.pane,.card{animation-duration:.01s !important}.switch::after{transition:none}}
+@media (prefers-reduced-motion:reduce){.screen.on,.win,#toast.on,#boss-card.on,.btn,.pane,.card{animation-duration:.01s !important}.switch::after{transition:none}}
+@media (prefers-reduced-motion:reduce){#toast.on,#boss-card.on{animation-name:toast-still;animation-duration:var(--dur,3.2s) !important;animation-timing-function:linear}}
 
 /* ---------- picker cards (level-up, shop, Blade Arts) ---------- */
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
@@ -227,5 +238,6 @@ dialog.dialog .btn{justify-content:center}
 .credits{margin:4px 0 0;font-size:13px}
 /* banners never cover a menu window; the bottom story window leaves room for them */
 body:has(.screen.on:not(.story)) #toast{display:none}
+body:has(.screen.on) #boss-card{visibility:hidden;animation-play-state:paused}
 /* tracking pulls Thai vowel and tone marks apart: Latin titles keep it, Thai sets solid */
 :lang(th) :is(.result-title,.pane-title,.win header),:lang(th) #result.dead .result-title{letter-spacing:0}

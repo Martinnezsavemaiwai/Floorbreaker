@@ -23,7 +23,7 @@ export function applyElements(e, art, dmg) {
       const stacks = Math.min(EL.ember.stacks, (e.burn?.t > 0 ? e.burn.stacks : 0) + 1);
       e.burn = { dps: dmg * EL.ember.dps * k, t: EL.ember.time, stacks };
     } else if (el === 'storm') {
-      const near = targets().filter(o => o !== e && dist(o, e) < EL.storm.range).sort((a, b) => dist(a, e) - dist(b, e)).slice(0, EL.storm.chain);
+      const near = targets().filter(o => o !== e && !('sprout' in o && o.sprout) && dist(o, e) < EL.storm.range).sort((a, b) => dist(a, e) - dist(b, e)).slice(0, EL.storm.chain);
       for (const o of near) { G.bolts.push({ x1: e.x, y1: e.y, x2: o.x, y2: o.y, t: 0.15 }); hurtEnemy(o, Math.round(dmg * EL.storm.mult * k), false); }
     } else if (el === 'thorn') {
       e.poison = { dps: dmg * EL.thorn.dps * k, t: EL.thorn.time };

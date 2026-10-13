@@ -519,7 +519,7 @@ describe('boss portal', () => {
     const { hurtEnemy } = await import('../src/systems/combat.js');
     G.P!.x = G.boss!.x + 100; G.P!.y = G.boss!.y;
     hurtEnemy(G.boss!, 99999, false);
-    frames(30);                                         // the death hit-stop passes with the player outside; still opening
+    frames(40);                                         // the death hit-stop passes with the player outside; still opening
     expect(G.portal!.wait).toBeGreaterThan(0);
     G.P!.x = G.portal!.x; frame();
     expect(G.floorIdx).toBe(4);

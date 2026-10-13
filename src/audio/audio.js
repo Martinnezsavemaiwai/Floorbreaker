@@ -97,5 +97,6 @@ on('bossWake', () => { SFX.roar(); playMusic('boss'); });
 on('bossSummon', SFX.roar);
 on('bossWind', mv => { if (mv !== 'charge') SFX.bossWind(); }); // charge has its own whoosh (bossCharge)
 on('bossImpact', SFX.slam);
+on('arenaWarn', SFX.bossWind);
 on('bossCharge', SFX.charge);
 on('floorLoaded', i => playMusic(actOf(i)));

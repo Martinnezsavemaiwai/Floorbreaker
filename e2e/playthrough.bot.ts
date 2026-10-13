@@ -51,6 +51,21 @@ const BOT = `(() => {
     walkTo(tg.x, tg.y);
     if (dist(P, tg) < tg.r + 50) tap('KeyJ');
   };
+  const arena = () => { // arena rules for the boss fight (see tests/harness.ts); true when it took over movement this frame
+    const P = s.P, A = s.arena, boss = s.boss, AR = s.ARENA;
+    if (!A) return false;
+    if (boss.stun > 0) [['KeyK', 0], ['KeyL', 1], ['KeyI', 2]].forEach(([code, i]) => { if (P.skills[i] && P.skillCd[i] <= 0) tap(code); });
+    const rock = A.rocks.find(r => dist(P, r) < AR.rockfall.radius + P.r + 10);
+    if (rock) { away(rock); return true; }
+    const f = A.flood;
+    if (f && (f.warn > 0 || f.on > 0)) {
+      const pl = AR.flood.platforms.map(([x, y]) => ({ x, y })).sort((a, b) => dist(P, a) - dist(P, b))[0];
+      walkTo(pl.x, pl.y); if (dist(P, boss) < boss.r + 50) tap('KeyJ'); return true;
+    }
+    const sprout = A.id === 'fog' && s.mobs.filter(m => m.sprout && m.hp > 0 && dist(P, m) < 300).sort((a, b) => dist(P, a) - dist(P, b))[0];
+    if (sprout) { fight(sprout); return true; }
+    return false;
+  };
   function think() { // same decision order as the tests/harness.ts bot
     frames++;
     if (overlays()) { stop(); return; }
@@ -81,6 +96,7 @@ const BOT = `(() => {
     const adds = mobs.filter(m => m.hp > 0 && m.summoned).sort((a, b) => dist(P, a) - dist(P, b))[0];
     const act = boss.act; aim(boss); useArts(boss);
     const spot = act === 'roots' && boss.spots && boss.spots.find(p => dist(p, P) < 100);
+    if (arena()) return;
     if (spot) { away(spot); if (boss.t < 0.3) tap('Space'); }
     else if (act === 'slam' && dist(P, boss) < 170) { away(boss); if (boss.t < 0.3) tap('Space'); }
     else if (act === 'leap' && dist(P, boss.to) < 140) away(boss.to);

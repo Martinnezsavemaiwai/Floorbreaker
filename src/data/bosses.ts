@@ -1,4 +1,5 @@
 // Floor bosses and their attack moves. Floors reference bosses by id (see floors.ts).
+import type { Text } from '../core/i18n.ts';
 export type MoveName = 'slam' | 'charge' | 'leap' | 'roots' | 'quake' | 'volley';
 type Pair = [normal: number, rage: number];
 
@@ -23,35 +24,46 @@ export const MOVES = {
   volley: { wind: [0.8, 0.6], count: [12, 16], speed: 260, shotR: 10, range: 650 }, // a ring of shots with gaps to slip through
 } satisfies Record<MoveName, { wind: Pair; [k: string]: unknown }>;
 
+export type ArenaId = 'rockfall' | 'pillars' | 'fog' | 'flood';
+
 export interface BossStats {
-  name: string; img: string; rageImg: string; hp: number; cd: Pair;
+  name: string; epithet: Text; hint: Text; img: string; rageImg: string; hp: number; cd: Pair;
   scale?: number; tree?: boolean; summon?: number;
   r?: number; bars?: number; speed?: Pair;           // override BOSS_DEFAULTS
-  moves: MoveName[]; rageMoves: MoveName[];
+  moves: MoveName[]; rageMoves: MoveName[]; arena: ArenaId; // arena: the room's own hazard (see systems/arena.js)
   dmg: Partial<Record<MoveName, number>>;
 }
 
 export const BOSSES = {
   houndfangLord: {
-    name: 'Grask the Houndfang Warlord', img: 'boss1', rageImg: 'boss1Rage', hp: 900, scale: 9, cd: [1.8, 1.1],
+    name: 'Grask the Houndfang Warlord', epithet: { th: 'ผู้คุมหุบเขาหินถล่ม', en: 'Keeper of the Falling Stone' }, hint: { th: 'ดูเงาบนพื้น หินจะตกตรงนั้น', en: 'Watch the shadows on the floor. Rocks land there.' }, img: 'boss1', rageImg: 'boss1Rage', hp: 900, scale: 9, cd: [1.8, 1.1], arena: 'rockfall',
     moves: ['slam', 'charge'], rageMoves: ['slam', 'charge', 'leap'], dmg: { slam: 30, charge: 24, leap: 34, quake: 0 },
   },
   asterius: {
-    name: 'Bullgard the Horned King', img: 'boss2', rageImg: 'boss2Rage', hp: 1800, scale: 10, cd: [1.6, 1.0], summon: 2,
+    name: 'Bullgard the Horned King', epithet: { th: 'ราชาเขาโค ผู้พังเสา', en: 'Breaker of Pillars' }, hint: { th: 'ล่อให้มันพุ่งชนเสา แล้วมันจะมึน', en: 'Bait its charge into a pillar to stun it.' }, img: 'boss2', rageImg: 'boss2Rage', hp: 1800, scale: 10, cd: [1.6, 1.0], summon: 2, arena: 'pillars',
     moves: ['slam', 'charge', 'quake'], rageMoves: ['slam', 'charge', 'leap', 'quake'], dmg: { slam: 40, charge: 34, leap: 40, quake: 30 },
   },
   // The treant is a big tree sprite instead of a character sheet: slow, no charge/leap, roots erupt under you
   nerius: {
-    name: 'Elderroot the Blighted', tree: true, img: 'treant', rageImg: 'treantRage', hp: 3200, bars: 5, r: 70, speed: [35, 50], cd: [1.5, 0.9], summon: 3,
+    name: 'Elderroot the Blighted', epithet: { th: 'ต้นไม้เน่าที่กลืนแสง', en: 'The Rot That Eats the Light' }, hint: { th: 'ตีรากที่งอกขึ้นมาเพื่อให้มองเห็นกว้างขึ้น', en: 'Cut the sprouting roots to push the dark back.' }, tree: true, img: 'treant', rageImg: 'treantRage', hp: 3200, bars: 5, r: 70, speed: [35, 50], cd: [1.5, 0.9], summon: 3, arena: 'fog',
     moves: ['slam', 'roots', 'quake'], rageMoves: ['roots', 'roots', 'quake', 'slam'], dmg: { slam: 55, roots: 45, quake: 40 },
   },
   // Floor 4: a water beast that fills the room with rings of water shots
   wythege: {
-    name: 'Marisca the Tide Mare', img: 'boss4', rageImg: 'boss4Rage', hp: 5600, bars: 5, scale: 11, cd: [1.5, 0.9], summon: 2,
+    name: 'Marisca the Tide Mare', epithet: { th: 'นางม้าแห่งกระแสน้ำ', en: 'Mare of the Rising Tide' }, hint: { th: 'น้ำจะท่วม ขึ้นไปยืนบนแท่นหิน', en: 'When the water rises, stand on a stone platform.' }, img: 'boss4', rageImg: 'boss4Rage', hp: 5600, bars: 5, scale: 11, cd: [1.5, 0.9], summon: 2, arena: 'flood',
     moves: ['charge', 'volley', 'slam'], rageMoves: ['volley', 'charge', 'leap', 'quake', 'volley'],
     dmg: { slam: 66, charge: 56, leap: 66, quake: 50, volley: 40 },
   },
 } satisfies Record<string, BossStats>;
+
+// Boss arena hazards: warn = seconds of shadow before it hurts; radius/spread in world px; dmgMult scales the boss's slam damage
+// pillars: size = square side, hits = charges that break one, stun = seconds the boss is dazed, stunDmg = damage multiplier while dazed
+export const ARENA = {
+  rockfall: { rocks: 3, warn: 0.8, radius: 50, dmgMult: 0.6, spread: 60 },
+  fog: { start: 520, min: 150, shrink: 14, restore: 140, sproutLife: 6 },
+  flood: { every: 12, everyLate: 7, lateAt: 0.25, warn: 1.5, last: 4, tick: 0.5, dmg: 0.08, platforms: [[640, 220], [640, 680], [1180, 450]] as [number, number][], platR: 64 },
+  pillars: { at: [[640, 240], [640, 660], [1160, 240], [1160, 660]] as [number, number][], size: 56, hits: 2, stun: 2, stunDmg: 1.5 },
+};
 
 export type BossId = keyof typeof BOSSES;
 // What a floor actually gets: boss stats with the defaults filled in

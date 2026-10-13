@@ -6,6 +6,7 @@ import { dist, rand } from '../core/math.ts';
 import { emit } from '../core/events.ts';
 import { rng } from '../core/rng.ts';
 import { hurtPlayer } from './combat.js';
+import { burst } from './fx.js';
 import { ELITE_RULES } from '../data/run.ts';
 import { tickStatus, speedFactor } from './elements.js';
 
@@ -17,6 +18,10 @@ export function updateMobs(dt) {
     if (m.hp <= 0) continue; // the dead stay dead: rooms are cleared wave by wave
     tickStatus(m, dt);
     if (m.hp <= 0) continue;              // a burn/poison tick can kill
+    if (m.sprout) { // rooted: only withers
+      if ((m.life -= dt) <= 0) { m.hp = 0; m.dead = Infinity; burst(m.x, m.y, 10, '#5a8a3a', 160, 0.5, 5, false); }
+      continue;
+    }
     m.sinceHit = (m.sinceHit ?? 0) + dt;
     if (m.mod === 'regen' && m.sinceHit > ELITE_RULES.regenDelay) m.hp = Math.min(m.maxHp, m.hp + m.maxHp * ELITE_RULES.regen * dt);
     if (m.frozen > 0) { applyKnock(m, dt, L.townX, maxX); continue; } // frozen: no thinking, no attacking

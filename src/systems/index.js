@@ -2,6 +2,7 @@
 import { updatePlayer } from './player.js';
 import { updateMobs } from './mobs.js';
 import { updateBoss } from './boss.js';
+import { updateArena } from './arena.js';
 import { updateHints } from './hints.js';
 import { updateRoom, updateDoors } from './rooms.js';
 import { G } from '../world/state.ts';
@@ -14,6 +15,7 @@ export function updateGame(dt) {
   updateRoom(dt);
   updateMobs(dt);
   updateBoss(dt);
+  updateArena(dt);
   updateHints(dt);
 }
 export { updateFx } from './fx.js';

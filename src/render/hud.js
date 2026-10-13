@@ -148,7 +148,7 @@ function drawMinimap() {
   const DOOR = G.L.door;
   if (G.doorClosed && DOOR) { ctx.fillStyle = '#ff4a3a'; ctx.fillRect(x + DOOR.x * MM, y + DOOR.y * MM, DOOR.w * MM, DOOR.h * MM); }
   ctx.fillStyle = '#f4ecd8'; for (const d of G.doors) ctx.fillRect(x + d.x * MM, y + d.y * MM, 4, d.h * MM);
-  ctx.fillStyle = '#ff5a4a'; for (const m of G.mobs) if (m.hp > 0) ctx.fillRect(x + m.x * MM - 1.5, y + m.y * MM - 1.5, 3, 3);
+  ctx.fillStyle = '#ff5a4a'; for (const m of G.mobs) if (m.hp > 0 && !m.sprout) ctx.fillRect(x + m.x * MM - 1.5, y + m.y * MM - 1.5, 3, 3);
   if (boss.hp > 0) {
     const r = 4 + (boss.awake ? Math.sin(G.time * 6) : 0);
     ctx.beginPath(); ctx.arc(x + boss.x * MM, y + boss.y * MM, r, 0, 7); ctx.fillStyle = '#ff2d2d'; ctx.fill();

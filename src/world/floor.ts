@@ -14,6 +14,7 @@ import { rng } from '../core/rng.ts';
 import { tr } from '../core/i18n.ts';
 import { settings, type Suspend } from '../core/save.ts';
 import { startRoom, makeDoors } from '../systems/rooms.js';
+import { buildArena } from '../systems/arena.js';
 
 // An act's data with its mob/boss ids swapped for the actual stat objects (fails loudly on a typo'd id)
 function actData(a: number): Floor {
@@ -57,7 +58,8 @@ export function loadFloor(i: number, room: Room | null = null) {
   // every floor has a boss object (systems read it); off boss floors it is a sleeping 0-HP placeholder
   const at = L.bossAt ?? { x: -999, y: -999 }, bhp = kind === 'boss' ? F.boss.hp : 0;
   G.boss = { x: at.x, y: at.y, z: 0, r: F.boss.r, hp: bhp, lag: bhp, maxHp: F.boss.hp, awake: false, cd: BOSS_RULES.firstMoveDelay,
-             act: null, t: 0, tMax: 1, ang: 0, hurt: 0, hitP: false, summoned: false };
+             act: null, t: 0, tMax: 1, ang: 0, hurt: 0, hitP: false, summoned: false, stun: 0 };
+  G.arena = kind === 'boss' ? buildArena(F.boss.arena) : null;
   const hp = kind === 'town' ? G.P!.maxHp : G.P!.hp; // only towns heal you fully
   Object.assign(G.P, { x: L.start.x, y: L.start.y, hp, lag: hp, dash: 0, delay: 0, trail: [], kx: 0, ky: 0, inv: 0, buf: null, parry: 0, slowmo: 0, spin2: 0, fangLine: 0, fangBeam: 0, shadeChain: 0, shadeLast: null, dashArt: null });
   clock.scale = settings.assistSpeed;

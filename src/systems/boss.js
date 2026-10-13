@@ -1,15 +1,15 @@
 // Boss AI: walk toward the player, then pick a (weighted-by-repetition) move from the phase's list.
 // Each move telegraphs for MOVES[mv].wind seconds, then RESOLVE[mv] fires; ACTIVE moves run every step.
-import { G, rage } from '../world/state.ts';
+import { G, rage, bossDmg } from '../world/state.ts';
 import { move } from '../world/physics.ts';
-import { BOSS_RULES, MOVES } from '../data/bosses.ts';
+import { MOVES } from '../data/bosses.ts';
 import { clamp, dist, lerp, pick, rand } from '../core/math.ts';
 import { emit } from '../core/events.ts';
-import { text, burst, ring, kick } from './fx.js';
+import { burst, ring, kick } from './fx.js';
 import { hurtPlayer } from './combat.js';
+import { onSlam, onDashBlocked, onRoots } from './arena.js';
 import { tickStatus, speedFactor } from './elements.js';
 
-const bossDmg = k => Math.round(G.F.boss.dmg[k] * (rage() ? BOSS_RULES.rageDmgMult : 1));
 const wind = mv => MOVES[mv].wind[rage() ? 1 : 0];
 function endAct() { const b = G.boss; b.act = null; b.cd = G.F.boss.cd[rage() ? 1 : 0]; b.z = 0; }
 function setAct(act, t) { const b = G.boss; b.act = act; b.t = b.tMax = t; b.hitP = false; }
@@ -23,6 +23,12 @@ export function startBossMove(mv) {
   if (mv === 'leap') {
     boss.from = { x: boss.x, y: boss.y };
     boss.to = { x: clamp(P.x, G.L.roomX + 40 + boss.r, G.L.w - boss.r), y: clamp(P.y, boss.r, G.L.h - boss.r) };
+    for (let pass = 0; pass < 4; pass++) for (const w of G.WALLS) { // the leap has no collision, so land clear of pillars
+      const t = boss.to, r = boss.r;
+      if (t.x <= w.x - r || t.x >= w.x + w.w + r || t.y <= w.y - r || t.y >= w.y + w.h + r) continue;
+      const d = [t.x - (w.x - r), w.x + w.w + r - t.x, t.y - (w.y - r), w.y + w.h + r - t.y], m = Math.min(...d);
+      if (m === d[0]) t.x = w.x - r - 1; else if (m === d[1]) t.x = w.x + w.w + r + 1; else if (m === d[2]) t.y = w.y - r - 1; else t.y = w.y + w.h + r + 1;
+    }
   } else if (mv === 'roots') { // spikes under the player plus random spots around the room
     boss.spots = [{ x: P.x, y: P.y }];
     for (let i = 0; i < MOVES.roots.extraSpots[fast ? 1 : 0]; i++) boss.spots.push({ x: rand(G.L.roomX + 40 + 40, G.L.w - 40), y: rand(40, G.L.h - 40) });
@@ -40,7 +46,9 @@ const ACTIVE = {
     move(b, Math.cos(b.ang) * sp * dt, Math.sin(b.ang) * sp * dt, G.L.roomX + 40);
     if (Math.random() < 0.6) burst(b.x, b.y + b.r * 0.7, 1, '#8a6a4a', 60, 0.4, 6, false);
     if (!b.hitP && dist(b, P) < b.r + P.r) { b.hitP = true; hurtPlayer(bossDmg('charge'), b); }
-    if (b.t <= 0 || (b.x === ox && b.y === oy)) { endAct(); kick(0, 6); }
+    // moved under half the step = pinned against something (a boss sliding along a pillar's face never stops dead)
+    const stuck = Math.hypot(b.x - ox, b.y - oy) < sp * dt * 0.5;
+    if ((stuck && onDashBlocked(b)) || b.t <= 0 || (b.x === ox && b.y === oy)) { endAct(); kick(0, 6); }
   },
   leap(dt, b, P) {
     const k = 1 - b.t / b.tMax, e = k * k * (3 - 2 * k);
@@ -63,6 +71,7 @@ const RESOLVE = {
   slam(b, P) {
     ring(b.x, b.y, 40, 140, 0.35, '255,80,80'); burst(b.x, b.y, 30, '#9a7a5a', 300, 0.6, 7, false); kick(0.06, 14); emit('bossImpact');
     if (dist(b, P) < MOVES.slam.radius + P.r) hurtPlayer(bossDmg('slam'), b);
+    onSlam();
     endAct();
   },
   roots(b, P) {
@@ -70,7 +79,7 @@ const RESOLVE = {
       burst(s.x, s.y, 14, '#7a5a30', 260, 0.5, 7, false); ring(s.x, s.y, 10, 60, 0.3, '120,200,90');
       if (!b.hitP && dist(s, P) < MOVES.roots.radius + P.r) { b.hitP = true; hurtPlayer(bossDmg('roots'), s); }
     }
-    kick(0.04, 10); emit('bossImpact'); endAct();
+    onRoots(b); kick(0.04, 10); emit('bossImpact'); endAct();
   },
   quake(b) { kick(0.05, 16); emit('bossImpact'); b.act = 'wave'; b.waveR = MOVES.quake.startR; b.hitP = false; },
   charge() { setAct('dash', MOVES.charge.dashTime); emit('bossCharge'); },
@@ -86,11 +95,11 @@ export function updateBoss(dt) {
   b.lag = b.lag > b.hp ? Math.max(b.hp, b.lag - 160 * dt) : b.hp;
   if (!b.awake && b.hp > 0 && P.x > G.L.roomX + 60) {
     b.awake = true; G.doorClosed = true; kick(0, 10); emit('bossWake');
-    text(b.x, b.y - 70, F.boss.name, '#ff7043', true);
   }
   if (!b.awake || b.hp <= 0) return;
   tickStatus(b, dt); if (b.hp <= 0) return;
   b.hurt -= dt;
+  if (b.stun > 0) { b.stun -= dt; return; }
   if (!b.act) {
     b.cd -= dt;
     const a = Math.atan2(P.y - b.y, P.x - b.x), sp = F.boss.speed[rage() ? 1 : 0] * speedFactor(b);

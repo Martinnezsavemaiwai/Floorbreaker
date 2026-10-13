@@ -1,6 +1,6 @@
 // The live game state, shared by systems, rendering and UI. One plain object instead of module-level `let`s,
 // because ES module bindings can't be reassigned from other files.
-import { BOSS_RULES, type MoveName, type ResolvedBoss } from '../data/bosses.ts';
+import { BOSS_RULES, type ArenaId, type MoveName, type ResolvedBoss } from '../data/bosses.ts';
 import type { MobStats } from '../data/mobs.ts';
 import type { FloorDef, TreeType } from '../data/floors.ts';
 import type { Point, Rect } from '../core/math.ts';
@@ -34,13 +34,14 @@ export interface Mob extends Point {
   burn?: { dps: number; t: number; stacks: number }; poison?: { dps: number; t: number }; slowT?: number; slowK?: number;
   frozen?: number; tide?: { n: number; t: number }; dotAcc?: number; dotTick?: number; elite?: boolean; mod?: EliteMod; sinceHit?: number;
   aggro?: boolean; // room mobs chase from anywhere
+  sprout?: boolean; life?: number; // Elderroot's root sprouts: no AI, no rewards, wither after `life` s
 }
 export interface Shot extends Point { vx: number; vy: number; r: number; dmg: number; col: string; life: number }
 export interface Wave extends Point { vx: number; vy: number; left: number; dmg: number; art: string; hit: Set<object>; r: number }
 export interface Boss extends Point {
   z: number; r: number; hp: number; maxHp: number; lag: number; awake: boolean; cd: number;
   act: MoveName | 'dash' | 'wave' | null; t: number; tMax: number; ang: number; hurt: number;
-  hitP: boolean; summoned: boolean;
+  hitP: boolean; summoned: boolean; stun?: number; // stun: seconds left after charging into a pillar
   from?: Point; to?: Point; spots?: Point[]; waveR?: number; angs?: number[];
   burn?: { dps: number; t: number; stacks: number }; poison?: { dps: number; t: number }; slowT?: number; slowK?: number;
   frozen?: number; tide?: { n: number; t: number }; dotAcc?: number; dotTick?: number;
@@ -57,11 +58,14 @@ export interface Ring extends Point { r0: number; r1: number; life: number; t: n
 // wait: seconds until it opens; armed: the player has stood outside it since it appeared (no instant pull-through)
 export interface Portal extends Point { wait: number; armed: boolean }
 
+export type Pillar = Rect & { hits: number };
+export type Arena = { id: ArenaId; rocks: { x: number; y: number; t: number }[]; pillars: Pillar[]; vision: number; flood?: { t: number; warn: number; on: number; tick: number } } & Record<string, unknown>;
+
 export const G = {
   P: null as Player | null,   // null on the title screen
   mobs: [] as Mob[], boss: null as Boss | null, shots: [] as Shot[], waves: [] as Wave[],
   texts: [] as FloatText[], parts: [] as Particle[], rings: [] as Ring[], bolts: [] as { x1: number; y1: number; x2: number; y2: number; t: number }[],
-  doorClosed: false, portal: null as Portal | null,
+  arena: null as Arena | null, doorClosed: false, portal: null as Portal | null,
   floorIdx: 0, F: null as Floor | null, WALLS: [] as Rect[],
   L: null as Layout | null, room: null as RoomState | null, doors: [] as Door[], trees: [] as [number, number, TreeType][], ponds: [] as Rect[],
   run: null as Run | null, cursed: false, // cursed: enemies on this floor are stronger (laid by a shrine)
@@ -72,3 +76,4 @@ export const G = {
 };
 
 export const rage = () => G.boss.hp < G.boss.maxHp * BOSS_RULES.rageAt;
+export const bossDmg = (k: MoveName) => Math.round(G.F.boss.dmg[k] * (rage() ? BOSS_RULES.rageDmgMult : 1));

@@ -10,6 +10,7 @@ import { STEP } from '../src/core/loop.ts';
 import { seedRng } from '../src/core/rng.ts';
 import { settings } from '../src/core/save.ts';
 import { keys, mouse, releaseAll } from '../src/core/input.ts';
+import { ARENA } from '../src/data/bosses.ts';
 import { dist, clamp, type Point } from '../src/core/math.ts';
 import { updateGame, updateFx, attack, skill, roll } from '../src/systems/index.js';
 import { nextPick, cardsFor, applyCard } from '../src/systems/build.js';
@@ -99,6 +100,22 @@ export function createBot() {
     walkTo(tg.x, tg.y);
     if (dist(P, tg) < tg.r + 50) attack();
   };
+  // Arena rules for the boss fight (see ARENA in data/bosses.ts). Returns true when it took over movement this frame.
+  const arena = () => {
+    const P = G.P!, A = G.arena, boss = G.boss!;
+    if (!A) return false;
+    if (boss.stun > 0) for (let i = 0; i < 3; i++) if (P.skills[i] && P.skillCd[i] <= 0) skill(i); // a dazed boss: everything now
+    const rock = A.rocks.find((r: Point) => dist(P, r) < ARENA.rockfall.radius + P.r + 10);
+    if (rock) { away(rock); return true; }
+    const f = A.flood;
+    if (f && (f.warn > 0 || f.on > 0)) {
+      const pl = ARENA.flood.platforms.map(([x, y]) => ({ x, y })).sort((a, b) => dist(P, a) - dist(P, b))[0];
+      walkTo(pl.x, pl.y); if (dist(P, boss) < boss.r + 50) attack(); return true;
+    }
+    const sprout = A.id === 'fog' && G.mobs.filter(m => m.sprout && m.hp > 0 && dist(P, m) < 300).sort((a, b) => dist(P, a) - dist(P, b))[0];
+    if (sprout) { fight(sprout); return true; }
+    return false;
+  };
   return function think() {
     const { P, boss, mobs, L } = G as Required<typeof G>;
     if (P.hp < P.maxHp * 0.35 && P.potions > 0) drinkPotion();
@@ -124,6 +141,7 @@ export function createBot() {
     const adds = mobs.filter(m => m.hp > 0 && m.summoned).sort((a, b) => dist(P, a) - dist(P, b))[0];
     const act = boss.act; aim(boss); useArts(boss);
     const spot = act === 'roots' && boss.spots!.find(s => dist(s, P) < 100);
+    if (arena()) return;
     if (spot) { away(spot); if (boss.t < 0.3) roll(); }
     else if (act === 'slam' && dist(P, boss) < 170) { away(boss); if (boss.t < 0.3) roll(); }
     else if (act === 'leap' && dist(P, boss.to!) < 140) away(boss.to!);
