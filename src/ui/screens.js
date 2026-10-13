@@ -9,7 +9,7 @@ import { UPGRADES } from '../data/upgrades.ts';
 import { SHOP } from '../data/shop.ts';
 import { price, canBuy, shopItems } from '../systems/shop.js';
 import { canTake } from '../systems/shrine.js';
-import { SKILLS, artName } from '../data/skills.ts';
+import { SKILLS, BLADE_EVO, artName, evoName } from '../data/skills.ts';
 import { ELEMENTS } from '../data/elements.ts';
 import { awardShards, isUnlocked, unlockSkill } from '../systems/meta.js';
 import { SFX } from '../audio/audio.js';
@@ -67,6 +67,7 @@ const PICK_TITLE = {
   evolve: { th: 'เศษกระจกวิวัฒน์', en: 'Evolution Shard' }, replace: { th: 'ช่องเต็มแล้ว', en: 'Slots full' },
   mod: { th: 'เลือกธาตุ', en: 'Choose an element' }, modart: { th: 'ใส่ให้ท่าไหน', en: 'Which Art gets it?' },
 };
+const evoOf = a => (a === 'blade' ? BLADE_EVO : SKILLS[a].evo);
 const name = a => (a === 'blade' ? tr('ฟันปกติ', 'Slash') : artName(a));
 function cardHtml(c, i) {
   const P = G.P, key = `<kbd>${i + 1}</kbd>`;
@@ -75,7 +76,7 @@ function cardHtml(c, i) {
     const E = ELEMENTS[c.el], had = P.mods[c.art] ?? [], evolves = had.length + 1 >= 2 && !P.evolved.includes(c.art);
     glass = E.color; title = `${name(c.art)} + ${E.name}`; body = t(E.hit);
     extra = `<span class="pips" aria-hidden="true">${[0, 1].map(k => `<i class="${k < had.length ? 'got' : k === had.length ? 'next' : ''}"></i>`).join('')}</span>`
-      + (evolves ? `<span class="price">${tr('วิวัฒน์!', 'Evolves!')}</span>` : '');
+      + (evolves ? `<span class="price">${tr('วิวัฒน์!', 'Evolves!')} ${evoName(c.art)}</span>` : '');
   } else if (c.kind === 'element') { glass = ELEMENTS[c.el].color; title = ELEMENTS[c.el].name; body = t(ELEMENTS[c.el].hit);
   } else if (c.kind === 'stat') {
     const u = UPGRADES[c.id], have = P.up[c.id] ?? 0;
@@ -84,7 +85,7 @@ function cardHtml(c, i) {
   } else if (c.kind === 'art') { title = SKILLS[c.id].name; body = t(SKILLS[c.id].desc); }
   else if (c.kind === 'replace') { title = tr(`แทน ${SKILLS[P.skills[c.slot]].name}`, `Replace ${SKILLS[P.skills[c.slot]].name}`); body = tr(`ช่อง ${c.slot + 1} ได้ ${SKILLS[c.id].name} มอดของท่าเดิมจะหายไป`, `Slot ${c.slot + 1} gets ${SKILLS[c.id].name}. The old Art's mods are lost.`); }
   else if (c.kind === 'skip') { title = tr('ไม่เอาท่านี้', 'Keep my Arts'); body = tr('เก็บท่าที่มีอยู่ไว้ทั้งหมด', 'Keep everything as it is.'); }
-  else if (c.kind === 'evolve') { title = name(c.art); body = tr('วิวัฒน์ท่านี้ทันที ดาเมจท่านี้แรงขึ้น 30%', 'Evolve this Art now. It hits 30% harder.'); }
+  else if (c.kind === 'evolve') { title = `${name(c.art)} → ${evoName(c.art)}`; body = t(evoOf(c.art).desc); }
   return `<button class="card" data-pick="${i}" ${glass ? `style="--glass:${glass}"` : ''} aria-label="${i + 1}: ${title}. ${body}">${key}<b>${title}</b><span>${body}</span>${extra}</button>`;
 }
 export function showPicker(kind, cards) {
@@ -233,6 +234,7 @@ on('floorLoaded', i => {
 });
 on('challengeOver', ok => toast(ok ? tr('ผ่านการท้าทาย', 'Challenge passed') : tr('ไม่ผ่านการท้าทาย', 'Challenge failed'), ok ? tr('ได้รางวัลสองเท่า', 'Double reward.') : tr(`โดนตีเกิน ${ROOM_RULES.challengeHits} ครั้ง ไม่ได้รางวัล`, `More than ${ROOM_RULES.challengeHits} hits. No reward.`)));
 on('portalOpen', () => toast(tr(`ผ่าน ${floorLabel(G.floorIdx)} แล้ว`, `${floorLabel(G.floorIdx)} Cleared`), tr('เดินเข้าประตูสีฟ้าเพื่อขึ้นชั้นต่อไป', 'Step into the blue portal to go up.'), 4.5));
+on('artEvolved', art => toast(evoName(art), tr('ท่าวิวัฒน์แล้ว', 'Art evolved')));
 on('hint', ({ title, sub }) => toast(title, sub, 4.5));
 
 // Buttons carry data-act="name"; main.js supplies what each name does

@@ -6,14 +6,13 @@ import { floorLabel } from '../world/floor.ts';
 import { actOf, ROOM_RULES } from '../data/run.ts';
 import { PLAYER } from '../data/player.ts';
 import { SKILLS } from '../data/skills.ts';
+import { ICON } from '../data/skillIcons.ts';
 import { on } from '../core/events.ts';
 import { keyLabel } from '../core/input.ts';
 import { clamp } from '../core/math.ts';
 import { ctx, FN, FT, sword } from './canvas.js';
 
 const A = PLAYER.attack;
-// slot icon per skill: blade angle and glow colour
-const ICON = { attack: [Math.PI / 4, null], sonicLeap: [-Math.PI / 4, '#5fc3ff'], horizontal: [Math.PI / 2, '#ffcf6a'], vorpal: [0, '#ff8a5a'] };
 
 // Slanted HP bar with a white "damage lag" segment
 function slant(x, y, w, h) {

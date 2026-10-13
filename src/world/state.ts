@@ -13,9 +13,11 @@ export interface Player extends Point {
   r: number; hp: number; maxHp: number; lag: number; atk: number; lv: number; xp: number;
   ang: number; atkCd: number; hurt: number; inv: number;
   skills: [string, string | null, string | null]; skillCd: [number, number, number]; // slot 1 = Gale Rush, slots 2-3 from elite rooms
-  spin: number; thrust: number; thrustAng: number; beam: number;     // Cyclone Edge / Piercing Fang animation timers
+  parry: number; slowmo: number; spin: number; thrust: number; thrustAng: number; beam: number; // Riposte stance / evolved slow-mo, Cyclone Edge spin / Piercing Fang wind-up and beam timers
+  spin2: number; fangLine: number; fangBeam: number; fangX: number; fangY: number; galeCharges: number; galeT: number; // Maelstrom second turn, Rending Fang blast, Twin Gale charges
   swing: number; swingDir: number; dash: number; delay: number; moving?: boolean;
-  kx: number; ky: number; hitSet: Set<Mob | Boss> | null; trail: (Point & { t: number })[];
+  kx: number; ky: number; hitSet: Set<Mob | Boss> | null; trail: (Point & { t: number; col?: string })[];
+  shadeChain: number; shadeLast: Mob | Boss | null; dashArt: string | null;
   buf: { kind: 'attack' | 'skill'; slot?: number; t: number } | null;
   up: Record<string, number>; pendingUpgrades: number; // upgrade counts by id; picks waiting to be chosen
   combo: number; comboT: number; finisher: boolean; roll: number; rollCd: number; rollAng: number; // sword chain step, dodge roll
@@ -34,6 +36,7 @@ export interface Mob extends Point {
   aggro?: boolean; // room mobs chase from anywhere
 }
 export interface Shot extends Point { vx: number; vy: number; r: number; dmg: number; col: string; life: number }
+export interface Wave extends Point { vx: number; vy: number; left: number; dmg: number; art: string; hit: Set<object>; r: number }
 export interface Boss extends Point {
   z: number; r: number; hp: number; maxHp: number; lag: number; awake: boolean; cd: number;
   act: MoveName | 'dash' | 'wave' | null; t: number; tMax: number; ang: number; hurt: number;
@@ -56,7 +59,7 @@ export interface Portal extends Point { wait: number; armed: boolean }
 
 export const G = {
   P: null as Player | null,   // null on the title screen
-  mobs: [] as Mob[], boss: null as Boss | null, shots: [] as Shot[],
+  mobs: [] as Mob[], boss: null as Boss | null, shots: [] as Shot[], waves: [] as Wave[],
   texts: [] as FloatText[], parts: [] as Particle[], rings: [] as Ring[], bolts: [] as { x1: number; y1: number; x2: number; y2: number; t: number }[],
   doorClosed: false, portal: null as Portal | null,
   floorIdx: 0, F: null as Floor | null, WALLS: [] as Rect[],

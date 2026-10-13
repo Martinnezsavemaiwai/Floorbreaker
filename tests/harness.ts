@@ -83,11 +83,21 @@ export function createBot() {
     G.cam.x = clamp(P.x - W / 2, 0, L.w - W); G.cam.y = clamp(P.y - H / 2, 0, L.h - H);
     mouse.x = e.x - G.cam.x; mouse.y = e.y - G.cam.y;
   };
+  // Fire each Art by what it is for: Riposte into a wind-up, Crescent from range, Shade Step to close in, the rest in melee reach
+  const useArts = (tg: Point & { wind?: number; r: number }) => {
+    const P = G.P!, d = dist(P, tg), boss = G.boss!;
+    const winding = G.mobs.some(m => m.hp > 0 && m.wind > 0 && dist(P, m) < 120) || (tg === boss && ['slam', 'charge', 'leap'].includes(boss.act) && d < 150 && boss.t < 0.5);
+    for (let i = 0; i < 3; i++) {
+      const id = P.skills[i];
+      if (!id || P.skillCd[i] > 0) continue;
+      if (id === 'riposte' ? winding : id === 'crescent' ? d < 360 : id === 'shade' ? d < 220 : d < tg.r + 50) skill(i);
+    }
+  };
   const fight = (tg: Point & { wind?: number; r: number }) => {
-    const P = G.P!; aim(tg);
+    const P = G.P!; aim(tg); useArts(tg);
     if (tg.wind && tg.wind > 0 && tg.wind < 0.2) { away(tg, 3); if (dist(P, tg) < 80) roll(); return; }
     walkTo(tg.x, tg.y);
-    if (dist(P, tg) < tg.r + 50) { attack(); if (P.skillCd[0] <= 0) skill(); if (P.skills[1] && P.skillCd[1] <= 0) skill(1); if (P.skills[2] && P.skillCd[2] <= 0) skill(2); }
+    if (dist(P, tg) < tg.r + 50) attack();
   };
   return function think() {
     const { P, boss, mobs, L } = G as Required<typeof G>;
@@ -112,7 +122,7 @@ export function createBot() {
     if (L.kind !== 'boss') return;
     if (P.x < L.roomX + 80) return walkTo(L.roomX + 100, L.h / 2);
     const adds = mobs.filter(m => m.hp > 0 && m.summoned).sort((a, b) => dist(P, a) - dist(P, b))[0];
-    const act = boss.act; aim(boss);
+    const act = boss.act; aim(boss); useArts(boss);
     const spot = act === 'roots' && boss.spots!.find(s => dist(s, P) < 100);
     if (spot) { away(spot); if (boss.t < 0.3) roll(); }
     else if (act === 'slam' && dist(P, boss) < 170) { away(boss); if (boss.t < 0.3) roll(); }
@@ -121,7 +131,7 @@ export function createBot() {
     else if (act === 'charge') walkTo(P.x, P.y + (Math.sin(boss.ang) > 0 ? -200 : 200));
     else if (act === 'wave' && Math.abs(dist(boss, P) - boss.waveR!) < 70 && dist(boss, P) > boss.waveR! && P.skillCd[0] <= 0) skill();
     else if (adds && dist(P, adds) < 120) fight(adds);
-    else { walkTo(boss.x, boss.y); if (dist(P, boss) < boss.r + 50) { attack(); if (P.skillCd[0] <= 0) skill(); if (P.skills[1] && P.skillCd[1] <= 0) skill(1); if (P.skills[2] && P.skillCd[2] <= 0) skill(2); } }
+    else { walkTo(boss.x, boss.y); if (dist(P, boss) < boss.r + 50) attack(); }
   };
 }
 

@@ -198,3 +198,26 @@ test('a shrine offer goes through the window and the picker', async ({ page }) =
   await expect.poll(() => hook(page, 's.P.evolved.length')).toBeGreaterThan(0);
   expect(errors).toEqual([]);
 });
+
+test('the new Arts fire in the real page: Crescent Wave, Riposte and Shade Step', async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto('/');
+  await diveIn(page);
+  await hook(page, "s.loadFloor(2, { type: 'battle', reward: 'gold' })");
+  await settle(page);
+  for (const id of ['crescent', 'riposte', 'shade']) {
+    await until(page, 's.P.parry <= 0 && s.P.delay <= 0'); // a stance or recovery would only buffer the next press
+    await hook(page, `(s.P.skills[1] = '${id}', s.P.skillCd[1] = 0)`);
+    let x0 = 0;
+    if (id === 'shade') { // a live mob 150 px dead ahead, so the teleport path runs (the no-target dash only moves 120)
+      await until(page, 's.mobs.some(m => m.hp > 0)');
+      x0 = await hook(page, '(s.P.ang = 0, s.mobs.find(m => m.hp > 0).x = s.P.x + 150, s.mobs.find(m => m.hp > 0).y = s.P.y, s.P.x)') as number;
+    }
+    await page.keyboard.press('KeyL');
+    await expect.poll(() => hook(page, 's.P.skillCd[1]')).toBeGreaterThan(0);
+    if (id === 'crescent') await expect.poll(() => hook(page, 's.waves.length')).toBeGreaterThan(0);
+    if (id === 'riposte') await expect.poll(() => hook(page, 's.P.parry')).toBeGreaterThan(0);
+    if (id === 'shade') await expect.poll(async () => (await hook(page, 's.P.x') as number) - x0).toBeGreaterThan(170);
+  }
+  expect(errors).toEqual([]);
+});

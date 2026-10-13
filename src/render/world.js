@@ -117,6 +117,17 @@ function drawShots() {
   ctx.restore();
 }
 
+function drawWaves() {
+  if (!G.waves.length) return;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round'; ctx.shadowColor = '#9fe8ff'; ctx.shadowBlur = 18;
+  for (const w of G.waves) {
+    const a = Math.atan2(w.vy, w.vx);
+    ctx.strokeStyle = `rgba(190,240,255,${Math.min(1, w.left / 120)})`; ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.arc(w.x - Math.cos(a) * w.r, w.y - Math.sin(a) * w.r, w.r * 1.4, a - 1.1, a + 1.1); ctx.stroke();
+  }
+  ctx.restore();
+}
+
 function drawTelegraph() {
   const b = G.boss;
   if (!b.act || b.hp <= 0) return;
@@ -150,13 +161,18 @@ function drawTelegraph() {
   ctx.restore();
 }
 
+const spinPh = s => (s > 0.25 ? s - 0.25 : s); // Maelstrom Edge's 0.5 s spin is two 0.25 s turns
 // Cyclone Edge: a golden ring sweeping round; Piercing Fang: aim line while winding up, then the stab beam
 function drawSkillFx(P) {
   ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
   if (P.spin > 0) {
-    const R = SKILLS.horizontal.radius, k = 1 - P.spin / 0.25;
+    const R = SKILLS.horizontal.radius, k = 1 - spinPh(P.spin) / 0.25;
     ctx.shadowColor = '#ffcf6a'; ctx.shadowBlur = 20; ctx.strokeStyle = `rgba(255,215,130,${1 - k * 0.6})`; ctx.lineWidth = 14;
     ctx.beginPath(); ctx.arc(P.x, P.y, R * (0.6 + 0.4 * k), P.ang, P.ang + Math.PI * 2 * Math.min(1, k * 1.6)); ctx.stroke();
+  }
+  if (P.parry > 0) {
+    ctx.shadowColor = '#fff1c4'; ctx.shadowBlur = 16; ctx.strokeStyle = `rgba(255,241,196,${0.55 + 0.35 * Math.sin(performance.now() / 60)})`; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.arc(P.x, P.y, 30, P.ang - 0.9, P.ang + 0.9); ctx.stroke();
   }
   const V = SKILLS.vorpal, cx = Math.cos(P.thrustAng), cy = Math.sin(P.thrustAng);
   if (P.thrust > 0) {
@@ -167,6 +183,15 @@ function drawSkillFx(P) {
     ctx.shadowColor = '#ff9a5a'; ctx.shadowBlur = 24; ctx.strokeStyle = `rgba(255,200,140,${P.beam / 0.18})`; ctx.lineWidth = V.width * 0.7;
     ctx.beginPath(); ctx.moveTo(P.x, P.y); ctx.lineTo(P.x + cx * V.length, P.y + cy * V.length); ctx.stroke();
   }
+  const FL = V.evo;
+  if (P.fangLine > 0) {
+    ctx.strokeStyle = `rgba(255,140,90,${0.4 + 0.5 * (1 - P.fangLine / FL.lineDelay)})`; ctx.lineWidth = 3; ctx.setLineDash([10, 6]);
+    ctx.beginPath(); ctx.moveTo(P.fangX, P.fangY); ctx.lineTo(P.fangX + cx * FL.lineLen, P.fangY + cy * FL.lineLen); ctx.stroke(); ctx.setLineDash([]);
+  }
+  if (P.fangBeam > 0) {
+    ctx.shadowColor = '#ff9a5a'; ctx.shadowBlur = 28; ctx.strokeStyle = `rgba(255,220,170,${P.fangBeam / 0.18})`; ctx.lineWidth = FL.lineWidth * 0.8;
+    ctx.beginPath(); ctx.moveTo(P.fangX, P.fangY); ctx.lineTo(P.fangX + cx * FL.lineLen, P.fangY + cy * FL.lineLen); ctx.stroke();
+  }
   ctx.restore();
 }
 
@@ -174,7 +199,7 @@ function swordAngle(P) {
   if (P.swing > 0) { const k = 1 - P.swing / SWING, e = 1 - (1 - k) ** 3; return P.ang + P.swingDir * (-1.3 + 2.6 * e); }
   if (P.dash > 0) return P.ang;
   if (P.thrust > 0 || P.beam > 0) return P.thrustAng; // blade pointed down the stab line
-  if (P.spin > 0) return P.ang + Math.PI * 2 * (1 - P.spin / 0.25);
+  if (P.spin > 0) return P.ang + Math.PI * 2 * (1 - spinPh(P.spin) / 0.25);
   if (P.delay > 0) return P.ang + P.swingDir * 1.4; // follow-through pose after the skill
   return P.ang + P.swingDir * -0.5 + Math.sin(G.time * 3) * 0.05;
 }
@@ -186,7 +211,7 @@ function drawPlayer() {
     ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round'; ctx.shadowColor = '#7fd4ff'; ctx.shadowBlur = 20;
     for (let i = 1; i < P.trail.length; i++) {
       const a = P.trail[i - 1], b = P.trail[i];
-      ctx.strokeStyle = `rgba(127,212,255,${b.t * 3})`; ctx.lineWidth = 22 * b.t * 4;
+      ctx.strokeStyle = `rgba(${b.col ?? '127,212,255'},${b.t * 3})`; ctx.lineWidth = 22 * b.t * 4;
       ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
     }
     ctx.restore();
@@ -362,10 +387,12 @@ export function drawWorld() {
   if (G.boss.hp > 0) actors.push({ y: G.boss.y, draw: drawBoss });
   for (const a of actors.sort((a, b) => a.y - b.y)) a.draw();
   drawShots();
+  drawWaves();
   drawFx();
   if (G.F.fog && G.L.kind !== 'town') drawFog();
   ctx.restore();
   ctx.drawImage(vig, 0, 0);
+  if (P.slowmo > 0) { ctx.fillStyle = 'rgba(255,240,200,0.08)'; ctx.fillRect(0, 0, W, H); }
   drawDanger();
   drawHud();
 }

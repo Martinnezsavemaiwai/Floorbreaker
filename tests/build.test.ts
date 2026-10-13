@@ -48,14 +48,14 @@ describe('new Art picks (elite reward)', () => {
 
   it('offers unowned Arts from the pool; picking fills the first empty slot', () => {
     const cards = rollArtCards();
-    expect(cards.map(c => c.kind === 'art' && c.id).sort()).toEqual(['horizontal', 'vorpal']);
+    expect(cards.map(c => c.kind === 'art' && c.id).sort()).toEqual(['crescent', 'horizontal', 'vorpal']);
     applyCard({ kind: 'art', id: 'vorpal' }, 'art');
     expect(G.P!.skills).toEqual(['sonicLeap', 'vorpal', null]);
-    expect(rollArtCards().map(c => c.kind === 'art' && c.id)).toEqual(['horizontal']);
+    expect(rollArtCards().map(c => c.kind === 'art' && c.id).sort()).toEqual(['crescent', 'horizontal']);
   });
 
   it('with both slots full and nothing new in the pool, the pick shows stat cards instead', () => {
-    G.P!.skills = ['sonicLeap', 'vorpal', 'horizontal'];
+    G.P!.skills = ['crescent', 'vorpal', 'horizontal'];
     expect(rollArtCards().every(c => c.kind === 'stat')).toBe(true);
   });
 
@@ -82,7 +82,7 @@ describe('new Art picks (elite reward)', () => {
 describe('empty art reward', () => {
   it('with nothing to offer, shows a lone skip that drains the reward', () => {
     startRun(1); enterRoom(1);
-    G.P!.skills = ['sonicLeap', 'vorpal', 'horizontal'];
+    G.P!.skills = ['crescent', 'vorpal', 'horizontal'];
     G.P!.up = Object.fromEntries(Object.entries(UPGRADES).map(([id, u]) => [id, u.max]));
     G.rewards = ['art'];
     expect(cardsFor('art')).toEqual([{ kind: 'skip' }]);

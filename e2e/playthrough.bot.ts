@@ -36,11 +36,20 @@ const BOT = `(() => {
     if (visible('pause')) { note('paused (unexpected)'); tap('Escape'); return true; }
     return false;
   }
+  const useArts = tg => { // fire each Art by what it is for (see tests/harness.ts)
+    const P = s.P, d = dist(P, tg);
+    const winding = s.mobs.some(m => m.hp > 0 && m.wind > 0 && dist(P, m) < 120) || (tg === s.boss && ['slam', 'charge', 'leap'].includes(s.boss.act) && d < 150 && s.boss.t < 0.5);
+    [['KeyK', 0], ['KeyL', 1], ['KeyI', 2]].forEach(([code, i]) => {
+      const id = P.skills[i];
+      if (!id || P.skillCd[i] > 0) return;
+      if (id === 'riposte' ? winding : id === 'crescent' ? d < 360 : id === 'shade' ? d < 220 : d < tg.r + 50) tap(code);
+    });
+  };
   const fight = tg => { // the nearest live mob: step out of its telegraph, otherwise close in and swing
-    const P = s.P; aim(tg);
+    const P = s.P; aim(tg); useArts(tg);
     if (tg.wind > 0 && tg.wind < 0.2) { away(tg, 3); if (dist(P, tg) < 80) tap('Space'); return; }
     walkTo(tg.x, tg.y);
-    if (dist(P, tg) < tg.r + 50) { tap('KeyJ'); if (P.skillCd[0] <= 0) tap('KeyK'); if (P.skills[1] && P.skillCd[1] <= 0) tap('KeyL'); if (P.skills[2] && P.skillCd[2] <= 0) tap('KeyI'); }
+    if (dist(P, tg) < tg.r + 50) tap('KeyJ');
   };
   function think() { // same decision order as the tests/harness.ts bot
     frames++;
@@ -70,7 +79,7 @@ const BOT = `(() => {
     if (L.kind !== 'boss') return;
     if (P.x < L.roomX + 80) return walkTo(L.roomX + 100, L.h / 2);
     const adds = mobs.filter(m => m.hp > 0 && m.summoned).sort((a, b) => dist(P, a) - dist(P, b))[0];
-    const act = boss.act; aim(boss);
+    const act = boss.act; aim(boss); useArts(boss);
     const spot = act === 'roots' && boss.spots && boss.spots.find(p => dist(p, P) < 100);
     if (spot) { away(spot); if (boss.t < 0.3) tap('Space'); }
     else if (act === 'slam' && dist(P, boss) < 170) { away(boss); if (boss.t < 0.3) tap('Space'); }
@@ -78,7 +87,7 @@ const BOT = `(() => {
     else if (act === 'volley' && dist(P, boss) < 260) away(boss);
     else if (act === 'charge') walkTo(P.x, P.y + (Math.sin(boss.ang) > 0 ? -200 : 200));
     else if (adds && dist(P, adds) < 120) { aim(adds); walkTo(adds.x, adds.y); tap('KeyJ'); }
-    else { walkTo(boss.x, boss.y); if (dist(P, boss) < boss.r + 50) { tap('KeyJ'); if (P.skillCd[0] <= 0) tap('KeyK'); if (P.skills[1] && P.skillCd[1] <= 0) tap('KeyL'); if (P.skills[2] && P.skillCd[2] <= 0) tap('KeyI'); } }
+    else { walkTo(boss.x, boss.y); if (dist(P, boss) < boss.r + 50) tap('KeyJ'); }
   }
   function invariants() {
     const P = s.P; if (!P) return;

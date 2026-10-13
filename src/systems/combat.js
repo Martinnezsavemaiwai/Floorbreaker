@@ -9,6 +9,8 @@ import { BOSS_RULES } from '../data/bosses.ts';
 import { clamp } from '../core/math.ts';
 import { emit } from '../core/events.ts';
 import { settings } from '../core/save.ts';
+import { clock } from '../core/app.ts';
+import { counter } from './player.js';
 import { text, burst, ring, kick } from './fx.js';
 import { mods } from './upgrades.js';
 import { bossReward } from './build.js';
@@ -68,7 +70,7 @@ export function kill(e) {
     if (!isFinalFloor(G.floorIdx)) bossReward();
     gainXp(F.mob.xp * BOSS_RULES.xpMult); gainCol(F.mob.col * BOSS_RULES.xpMult, e);
     if (!isFinalFloor(G.floorIdx)) { G.portal = { x: boss.x, y: boss.y, wait: BOSS_RULES.portalDelay, armed: false }; emit('portalOpen'); }
-    else { run.over = 'win'; emit('runOver', { cleared: true }); }
+    else { G.P.slowmo = 0; clock.scale = settings.assistSpeed; run.over = 'win'; emit('runOver', { cleared: true }); }
   } else {
     e.dead = Infinity; gainXp(e.def.xp); gainCol(e.def.col, e); emit('mobDeath'); run.kills++;
     burst(e.x, e.y, 26, '#8fe3ff', 260, 0.9, 9, true); ring(e.x, e.y, 5, 50, 0.3, '143,227,255');
@@ -95,7 +97,8 @@ export function dot(e, n) {
 export function hurtPlayer(d, from) {
   const { P, run } = G;
   if (run.over) return;
-  if (P.dash > 0 || P.roll > 0) { text(P.x, P.y - 24, 'DODGE', '#7fd4ff'); emit('dodge'); return; } // Blade Art dash and the roll = i-frames
+  if ((P.dash > 0 && P.dashArt === 'sonicLeap') || P.roll > 0) { text(P.x, P.y - 24, 'DODGE', '#7fd4ff'); emit('dodge'); return; } // Blade Art dash and the roll = i-frames
+  if (P.parry > 0) { counter(); return; }
   if (P.inv > 0) return; // brief invulnerability after a hit, so a mob crowd can't chain-stun you
   d = Math.max(1, Math.round(d * settings.assistDamage)); // assist mode: take less damage
   const heavy = d >= PLAYER.knockback.heavyFrom;
@@ -103,7 +106,7 @@ export function hurtPlayer(d, from) {
   if (from) knock(P, from, PLAYER.knockback[heavy ? 'heavy' : 'light']);
   burst(P.x, P.y, 10, '#ff5252', 220, 0.35, 4, false); kick(0.05, d >= 20 ? 10 : 5);
   if (P.hp <= 0) {
-    P.hp = 0; run.over = 'dead'; emit('playerDeath');
+    P.hp = 0; P.slowmo = 0; clock.scale = settings.assistSpeed; run.over = 'dead'; emit('playerDeath');
     burst(P.x, P.y, 40, '#8fe3ff', 260, 1.4, 9, true);
     emit('runOver', { cleared: false });
   }

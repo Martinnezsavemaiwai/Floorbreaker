@@ -4,9 +4,9 @@
 import { G } from '../world/state.ts';
 import { tr } from '../core/i18n.ts';
 import { newRun, resumeRun } from '../world/floor.ts';
-import { scenes } from '../core/app.ts';
+import { scenes, clock } from '../core/app.ts';
 import { releaseAll } from '../core/input.ts';
-import { loadSuspend, writeSuspend, clearSuspend } from '../core/save.ts';
+import { settings, loadSuspend, writeSuspend, clearSuspend } from '../core/save.ts';
 import { on } from '../core/events.ts';
 import { updateGame, updateFx } from '../systems/index.js';
 import { drawWorld } from '../render/world.js';
@@ -25,7 +25,7 @@ let resume = null; // suspend data to continue from once the intro finishes
 
 export const titleScene = {
   name: 'menu',
-  enter() { G.P = null; G.run = null; storyQueue.length = 0; refreshMenuBg(); playMusic('title'); screen('title-screen'); }, // silent until the first click/key (autoplay rules)
+  enter() { clock.scale = settings.assistSpeed; G.P = null; G.run = null; storyQueue.length = 0; refreshMenuBg(); playMusic('title'); screen('title-screen'); }, // silent until the first click/key (autoplay rules)
   update() {}, draw: drawMenuBg,
 };
 const introScene = {

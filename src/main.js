@@ -133,7 +133,7 @@ addEventListener('keydown', unlockAudio, { once: true });
 
 // Dev-only handle for console/bot playtests; stripped from production builds.
 if (import.meta.env.DEV) {
-  const live = { state: () => G.run?.over || scenes.top?.name, P: () => G.P, mobs: () => G.mobs, shots: () => G.shots, boss: () => G.boss, F: () => G.F,
+  const live = { state: () => G.run?.over || scenes.top?.name, P: () => G.P, mobs: () => G.mobs, shots: () => G.shots, waves: () => G.waves, boss: () => G.boss, F: () => G.F,
                  floorIdx: () => G.floorIdx, L: () => G.L, doors: () => G.doors, room: () => G.room, portal: () => G.portal, run: () => G.run, clock: () => clock, scenes: () => scenes, cam: () => G.cam, rewards: () => G.rewards };
   /** @type {any} */ (window).__saoy = Object.defineProperties(
     { tick: dt => clock.advance(dt), update: updateGame, updateFx, draw: drawWorld, newGame, loadFloor, attack, skill, hurtPlayer, hurtEnemy,

@@ -59,8 +59,9 @@ export function loadFloor(i: number, room: Room | null = null) {
   G.boss = { x: at.x, y: at.y, z: 0, r: F.boss.r, hp: bhp, lag: bhp, maxHp: F.boss.hp, awake: false, cd: BOSS_RULES.firstMoveDelay,
              act: null, t: 0, tMax: 1, ang: 0, hurt: 0, hitP: false, summoned: false };
   const hp = kind === 'town' ? G.P!.maxHp : G.P!.hp; // only towns heal you fully
-  Object.assign(G.P, { x: L.start.x, y: L.start.y, hp, lag: hp, dash: 0, delay: 0, trail: [], kx: 0, ky: 0, inv: 0, buf: null });
-  G.texts = []; G.parts = []; G.shots = []; G.rings = []; G.bolts = []; G.doorClosed = false; G.portal = null; clock.hitStop = 0; G.shake = 0;
+  Object.assign(G.P, { x: L.start.x, y: L.start.y, hp, lag: hp, dash: 0, delay: 0, trail: [], kx: 0, ky: 0, inv: 0, buf: null, parry: 0, slowmo: 0, spin2: 0, fangLine: 0, fangBeam: 0, shadeChain: 0, shadeLast: null, dashArt: null });
+  clock.scale = settings.assistSpeed;
+  G.texts = []; G.parts = []; G.shots = []; G.waves = []; G.rings = []; G.bolts = []; G.doorClosed = false; G.portal = null; clock.hitStop = 0; G.shake = 0;
   if (G.run) G.run.floor = Math.max(G.run.floor, i + 1);
   G.entry = snapshotRun();
   if (G.cursed) G.run!.curse!--; // after the snapshot, so resuming this floor pays it exactly once
@@ -78,7 +79,7 @@ function cleanBuild(b: { arts: (string | null)[]; mods: Record<string, ElementId
 function newPlayer() {
   // position/HP/transient fields are (re)set by loadFloor
   G.P = { r: PLAYER.radius, maxHp: PLAYER.hp, hp: PLAYER.hp, lag: PLAYER.hp, atk: PLAYER.atk, lv: 1, xp: 0, ang: 0, atkCd: 0,
-          skills: ['sonicLeap', null, null], skillCd: [0, 0, 0], mods: {}, evolved: [], stormHits: 0, spin: 0, thrust: 0, thrustAng: 0, beam: 0,
+          skills: ['sonicLeap', null, null], skillCd: [0, 0, 0], mods: {}, evolved: [], stormHits: 0, shadeChain: 0, shadeLast: null, dashArt: null, parry: 0, slowmo: 0, spin: 0, thrust: 0, thrustAng: 0, beam: 0, spin2: 0, fangLine: 0, fangBeam: 0, fangX: 0, fangY: 0, galeCharges: 2, galeT: 0,
           hurt: 0, swing: 0, swingDir: 1, hitSet: null, x: 0, y: 0, dash: 0, delay: 0, trail: [], kx: 0, ky: 0, inv: 0, buf: null,
           up: {}, pendingUpgrades: 0, col: 0, potions: 0, scrolls: 0, modBuys: 0,
           combo: 0, comboT: 0, finisher: false, roll: 0, rollCd: 0, rollAng: 0 };
