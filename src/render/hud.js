@@ -22,10 +22,10 @@ const A = PLAYER.attack, HW = W / PX, HH = H / PX;
 const torchHex = () => '#' + FLOORS[actOf(G.floorIdx)].torch.split(',').map(n => (+n).toString(16).padStart(2, '0')).join('');
 const hpCol = f => f > 0.5 ? '#5fd35a' : f > 0.25 ? '#e8b931' : '#e8473a';
 
-// A HUD block turns see-through while the player or the boss stands behind it (rect in HUD px)
+// A HUD block turns see-through while the player, the boss or a door sign is behind it (rect in HUD px)
 function veil(x, y, w, h) {
   const behind = e => { const sx = (e.x - G.cam.x) / PX, sy = (e.y - G.cam.y) / PX; return sx > x - 12 && sx < x + w + 12 && sy > y - 20 && sy < y + h + 15; };
-  hc.globalAlpha = behind(G.P) || (G.boss.hp > 0 && behind(G.boss)) ? 0.3 : 1;
+  hc.globalAlpha = behind(G.P) || (G.boss.hp > 0 && behind(G.boss)) || G.doors.some(d => [d.x + d.w / 2, d.x - 20, d.x - 90].some(x => behind({ x, y: d.y + d.h / 2 }))) ? 0.3 : 1; // the door and the sign left of it
 }
 
 function portrait(x, y, s) {
