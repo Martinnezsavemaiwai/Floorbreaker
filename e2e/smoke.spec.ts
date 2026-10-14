@@ -10,8 +10,9 @@ test('title -> Dive In -> story -> play -> pause, with no console errors', async
   await page.goto('/');
   await expect(page.locator('#title-screen')).toBeVisible();
   await page.locator('#start-btn').click();
+  await page.locator('#name-input').press('Enter'); // keep the offered name
 
-  // the intro tunnel runs ~2s, then the play scene takes over
+  // the intro (the title glass shatters) runs ~2s, then the play scene takes over
   // a fresh save opens the floor 1 prologue: Enter turns the page, Esc skips the rest
   await expect(page.locator('#story')).toBeVisible({ timeout: 10_000 });
   await expect(page.locator('#story-page')).toHaveText(/^1 \//);

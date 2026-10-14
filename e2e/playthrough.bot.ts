@@ -131,6 +131,7 @@ async function playOnce(page: Page, lang: 'th' | 'en') {
   await page.evaluate(l => { localStorage.clear(); localStorage.setItem('saoy.settings', JSON.stringify({ v: 1, savedAt: '', data: { lang: l, aim: 'mouse' } })); }, lang);
   await page.reload();
   await page.locator('#start-btn').click();
+  await page.locator('#name-input').press('Enter'); // keep the offered name
   await expect.poll(() => page.evaluate(() => (window as any).__saoy.state), { timeout: 10_000 }).not.toBe('intro');
   await page.evaluate(BOT);
   await expect.poll(() => page.evaluate(() => (window as any).__bot.done), { timeout: 1_200_000, intervals: [2000] }).toBe(true);

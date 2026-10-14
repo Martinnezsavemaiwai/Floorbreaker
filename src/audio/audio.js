@@ -70,7 +70,8 @@ export const SFX = {
   levelUp: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.25, 'triangle', 0.15, null, i * 0.08)),
   portal: () => [392, 523, 659, 784, 1047].forEach((f, i) => tone(f, 0.6, 'sine', 0.1, null, i * 0.1)),
   bossWind: () => { tone(160, 0.45, 'sawtooth', 0.12, 520); tone(240, 0.45, 'square', 0.05, 780); },
-  linkStart: () => { [262, 330, 392, 523, 659, 784, 1047].forEach((f, i) => tone(f, 0.5, 'sine', 0.08, null, i * 0.11)); noise(1.6, 0.12, 600, 0.6, 6000); },
+  // the title glass breaks: a crack, the crash, then shards tinkling down
+  glassBreak: () => { noise(0.08, 0.15, 5000, 2, null, 0.1); noise(0.7, 0.2, 4000, 0.8, 1500, 0.5); [2637, 3136, 2349, 3520, 2794].forEach((f, i) => tone(f, 0.18, 'triangle', 0.05, null, 0.62 + i * 0.09)); },
   setBonus: () => { [392, 587, 784].forEach((f, i) => tone(f, 0.35, 'triangle', 0.1, null, i * 0.07)); tone(196, 0.5, 'sine', 0.15, 98); },
   ui: () => tone(1320, 0.05, 'sine', 0.05),
   death: () => { tone(440, 1.4, 'triangle', 0.2, 55); [1568, 1175, 880].forEach((f, i) => tone(f, 0.4, 'triangle', 0.06, null, 0.2 + i * 0.12)); },

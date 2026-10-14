@@ -6,14 +6,14 @@ import { tr } from '../core/i18n.ts';
 import { newRun, resumeRun } from '../world/floor.ts';
 import { scenes, clock } from '../core/app.ts';
 import { releaseAll } from '../core/input.ts';
-import { settings, loadSuspend, writeSuspend, clearSuspend } from '../core/save.ts';
+import { settings, saveSettings, loadSuspend, writeSuspend, clearSuspend } from '../core/save.ts';
 import { on } from '../core/events.ts';
 import { updateGame, updateFx } from '../systems/index.js';
 import { drawWorld } from '../render/world.js';
 import { stopPreviews } from '../render/preview.js';
 import { refreshMenuBg, drawMenuBg, drawIntro, INTRO_TIME } from '../render/menu.js';
 import { initAudio, stopMusic, playMusic, pauseMusic, resumeMusic, SFX } from '../audio/audio.js';
-import { screen, showPicker, renderShop, renderShrine, showStoryLine, confirmDialog, $ } from '../ui/screens.js';
+import { screen, showPicker, renderShop, renderShrine, showStoryLine, confirmDialog, nameDialog, $ } from '../ui/screens.js';
 import { nearMerchant, buy, price, canBuy } from '../systems/shop.js';
 import { nearShrine, take } from '../systems/shrine.js';
 import { kindOf, actOf } from '../data/run.ts';
@@ -32,7 +32,7 @@ export const titleScene = {
 };
 const introScene = {
   name: 'intro',
-  enter() { screen(null); stopMusic(); G.introT = 0; SFX.linkStart(); },
+  enter() { screen(null); stopMusic(); G.introT = 0; G.introFloor = resume?.floorIdx ?? 0; SFX.glassBreak(); },
   update(dt) { G.introT += dt; if (G.introT > INTRO_TIME) newGame(); },
   draw: drawIntro,
 };
@@ -156,6 +156,9 @@ export async function startIntro() {
   const saved = loadSuspend();
   if (saved && !await confirmDialog({ title: tr('เริ่มตัวละครใหม่?', 'Start a new character?'), ok: tr('เริ่มใหม่', 'Start over'),
     msg: tr(`ตัวละคร Lv.${saved.player.lv} ที่เซฟไว้จะถูกลบ และกู้คืนไม่ได้`, `Your saved Lv.${saved.player.lv} character will be deleted. This can't be undone.`) })) return;
+  const name = await nameDialog(settings.name);
+  if (name === null) return;
+  settings.name = name; saveSettings();
   clearSuspend(); resume = null;
   initAudio(); scenes.replace(introScene);
 }

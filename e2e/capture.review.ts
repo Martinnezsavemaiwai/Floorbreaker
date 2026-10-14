@@ -27,6 +27,7 @@ test('desktop', async ({ page }) => {
   await page.screenshot({ path: out('desktop-skills') });
   await page.keyboard.press('Escape');
   await page.locator('#start-btn').click();
+  await page.locator('#name-input').press('Enter'); // keep the offered name
   await page.locator('#story').waitFor({ state: 'visible', timeout: 10_000 }); await page.waitForTimeout(300);
   await page.screenshot({ path: out('desktop-story') });
   await page.keyboard.press('Escape'); await page.waitForTimeout(300);

@@ -1,6 +1,7 @@
 // Title background ("the Spire's glass") and the Dive In intro.
-// Four leaded lancet windows, one per floor, glazed in that floor's torch color with its boss as the figure.
-// Floors the player has never reached stay dark, unglazed lead. The glass is drawn once into a half-resolution
+// Four leaded lancet windows, one per floor, glazed in that floor's torch color. A boss only appears in its window
+// once it has been beaten (a trophy, never a spoiler); a reached floor shows a lead sword instead, and floors the
+// player has never reached stay dark, unglazed lead. The glass is drawn once into a half-resolution
 // buffer and scaled up with smoothing off, so every lead line is a hard 2 px pixel line like the game's sprites.
 import { G } from '../world/state.ts';
 import { W, H } from '../world/constants.ts';
@@ -11,6 +12,7 @@ import { FLOORS } from '../data/floors.ts';
 import { actOf } from '../data/run.ts';
 import { BOSSES } from '../data/bosses.ts';
 import { ctx, FN } from './canvas.js';
+import { drawText } from './pixel.js';
 
 export const INTRO_TIME = 1.9;
 
@@ -18,13 +20,15 @@ const S = 2, BW = W / S, BH = H / S;           // buffer scale and size: 1 buffe
 const LEAD = '#0c0d12';
 const LANCET = { w: 84, gap: 22, apex: 76, spring: 118, foot: 226 }; // buffer px
 const lancetX = i => Math.round((BW - (4 * LANCET.w + 3 * LANCET.gap)) / 2 + i * (LANCET.w + LANCET.gap));
-const torch = i => FLOORS[i].torch.split(',').map(Number); // "255,150,60" -> [r, g, b]
+/** @type {(i: number) => [number, number, number]} */
+const torch = i => /** @type {any} */ (FLOORS[i].torch.split(',').map(Number)); // "255,150,60" -> [r, g, b]
 
-// Reached = the best record's floor, a suspended run's floor, and always floor 1
-let reached = 1, buf = null, logo = null;
+// Reached = the best record's floor, a suspended run's floor, and always floor 1; beaten = every act before the furthest one
+let reached = 1, beaten = 0, buf = null, logo = null;
 export function refreshMenuBg() {
   const s = loadSuspend(), b = meta.best;
   reached = Math.max(1, b ? (b.cleared ? FLOORS.length : actOf(b.floor - 1) + 1) : 1, s ? actOf(s.floorIdx) + 1 : 1); // best.floor / floorIdx are run floors; the menu shows acts
+  beaten = b?.cleared ? FLOORS.length : reached - 1;
   buf = null;
 }
 ready.then(() => { buf = null; });
@@ -60,9 +64,10 @@ function glazeLancet(g, i) {
     g.beginPath(); g.moveTo(...P(xx, yy)); g.lineTo(...P(xx + 1, yy)); g.lineTo(...P(xx + 1, yy + 1)); g.lineTo(...P(xx, yy + 1)); g.closePath();
     g.fill(); g.strokeStyle = LEAD; g.lineWidth = 1; g.stroke();
   }
-  // the boss as the window's figure, outlined in lead; unreached floors show only a dark silhouette
+  // a beaten boss is the window's figure, outlined in lead; a reached floor gets a lead sword, an unreached one nothing
   const boss = BOSSES[FLOORS[i].boss], img = IMG[boss.img];
-  if (img) {
+  if (lit && i >= beaten) leadSword(g, x + w / 2, rgbK(torch(i), 1.25));
+  else if (lit && img) {
     const sheet = !('tree' in boss), sw = sheet ? img.width / 4 : img.width, sh = sheet ? img.width / 4 : img.height;
     const scale = Math.min((w - 10) / sw, 120 / sh), dw = sw * scale, dh = sh * scale;
     const dx = Math.round(x + (w - dw) / 2), dy = Math.round(LANCET.foot - 26 - dh);
@@ -70,8 +75,7 @@ function glazeLancet(g, i) {
     g.globalAlpha = 1; g.filter = 'brightness(0)';
     for (const [ox, oy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) g.drawImage(sil, 0, 0, sw, sh, dx + ox, dy + oy, dw, dh);
     g.filter = 'none';
-    if (lit) g.drawImage(img, 0, 0, sw, sh, dx, dy, dw, dh);
-    else { g.globalAlpha = 0.7; g.filter = 'brightness(0.18) saturate(0)'; g.drawImage(img, 0, 0, sw, sh, dx, dy, dw, dh); g.filter = 'none'; g.globalAlpha = 1; }
+    g.drawImage(img, 0, 0, sw, sh, dx, dy, dw, dh);
   }
   // the inscription band at the foot of the window
   g.fillStyle = lit ? `rgb(${r * 0.25 | 0},${gr * 0.25 | 0},${b * 0.25 | 0})` : '#14161d';
@@ -82,6 +86,18 @@ function glazeLancet(g, i) {
   for (const side of [-1, 1]) { g.beginPath(); g.arc(x + w / 2 + side * w * 0.17, LANCET.apex + 26, w * 0.17, Math.PI * 1.05, Math.PI * 1.95); g.stroke(); }
   g.lineWidth = 3; lancetPath(g, x, w); g.stroke();
   g.fillStyle = LEAD; g.fillRect(x, LANCET.foot - 19, w, 2);
+}
+
+const rgbK = ([r, g, b], k) => `rgb(${Math.min(255, r * k) | 0},${Math.min(255, g * k) | 0},${Math.min(255, b * k) | 0})`;
+// A sword pointing down, glazed paler than the window and leaded around: the floor waits to be fought
+function leadSword(g, cx, fill) {
+  const top = 124, parts = [[cx - 3, top, 6, 10], [cx - 13, top + 10, 26, 5], [cx - 4, top + 15, 8, 54]]; // grip, guard, blade
+  g.fillStyle = LEAD; for (const [x, y, w, h] of parts) g.fillRect(x - 2, y - 2, w + 4, h + 4);
+  g.beginPath(); g.moveTo(cx - 6, top + 69); g.lineTo(cx, top + 84); g.lineTo(cx + 6, top + 69); g.fill(); // point, leaded
+  g.fillStyle = fill; for (const [x, y, w, h] of parts) g.fillRect(x, y, w, h);
+  g.beginPath(); g.moveTo(cx - 4, top + 69); g.lineTo(cx, top + 79); g.lineTo(cx + 4, top + 69); g.fill();
+  g.fillStyle = LEAD; g.fillRect(cx - 1, top + 17, 2, 58); // the fuller, a lead line down the blade
+  g.beginPath(); g.arc(cx, top - 3, 4, 0, 7); g.fill(); g.fillStyle = fill; g.beginPath(); g.arc(cx, top - 3, 2, 0, 7); g.fill(); // pommel
 }
 
 function buildGlass() {
@@ -155,36 +171,66 @@ export function drawMenuBg() {
   }
   ctx.globalCompositeOperation = 'source-over';
   // town names in the inscription bands, set at screen resolution so they stay readable
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = `800 15px ${FN}`;
   for (let i = 0; i < 4; i++) {
     const [r, gr, b] = torch(i);
-    ctx.fillStyle = i < reached ? `rgb(${r},${gr},${b})` : '#4a4d5c';
-    ctx.fillText(i < reached ? FLOORS[i].town.toUpperCase().split('').join(' ') : '? ? ?', (lancetX(i) + LANCET.w / 2) * S, (LANCET.foot - 9) * S);
+    drawText(ctx, i < reached ? FLOORS[i].town.toUpperCase().split('').join(' ') : '? ? ?', (lancetX(i) + LANCET.w / 2) * S, (LANCET.foot - 9) * S + 5,
+      { size: 15, weight: 800, color: i < reached ? `rgb(${r},${gr},${b})` : '#4a4d5c', align: 'center', outline: null });
   }
-  ctx.textBaseline = 'alphabetic';
   const lw = logo.width * 4, lh = logo.height * 4;
   ctx.drawImage(logo, Math.round((W - lw) / 2), 22 * S + Math.round((42 * S - lh) / 2), lw, lh);
   ctx.restore();
 }
 
-// Dive In: the lancets flood with white, then the climb begins (rings in the four floor colors rushing outward)
+// Dive In: the Spire's glass cracks out from the middle and falls away in shards, and the first floor's name is
+// set behind it. Reduced motion skips the fall: the glass fades and the name comes up.
+const reduced = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+let shards = null, snap = null, lastT = Infinity, title = null, titleAct = -1;
+function breakGlass() {
+  drawMenuBg();
+  snap = document.createElement('canvas'); snap.width = W; snap.height = H; snap.getContext('2d').drawImage(ctx.canvas, 0, 0);
+  // a jittered 10 x 7 grid, two triangles per cell; each shard flies away from the impact point and tumbles
+  const cols = 10, rows = 7, rnd = rand(4242), pt = [];
+  for (let y = 0; y <= rows; y++) for (let x = 0; x <= cols; x++) {
+    const edge = x === 0 || x === cols || y === 0 || y === rows;
+    pt.push([x * W / cols + (edge ? 0 : (rnd() - 0.5) * 50), y * H / rows + (edge ? 0 : (rnd() - 0.5) * 50)]);
+  }
+  const P = (x, y) => pt[y * (cols + 1) + x];
+  shards = [];
+  for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) for (const tri of [[P(x, y), P(x + 1, y), P(x + 1, y + 1)], [P(x, y), P(x + 1, y + 1), P(x, y + 1)]]) {
+    const cx = (tri[0][0] + tri[1][0] + tri[2][0]) / 3, cy = (tri[0][1] + tri[1][1] + tri[2][1]) / 3;
+    const dx = cx - W / 2, dy = cy - H * 0.45, d = Math.hypot(dx, dy) || 1, sp = 120 + rnd() * 160;
+    shards.push({ tri, cx, cy, d, vx: dx / d * sp, vy: dy / d * sp - 120, spin: (rnd() - 0.5) * 5 });
+  }
+}
+const CRACK = 0.5, FALL = 0.55;
 export function drawIntro() {
   const t = G.introT, k = t / INTRO_TIME;
-  if (t < 0.35) {
-    drawMenuBg();
-    ctx.fillStyle = settings.flash ? `rgba(255,248,230,${t / 0.35})` : `rgba(0,0,0,${t / 0.35})`; ctx.fillRect(0, 0, W, H);
-    return;
-  }
+  if (t < lastT || !shards) breakGlass(); // a fresh Dive In
+  lastT = t;
   ctx.fillStyle = '#07080b'; ctx.fillRect(0, 0, W, H);
-  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.translate(W / 2, H / 2);
-  for (let i = 0; i < 16; i++) {
-    const p = (t * 0.9 + i / 16) % 1, r = p * p * W * 0.9, [cr, cg, cb] = torch(i % 4);
-    ctx.strokeStyle = `rgba(${cr},${cg},${cb},${(1 - p) * 0.8})`; ctx.lineWidth = 2 + p * 14;
-    ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.stroke();
-  }
+  // the first floor's name, waiting behind the glass
+  const act = actOf(G.introFloor), [r, gr, b] = torch(act);
+  if (titleAct !== act) { title = pixelText(FLOORS[act].town.toUpperCase(), 20, ['#fff8e8', rgbK([r, gr, b], 1.3), `rgb(${r},${gr},${b})`]); titleAct = act; }
+  const show = clamp((t - 0.7) * 2.5, 0, 1);
+  ctx.save(); ctx.imageSmoothingEnabled = false; ctx.globalAlpha = show;
+  const tw = title.width * 4, th = title.height * 4;
+  ctx.drawImage(title, Math.round((W - tw) / 2), Math.round(H / 2 - th / 2 - 10), tw, th);
+  drawText(ctx, `T H E   S P I R E   ·   ${G.introFloor + 1}`, W / 2, H / 2 + th / 2 + 18, { size: 16, weight: 800, color: '#b9b2a2', align: 'center', outline: null });
   ctx.restore();
-  ctx.globalAlpha = clamp((t - 0.45) * 3, 0, 1) * clamp((INTRO_TIME - t) * 4, 0, 1);
-  ctx.textAlign = 'center'; ctx.font = `800 54px ${FN}`; ctx.fillStyle = '#f4ecd8'; ctx.fillText('DIVE IN', W / 2, H / 2 + 18);
-  ctx.globalAlpha = 1;
-  if (k > 0.8) { ctx.fillStyle = settings.flash ? `rgba(255,248,230,${(k - 0.8) * 5})` : `rgba(0,0,0,${(k - 0.8) * 5})`; ctx.fillRect(0, 0, W, H); }
+  if (reduced) { ctx.globalAlpha = clamp(1 - t / 0.6, 0, 1); ctx.drawImage(snap, 0, 0); ctx.globalAlpha = 1; }
+  else for (const sh of shards) {
+    const ft = Math.max(0, t - FALL - sh.d / 1400); // shards near the impact go first
+    if (ft > 1.2) continue;
+    const [[ax, ay], [bx, by], [cx2, cy2]] = sh.tri;
+    ctx.save();
+    ctx.translate(sh.cx + sh.vx * ft, sh.cy + sh.vy * ft + 900 * ft * ft); ctx.rotate(sh.spin * ft); ctx.translate(-sh.cx, -sh.cy);
+    ctx.globalAlpha = clamp(1 - ft * 1.1, 0, 1);
+    ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.lineTo(cx2, cy2); ctx.closePath();
+    ctx.save(); ctx.clip(); ctx.drawImage(snap, 0, 0); ctx.restore();
+    // cracks run outward from the impact before anything falls
+    const crack = clamp((t / CRACK) * 700 - sh.d, 0, 60) / 60;
+    if (crack > 0) { ctx.strokeStyle = `rgba(255,248,230,${0.75 * crack})`; ctx.lineWidth = 1.5; ctx.stroke(); }
+    ctx.restore();
+  }
+  if (k > 0.82) { ctx.fillStyle = `rgba(7,8,11,${(k - 0.82) / 0.18})`; ctx.fillRect(0, 0, W, H); }
 }

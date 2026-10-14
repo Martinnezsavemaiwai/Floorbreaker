@@ -59,6 +59,7 @@ async function finishFloor(page: Page) {
 
 async function diveIn(page: Page) {
   await page.locator('[data-act=start]:visible').click();
+  await page.locator('#name-input').press('Enter'); // keep the offered name
   await expect.poll(() => state(page), { timeout: 10_000 }).not.toBe('intro');
   await settle(page);
 }
@@ -109,6 +110,7 @@ test('death loop: die -> result -> new character -> play again', async ({ page }
   await expect(page.locator('#result')).toBeVisible({ timeout: 5_000 });
   await expect(page.locator('#result')).toHaveClass(/dead/);
   await page.locator('#result [data-act=start]').click();
+  await page.locator('#name-input').press('Enter'); // keep the offered name
   await expect.poll(() => state(page), { timeout: 10_000 }).not.toBe('intro');
   await settle(page);
   expect(await hook(page, 's.floorIdx')).toBe(0);
