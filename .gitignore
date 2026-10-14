@@ -20,3 +20,10 @@ Thumbs.db
 
 # Design-tool working files (critique snapshots, live-server state)
 .impeccable/
+
+# Planning docs, research and reports stay local; the repo holds only the game
+docs/
+reports/
+research_notes/
+DESIGN.md
+PRODUCT.md
