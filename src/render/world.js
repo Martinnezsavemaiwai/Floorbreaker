@@ -206,6 +206,17 @@ function drawGuard(m, x, y) {
 
 // Shot sprites point right; they turn to face where they fly (stones and water drops just spin a little)
 const SHOT_IMG = { stone: 'shots-1', javelin: 'shots-2', bolt: 'shots-3', water: 'shots-4' };
+// Coins spin through 4 frames, XP orbs pulse through 4; without art: a gold square and a cyan diamond
+function drawLoot() {
+  for (const l of G.loot) {
+    const base = l.kind === 'coin' ? 'coin' : 'xp-orb', f = Math.floor(G.time * 10 + l.seed) % 4, img = IMG[`${base}-${f + 1}`] ?? IMG[`${base}-1`];
+    const x = Math.round(l.x), y = Math.round(l.y - l.z);
+    ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.fillRect(x - 3, Math.round(l.y) + 2, 6, 2);
+    if (img) { ctx.drawImage(img, x - Math.round(img.width / 2), y - Math.round(img.height / 2)); continue; }
+    if (l.kind === 'coin') { ctx.fillStyle = '#0c0d12'; ctx.fillRect(x - 4, y - 4, 8, 8); ctx.fillStyle = f % 2 ? '#ffe14d' : '#d8a520'; ctx.fillRect(x - 3, y - 3, 6, 6); }
+    else { ctx.fillStyle = '#7fd4ff'; ctx.beginPath(); ctx.moveTo(x, y - 5); ctx.lineTo(x + 4, y); ctx.lineTo(x, y + 5); ctx.lineTo(x - 4, y); ctx.closePath(); ctx.fill(); }
+  }
+}
 function drawShots() {
   for (const s of G.shots) {
     const img = IMG[SHOT_IMG[s.kind]];
@@ -670,6 +681,7 @@ export function drawWorld() {
   for (const p of G.arena?.pillars ?? []) actors.push({ y: p.y + p.h, draw: () => drawPillar(p) });
   if (G.boss.hp > 0) actors.push({ y: G.boss.y, draw: drawBoss });
   for (const a of actors.sort((a, b) => a.y - b.y)) a.draw();
+  drawLoot();
   drawShots();
   drawWaves();
   drawFx();

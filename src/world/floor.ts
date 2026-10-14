@@ -68,7 +68,7 @@ export function loadFloor(i: number, room: Room | null = null) {
   const hp = kind === 'town' ? G.P!.maxHp : G.P!.hp; // only towns heal you fully
   Object.assign(G.P, { x: L.start.x, y: L.start.y, hp, lag: hp, dash: 0, delay: 0, trail: [], kx: 0, ky: 0, inv: 0, buf: null, parry: 0, slowmo: 0, spin2: 0, fangLine: 0, fangBeam: 0, shadeChain: 0, shadeLast: null, dashArt: null });
   clock.scale = settings.assistSpeed;
-  G.texts = []; G.parts = []; G.shots = []; G.waves = []; G.rings = []; G.bolts = []; G.doorClosed = false; G.portal = null; clock.hitStop = 0; G.shake = 0;
+  G.texts = []; G.parts = []; G.loot = []; G.shots = []; G.waves = []; G.rings = []; G.bolts = []; G.doorClosed = false; G.portal = null; clock.hitStop = 0; G.shake = 0;
   if (G.run) G.run.floor = Math.max(G.run.floor, i + 1);
   G.entry = snapshotRun();
   if (G.cursed) G.run!.curse!--; // after the snapshot, so resuming this floor pays it exactly once

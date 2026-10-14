@@ -11,7 +11,7 @@ import { emit } from '../core/events.ts';
 import { settings } from '../core/save.ts';
 import { clock } from '../core/app.ts';
 import { counter } from './player.js';
-import { text, burst, ring, kick } from './fx.js';
+import { text, burst, ring, kick, dropLoot } from './fx.js';
 import { mods } from './upgrades.js';
 import { bossReward } from './build.js';
 import { onSproutKilled } from './arena.js';
@@ -71,14 +71,14 @@ export function kill(e) {
     for (const m of G.mobs) if ((m.summoned || m.sprout) && m.hp > 0) { m.hp = 0; m.dead = Infinity; burst(m.x, m.y, 20, '#8fe3ff', 260, 0.9, 8, true); }
     emit('bossDeath');
     if (!isFinalFloor(G.floorIdx)) bossReward();
-    gainXp(F.mob.xp * BOSS_RULES.xpMult); gainCol(F.mob.col * BOSS_RULES.xpMult, e);
+    gainXp(F.mob.xp * BOSS_RULES.xpMult); gainCol(F.mob.col * BOSS_RULES.xpMult, e); dropLoot(e.x, e.y, 18, 90);
     if (!isFinalFloor(G.floorIdx)) { G.portal = { x: boss.x, y: boss.y, wait: BOSS_RULES.portalDelay, armed: false }; emit('portalOpen'); }
     else { G.P.slowmo = 0; clock.scale = settings.assistSpeed; run.over = 'win'; emit('runOver', { cleared: true }); }
   } else if (e.sprout) { // cut down: lifts the fog, pays nothing
     e.dead = Infinity; onSproutKilled();
     burst(e.x, e.y, 18, '#78c850', 240, 0.6, 7, false); ring(e.x, e.y, 5, 60, 0.3, '120,220,90');
   } else {
-    e.dead = Infinity; gainXp(e.def.xp); gainCol(e.def.col, e); emit('mobDeath', { x: e.x, y: e.y }); run.kills++;
+    e.dead = Infinity; gainXp(e.def.xp); gainCol(e.def.col, e); dropLoot(e.x, e.y, e.def.col, e.def.xp); emit('mobDeath', { x: e.x, y: e.y }); run.kills++;
     burst(e.x, e.y, 26, '#8fe3ff', 260, 0.9, 9, true); ring(e.x, e.y, 5, 50, 0.3, '143,227,255');
     if (e.mod === 'split') { // the elite falls apart into two smaller copies
       const R = ELITE_RULES, kid = { ...e.def, hp: Math.round(e.maxHp * R.splitHp), scale: (e.def.scale ?? 1) * R.splitScale, radius: Math.round(e.def.radius * R.splitScale), armor: undefined };

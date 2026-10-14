@@ -38,6 +38,7 @@ export interface Mob extends Point {
   aggro?: boolean; // room mobs chase from anywhere
   sprout?: boolean; life?: number; // Elderroot's root sprouts: no AI, no rewards, wither after `life` s
 }
+export interface Loot extends Point { kind: 'coin' | 'xp'; vx: number; vy: number; z: number; vz: number; t: number; seed: number }
 export interface Shot extends Point { vx: number; vy: number; r: number; dmg: number; col: string; life: number; kind?: ShotKind }
 export interface Wave extends Point { vx: number; vy: number; left: number; dmg: number; art: string; hit: Set<object>; r: number }
 export interface Boss extends Point {
@@ -71,6 +72,7 @@ export type Arena = { id: ArenaId; rocks: { x: number; y: number; t: number }[];
 export const G = {
   P: null as Player | null,   // null on the title screen
   mobs: [] as Mob[], boss: null as Boss | null, shots: [] as Shot[], waves: [] as Wave[],
+  loot: [] as Loot[], // cosmetic coins / XP orbs flying from a kill to the player (the reward itself is paid at once)
   texts: [] as FloatText[], parts: [] as Particle[], rings: [] as Ring[], bolts: [] as { x1: number; y1: number; x2: number; y2: number; t: number }[],
   arena: null as Arena | null, doorClosed: false, portal: null as Portal | null,
   floorIdx: 0, F: null as Floor | null, WALLS: [] as Rect[],

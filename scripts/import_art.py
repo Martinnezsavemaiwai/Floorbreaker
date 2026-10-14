@@ -56,6 +56,7 @@ SPRITES = {
     'bird': ('beast', 20, {}), 'gull': ('beast', 24, {}),
     'boss-gate': ('item', 120, {}), 'pillar': ('item', 175, {}), 'pillar-cracked': ('item', 175, {}), 'torch': ('item', 40, {}),
     'rock': ('item', 34, {}), 'root-sprout': ('beast', 34, {}), 'lanterns': ('item', 220, {}),
+    'coin': ('pieces', 12, {}), 'xp-orb': ('pieces', 12, {}),  # 4-frame spin / pulse, left to right
     'shots': ('pieces', 40, {}),  # left to right: stone, javelin, magic bolt, water drop -> shots-1..4
     'folk-1': ('character', 48, {'attack': False}), 'folk-2': ('character', 48, {'attack': False}), 'folk-3': ('character', 48, {'attack': False}),
 }
