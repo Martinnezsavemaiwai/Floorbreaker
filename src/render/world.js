@@ -23,7 +23,7 @@ import { tallProps, drawTall } from './props.js';
 import { drawHud } from './hud.js';
 import { drawText, worldPane } from './pixel.js';
 import { scenes } from '../core/app.ts';
-import { pose, applyPose, REDUCED } from './anim.js';
+import { pose, applyPose, walkFrame, REDUCED } from './anim.js';
 import { drawAmbientGround, drawAmbientAir } from './ambient.js';
 
 const SWING = PLAYER.attack.swing;
@@ -31,11 +31,10 @@ const SWING = PLAYER.attack.swing;
 // Render-side motion from the per-frame position change (entities carry no velocity field); kept in e.anim
 function motion(e) {
   const a = e.anim ??= {};
-  if (a.t === undefined) Object.assign(a, { t: G.time, x: e.x, y: e.y, vx: 0, mv: false });
+  if (a.t === undefined) Object.assign(a, { t: G.time, x: e.x, y: e.y, mv: false });
   const dt = G.time - a.t;
   if (dt > 0) {
-    const dx = e.x - a.x;
-    Object.assign(a, { vx: dx / dt, mv: Math.hypot(dx, e.y - a.y) > 0.3, t: G.time, x: e.x, y: e.y });
+    Object.assign(a, { mv: Math.hypot(e.x - a.x, e.y - a.y) > 0.3, t: G.time, x: e.x, y: e.y });
   }
   return a;
 }
@@ -53,7 +52,7 @@ function drawMob(m) {
   }
   // wind-up: shake + red flash; lunge: hop toward the target
   const mo = motion(m), pz = dying ? pose(m, 'mob', time, { reduced: REDUCED, dyingFor: time - m.anim.deadAt })
-    : pose(m, 'mob', time, { reduced: REDUCED, vx: mo.vx, moving: mo.mv });
+    : pose(m, 'mob', time, { reduced: REDUCED, moving: mo.mv });
   shadow(m.x, m.y, m.r, pz.alpha);
   const jit = m.wind > 0 && !dying ? Math.sin(time * 70) * 2 : 0, hop = m.lunge > 0 ? Math.sin((m.lunge / M.lunge) * Math.PI) * 12 : 0;
   const x = Math.round(m.x + jit + Math.cos(m.face) * hop), y = Math.round(m.y + Math.sin(m.face) * hop);
@@ -67,12 +66,12 @@ function drawMob(m) {
   const tint = m.frozen > 0 ? '#5ac8ff' : m.burn?.t > 0 ? '#ff963c' : m.poison?.t > 0 ? '#78ff96' : null; // element status rim
   if (tint && !(m.wind > 0 && m.hurt <= 0)) { ctx.shadowColor = tint; ctx.shadowBlur = 12; }
   if (M.kind === 'beast') {
-    const f = Math.floor(time * 6 + m.sx) % 2, s = 48 * k; // sheet faces left
+    const f = mo.mv ? walkFrame(m, 'mob', time) % 2 : 0, s = 48 * k; // sheet faces left
     ctx.translate(x, y); if (Math.cos(m.face) > 0) ctx.scale(-1, 1);
     const c = img.height; // square frames, two side by side
     ctx.drawImage(img, f * c, 0, c, c, -s / 2, -s * 0.6, s, s);
   } else {
-    const row = m.wind > 0 || m.lunge > 0 ? 4 : Math.floor(time * 8 + m.sx) % 4;
+    const row = m.wind > 0 || m.lunge > 0 ? 4 : mo.mv ? walkFrame(m, 'mob', time) : 0;
     frame(img, dirCol(m.face), row, x, y, 3 * k);
   }
   ctx.restore();
@@ -113,10 +112,10 @@ function drawBoss() {
     ctx.restore();
     return;
   }
-  const bm = motion(b), bp = pose(b, 'boss', time, { reduced: REDUCED, rage: rage(), vx: bm.vx, moving: bm.mv, kx: b.x - G.P.x, ky: b.y - G.P.y });
+  const bm = motion(b), bp = pose(b, 'boss', time, { reduced: REDUCED, rage: rage(), moving: bm.mv, kx: b.x - G.P.x, ky: b.y - G.P.y });
   ctx.save(); applyPose(ctx, b.x + jit, b.y - b.z + b.r, bp); if (rage()) { ctx.shadowColor = '#ffb300'; ctx.shadowBlur = 25; }
   const img = b.hurt > 0 && settings.flash ? IMG[F.boss.img + 'White'] : IMG[rage() ? F.boss.rageImg : F.boss.img];
-  frame(img, dirCol(b.ang), attacking ? 4 : Math.floor(time * 5) % 4, b.x + jit, b.y - b.z, F.boss.scale);
+  frame(img, dirCol(b.ang), attacking ? 4 : bm.mv ? walkFrame(b, 'boss', time) : 0, b.x + jit, b.y - b.z, F.boss.scale);
   ctx.restore();
   if (b.stun > 0) { // stars circling above the head
     for (let i = 0; i < 3; i++) { const a = time * 5 + i * 2.1; drawText(ctx, '★', b.x + Math.cos(a) * b.r * 0.8, b.y - b.r * 2.2 + Math.sin(a) * 8, { size: 20, weight: 900, color: '#ffe14d', align: 'center' }); }
@@ -146,7 +145,7 @@ function drawFolk(f) {
   const fp = pose(f, 'npc', G.time, { reduced: REDUCED, moving: f.moving });
   shadow(f.x, f.y, 12);
   ctx.save(); applyPose(ctx, f.x, f.y, fp);
-  frame(IMG[f.sheet], f.face, f.moving ? Math.floor(G.time * 5) % 4 : Math.floor(G.time * 2) % 2 ? 0 : 2, f.x, f.y, 3);
+  frame(IMG[f.sheet], f.face, f.moving ? walkFrame(f, 'npc', G.time) : 0, f.x, f.y, 3);
   ctx.restore();
   if (f.bubble && scenes.top?.name === 'play') bubbles.push([f.x, f.y - 52, f.bubble]);
 }
@@ -391,7 +390,7 @@ function drawPlayer() {
   drawSkillFx(P);
   const skillFx = P.delay > 0 || P.dash > 0 || P.thrust > 0, col = dirCol(P.ang), sa = swordAngle(P);
   const hx = P.x + Math.cos(P.ang) * 6, hy = P.y + 4 + Math.sin(P.ang) * 4; // hand
-  const pm = motion(P), pp = pose(P, 'player', time, { reduced: REDUCED, vx: pm.vx }), foot = P.y + P.r;
+  const pm = motion(P), pp = pose(P, 'player', time, { reduced: REDUCED }), foot = P.y + P.r;
   if (P.moving && !REDUCED) { // dust every second footfall
     const st = Math.floor(time * 10);
     if (st !== pm.step) { pm.step = st; if ((pm.steps = (pm.steps ?? 0) + 1) % 2 === 0) burst(P.x, P.y + P.r, 3, actOf(G.floorIdx) === 3 ? '#bfe6ff' : '#b49a76', 60, 0.35, 3, false); }
@@ -415,7 +414,7 @@ function drawPlayer() {
   if (behind) sword();
   ctx.save(); applyPose(ctx, P.x, foot, pp);
   if (skillFx) { ctx.shadowColor = P.delay > 0 ? '#ffb347' : '#7fd4ff'; ctx.shadowBlur = 22; }
-  const row = P.swing > 0 || P.dash > 0 ? 4 : P.moving ? Math.floor(time * 10) % 4 : 0;
+  const row = P.swing > 0 || P.dash > 0 ? 4 : P.moving ? walkFrame(P, 'player', time) : 0;
   if (P.inv > 0) ctx.globalAlpha *= settings.flash && Math.floor(time * 20) % 2 ? 0.35 : 0.65; // i-frame blink (steady when flashing is off)
   if (P.roll > 0) { // roll: squashed, see-through, legs spinning fast
     ctx.globalAlpha *= 0.6; // the pose already squashes the roll

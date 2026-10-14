@@ -1,6 +1,6 @@
 // Character animation poses (spec "A1"): pure draw transforms from state the game already has.
 import { describe, it, expect } from 'vitest';
-import { pose } from '../src/render/anim.js';
+import { pose, walkFrame } from '../src/render/anim.js';
 
 const idle = (o: object = {}) => ({ x: 0, y: 0, sx: 0, moving: false, hurt: 0, swing: 0, kx: 0, ky: 0, ...o });
 const NEUTRAL = { sx: 1, sy: 1, rot: 0, ox: 0, oy: 0, alpha: 1 };
@@ -22,11 +22,17 @@ describe('pose()', () => {
     expect(p.ox).toBeLessThanOrEqual(4); expect(p.sx).toBeGreaterThan(1); expect(p.sy).toBeLessThan(1);
   });
 
-  it('walking bounces up and leans toward the movement, max 6 degrees', () => {
-    let up = 0, maxRot = 0;
-    for (let t = 0; t < 1; t += 0.01) { const p = pose(idle({ moving: true }), 'player', t, { vx: 200 }); up = Math.min(up, p.oy); maxRot = Math.max(maxRot, p.rot); }
-    expect(up).toBeLessThan(-1); expect(up).toBeGreaterThanOrEqual(-3.01);
-    expect(maxRot).toBeGreaterThan(0); expect(maxRot).toBeLessThanOrEqual(0.106);
+  it('walking lifts 3 px on the passing frames only, never leans or stretches', () => {
+    for (let t = 0; t < 1; t += 0.01) {
+      const e = idle({ moving: true }), p = pose(e, 'player', t);
+      expect(p.oy).toBe(walkFrame(e, 'player', t) % 2 ? -3 : 0);
+      expect(p.rot).toBe(0);
+    }
+  });
+
+  it('the walk frame steps 0-3 at the sheet rate, staggered by spawn x', () => {
+    expect([0, 0.1, 0.2, 0.3, 0.4].map(t => walkFrame(idle(), 'player', t + 0.001))).toEqual([0, 1, 2, 3, 0]);
+    expect(walkFrame(idle({ sx: 1 }), 'mob', 0)).toBe(1);
   });
 
   it('a dying mob tips over and fades out over 0.4 s', () => {
@@ -88,9 +94,6 @@ describe('pose() focused branches', () => {
     near(pose(idle(), 'boss', 0.4, { rage: true }).sy, pose(idle(), 'mob', 0.4).sy);
   });
 
-  it('negative vx leans negative', () => {
-    near(pose(idle({ moving: true }), 'player', 0, { vx: -200 }).rot, -0.105);
-  });
 
   it('death tilt follows the kx sign', () => {
     expect(pose(idle({ hp: 0, kx: -5 }), 'mob', 0, { dyingFor: 0.2 }).rot).toBeLessThan(0);
@@ -127,9 +130,9 @@ describe('pose() focused branches', () => {
   it('opts override knock direction and moving; unknown kind uses player tables', () => {
     const p = pose(idle({ hurt: 0.1 }), 'boss', 0, { kx: -5, ky: 0 });
     expect(p.ox).toBeLessThan(0); near(Math.abs(p.oy), 0);
-    const w = pose(idle(), 'boss', 0.05, { moving: true });
+    const w = pose(idle(), 'boss', 0.25, { moving: true }); // boss walk frame 1: passing
     expect(w.oy).toBeLessThan(0);
-    const u = pose(idle({ moving: true }), 'nope', 0.05, { vx: 200 }), pl = pose(idle({ moving: true }), 'player', 0.05, { vx: 200 });
+    const u = pose(idle({ moving: true }), 'nope', 0.15), pl = pose(idle({ moving: true }), 'player', 0.15);
     expect(u).toEqual(pl);
   });
 });
