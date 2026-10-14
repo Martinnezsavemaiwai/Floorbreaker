@@ -43,7 +43,13 @@ function drawMob(m) {
   const { time } = G, M = m.def, dying = m.hp <= 0;
   if (m.sprout) {
     shadow(m.x, m.y, m.r); // a small green root shape that sways and shrinks as it withers
-    const k = Math.min(1, m.life / 1.5), sw = Math.sin(time * 5 + m.sx) * 3;
+    const k = Math.min(1, m.life / 1.5), sw = Math.sin(time * 5 + m.sx) * 3, art = IMG['root-sprout'];
+    if (art) { // two frames: just broken out (withering) / fully raised; white while hurt
+      const c = art.height, src = m.hurt > 0 && settings.flash ? IMG['root-sproutWhite'] ?? art : art;
+      ctx.save(); ctx.translate(Math.round(m.x), Math.round(m.y + m.r)); ctx.rotate(sw * 0.02);
+      ctx.drawImage(src, (k < 0.6 ? 0 : 1) * c, 0, c, c, -c / 2, -c, c, c); ctx.restore();
+      return;
+    }
     ctx.save(); ctx.translate(m.x, m.y); ctx.scale(k, k); ctx.lineCap = 'round';
     ctx.strokeStyle = m.hurt > 0 ? '#fff' : '#4f7a2c'; ctx.lineWidth = 7;
     ctx.beginPath(); ctx.moveTo(-8, 0); ctx.quadraticCurveTo(-12 + sw, -16, -4, -28); ctx.moveTo(8, 0); ctx.quadraticCurveTo(12 + sw, -14, 5, -24); ctx.moveTo(0, 2); ctx.lineTo(sw, -32); ctx.stroke();
@@ -260,7 +266,10 @@ function drawArena() {
       const k = 1 - Math.max(0, r.t) / R.warn, rad = R.radius * (0.4 + 0.6 * k);
       ctx.fillStyle = `rgba(0,0,0,${0.25 + 0.3 * k})`; ctx.beginPath(); ctx.ellipse(r.x, r.y, rad, rad * 0.6, 0, 0, 7); ctx.fill();
       if (r.t < 0.25) { ctx.strokeStyle = 'rgba(255,60,60,.8)'; ctx.lineWidth = 3; ctx.stroke(); }
-      if (r.t < 0.2) { ctx.fillStyle = '#8a7a6a'; ctx.beginPath(); ctx.arc(r.x, r.y - r.t * 900, 16, 0, 7); ctx.fill(); }
+      if (r.t < 0.2) {
+        if (IMG.rock) ctx.drawImage(IMG.rock, Math.round(r.x - IMG.rock.width / 2), Math.round(r.y - r.t * 900 - IMG.rock.height / 2));
+        else { ctx.fillStyle = '#8a7a6a'; ctx.beginPath(); ctx.arc(r.x, r.y - r.t * 900, 16, 0, 7); ctx.fill(); }
+      }
     }
   }
   ctx.restore();

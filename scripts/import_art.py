@@ -55,6 +55,7 @@ SPRITES = {
     'town-props': ('pieces', 64, {}),  # barrel crate sacks bench lamp / board planter hay mooring cart -> town-props-1..10
     'bird': ('beast', 20, {}), 'gull': ('beast', 24, {}),
     'boss-gate': ('item', 120, {}), 'pillar': ('item', 175, {}), 'pillar-cracked': ('item', 175, {}), 'torch': ('item', 40, {}),
+    'rock': ('item', 34, {}), 'root-sprout': ('beast', 34, {}), 'lanterns': ('item', 220, {}),
     'shots': ('pieces', 40, {}),  # left to right: stone, javelin, magic bolt, water drop -> shots-1..4
     'folk-1': ('character', 48, {'attack': False}), 'folk-2': ('character', 48, {'attack': False}), 'folk-3': ('character', 48, {'attack': False}),
 }

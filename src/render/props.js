@@ -146,15 +146,16 @@ const DRAW = {
 // the prop's footprint; props without art keep their drawn version.
 const PROP_ART = { house: ['house', 1], stall: ['stall', 1], barrel: ['town-props-1', 1], crate: ['town-props-2', 1], sacks: ['town-props-3', 1],
   bench: ['town-props-4', 1], lamp: ['town-props-5', 1], board: ['town-props-6', 1], planter: ['town-props-7', 1], hay: ['town-props-8', 1],
-  mooring: ['town-props-9', 1], cart: ['town-props-10', 2] }; // the cart is the one big piece of a small-scale sheet
+  mooring: ['town-props-9', 1], cart: ['town-props-10', 2], lanterns: ['lanterns', 1] }; // the cart is the one big piece of a small-scale sheet
 const propArt = p => { const [n, k] = PROP_ART[p.kind] ?? []; return IMG[n] ? { img: IMG[n], k } : null; };
 function drawProp(g, p, A) {
   const art = propArt(p);
   if (!art) return DRAW[p.kind]?.(g, p, A);
   const w = art.img.width * art.k, h = art.img.height * art.k;
-  if (p.kind !== 'house') shade(g, p);
+  if (p.kind !== 'house' && p.kind !== 'lanterns') shade(g, p);
   g.imageSmoothingEnabled = false;
-  g.drawImage(art.img, Math.round(p.x + p.w / 2 - w / 2), Math.round(p.y + p.h - h), w, h);
+  const top = p.kind === 'lanterns' ? p.y - 6 : p.y + p.h - h; // lanterns hang from the eave line; everything else stands on the ground
+  g.drawImage(art.img, Math.round(p.x + p.w / 2 - w / 2), Math.round(top), w, h);
 }
 
 // ---- the floor background: low props, sorted by y so lower ones overlap higher ones ----
