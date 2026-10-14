@@ -78,7 +78,7 @@ export function kill(e) {
     e.dead = Infinity; onSproutKilled();
     burst(e.x, e.y, 18, '#78c850', 240, 0.6, 7, false); ring(e.x, e.y, 5, 60, 0.3, '120,220,90');
   } else {
-    e.dead = Infinity; gainXp(e.def.xp); gainCol(e.def.col, e); emit('mobDeath'); run.kills++;
+    e.dead = Infinity; gainXp(e.def.xp); gainCol(e.def.col, e); emit('mobDeath', { x: e.x, y: e.y }); run.kills++;
     burst(e.x, e.y, 26, '#8fe3ff', 260, 0.9, 9, true); ring(e.x, e.y, 5, 50, 0.3, '143,227,255');
     if (e.mod === 'split') { // the elite falls apart into two smaller copies
       const R = ELITE_RULES, kid = { ...e.def, hp: Math.round(e.maxHp * R.splitHp), scale: (e.def.scale ?? 1) * R.splitScale, radius: Math.round(e.def.radius * R.splitScale), armor: undefined };

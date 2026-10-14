@@ -7,7 +7,7 @@ import type { ElementId } from '../data/elements.ts';
 export interface GameEvents {
   swing: void; skill: void; hit: { big: boolean }; dodge: void; levelUp: void;
   playerHurt: void; playerDeath: void; runOver: { cleared: boolean };
-  mobWindup: void; mobShot: void; mobDeath: void;
+  mobWindup: void; mobShot: void; mobDeath: { x: number; y: number }; birdsFlee: void;
   bossWake: void; bossSummon: void; bossWind: MoveName; bossImpact: void; bossCharge: void; bossDeath: void; arenaWarn: ArenaId; artEvolved: string; setBonus: ElementId;
   portalOpen: void; roomCleared: void; challengeOver: boolean; floorLoaded: number;
   toastsCleared: void;

@@ -39,6 +39,9 @@ const DRAW = {
     for (let r = 0; r < 44; r += 11) for (let c = (r / 11) % 2 ? 0 : 9; c < w; c += 18) { g.fillStyle = r % 22 ? A.dd : A.d; g.fillRect(x + c, y + r, 17, 10); } // eave: shingle rows
     g.fillStyle = INK; g.fillRect(x, y + 42, w, 4);
     g.fillStyle = A.g; g.fillRect(x, y + 46, w, 3);
+    const cx = x + Math.round(w * 0.78) - 7; // chimney stack on the roof: brick courses, dark cap
+    box(g, cx, y + 14, 14, 28, '#8a5a4a'); for (let r = 20; r < 40; r += 6) { g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(cx + 1, y + r, 12, 1); }
+    g.fillStyle = INK; g.fillRect(cx - 2, y + 11, 18, 4);
     for (const wx of [x + 30, x + w - 66]) { // lit panes with a lead cross
       box(g, wx, y + 70, 36, 44, A.g); g.fillStyle = 'rgba(255,255,255,.28)'; g.fillRect(wx + 3, y + 73, 14, 18);
       g.fillStyle = INK; g.fillRect(wx + 17, y + 70, 3, 44); g.fillRect(wx, y + 90, 36, 3);

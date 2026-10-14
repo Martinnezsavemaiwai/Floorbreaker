@@ -23,6 +23,7 @@ import { tallProps, drawTall } from './props.js';
 import { drawHud } from './hud.js';
 import { scenes } from '../core/app.ts';
 import { pose, applyPose, REDUCED } from './anim.js';
+import { drawAmbientGround, drawAmbientAir } from './ambient.js';
 
 const SWING = PLAYER.attack.swing;
 
@@ -604,7 +605,7 @@ export function drawWorld() {
   const sx = (Math.random() - 0.5) * G.shake, sy = (Math.random() - 0.5) * G.shake;
   ctx.save(); ctx.translate(Math.round(-cam.x + sx), Math.round(-cam.y + sy));
   ctx.drawImage(bg, 0, 0);
-  drawTorches(); drawDoor(); drawPortal(); drawDoors(); drawArena(); drawTelegraph();
+  drawTorches(); drawDoor(); drawPortal(); drawDoors(); drawArena(); drawTelegraph(); drawAmbientGround();
   // y-sort so whoever is lower on screen is drawn in front
   for (const m of G.mobs) if (m.hp <= 0 && !m.sprout && m.anim?.deadAt === undefined) m.anim = { ...m.anim, deadAt: G.time };
   const actors = G.mobs.filter(m => m.hp > 0 || (!m.sprout && G.time - m.anim.deadAt < 0.4)).map(m => ({ y: m.y, draw: () => drawMob(m) }));
@@ -619,6 +620,7 @@ export function drawWorld() {
   drawShots();
   drawWaves();
   drawFx();
+  drawAmbientAir();
   if (G.F.fog && G.L.kind !== 'town') drawFog();
   for (const b of bubbles) drawBubble(...b);
   bubbles.length = 0;

@@ -59,6 +59,7 @@ export const SFX = {
   shatter: () => [2093, 2637, 3136, 4186].forEach((f, i) => tone(f, 0.3, 'triangle', 0.08, f * 0.8, i * 0.035)),
   hurt: () => { tone(220, 0.22, 'square', 0.16, 80); noise(0.12, 0.25, 500); },
   dodge: () => tone(900, 0.12, 'sine', 0.12, 2200),
+  flap: () => noise(0.18, 0.12, 900, 1.5, 1600),
   roll: () => noise(0.16, 0.2, 700, 1, 300),
   finisher: () => { noise(0.2, 0.35, 1200, 1, 6000); tone(200, 0.18, 'sawtooth', 0.08, 700); },
   windup: () => tone(660, 0.06, 'square', 0.05),
@@ -83,6 +84,7 @@ on('roll', SFX.roll);
 on('guardBreak', () => { SFX.shatter(); SFX.hit(true); });
 on('hit', ({ big }) => SFX.hit(big));
 on('mobDeath', SFX.shatter);
+on('birdsFlee', SFX.flap);
 on('bossDeath', () => { SFX.slam(); SFX.shatter(); playMusic('clear'); });
 on('portalOpen', SFX.portal);
 on('playerHurt', SFX.hurt);

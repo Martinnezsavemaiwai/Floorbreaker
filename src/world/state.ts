@@ -53,6 +53,9 @@ export interface Run { curse?: number; floor: number; kills: number; time: numbe
 export interface RoomState extends Room { waves: WaveMob[][]; wave: number; next: number; cleared: boolean; healed?: boolean; shrineUsed?: boolean; offers?: ShrineId[]; challenge?: { left: number; hits: number; spawnT: number; failed?: boolean } }
 export interface FolkState { x: number; y: number; r: number; sheet: string; face: number; target: Point | null; wait: number; moving: boolean; said: boolean; bubble: MerchantState['bubble']; still: number }
 export interface MerchantState { face: number; waved: boolean; wave: number; bubble: { text: Text; t: number; wrap?: { key: string; lines: string[]; w: number } } | null; quiet: number; greeted: boolean; age: number }
+export interface Critter { kind: string; x: number; y: number; vx: number; vy: number; t: number; phase: number; air: boolean; ax?: number; ay?: number; z?: number; col?: number; life?: number; per?: number; wait?: number }
+export interface Bird { x: number; y: number; hx: number; hy: number; vx: number; vy: number; z: number; flying: boolean; peck: number; flock: number }
+export interface Tuft { x: number; y: number; blades: number; lean: number; vel: number; awake: boolean }
 export interface Door extends Rect { to: Room | null; armed: boolean } // to = null: the fixed exit (first room, boss, next town)
 
 export interface FloatText extends Point { s: string; col: string; big?: boolean; t: number }
@@ -73,6 +76,7 @@ export const G = {
   floorIdx: 0, F: null as Floor | null, WALLS: [] as Rect[],
   L: null as Layout | null, room: null as RoomState | null, doors: [] as Door[], trees: [] as [number, number, TreeType][], ponds: [] as Rect[],
   npc: {} as { merchant?: MerchantState; folk?: FolkState[] }, // render/cosmetic talk state, rebuilt per floor, never saved
+  ambient: { critters: [], birds: [], tufts: [] } as { critters: Critter[]; birds: Bird[]; tufts: Tuft[] }, // cosmetic life, rebuilt per floor, never saved
   run: null as Run | null, cursed: false, // cursed: enemies on this floor are stronger (laid by a shrine)
   rewards: [] as ('art' | 'evolve' | 'mod')[], // non-level picks waiting for the player (elite Art, boss shard, bought mod)
   entry: null as Suspend | null, // snapshot taken as the current floor loaded: what a suspend writes (Continue restarts the floor)
