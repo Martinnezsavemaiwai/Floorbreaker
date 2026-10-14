@@ -481,7 +481,7 @@ function drawShrine() {
   const name = tr('ศาลเจ้า', 'Shrine'), tag = nearShrine() ? `[${keyLabel('interact')}] ${name}` : name;
   drawText(ctx, tag, s.x, s.y - 72, { size: 13, font: FT, color: nearShrine() ? '#e7dcff' : '#fff', align: 'center' });
 }
-export function doorLook(d) {
+function doorLook(d) {
   const i = G.floorIdx + 1;
   if (!d.to) return kindOf(i) === 'boss' ? ['#ff6b5f', { th: 'บอส', en: 'Boss' }] : ['#f4ecd8', { th: 'ไปต่อ', en: 'Onward' }];
   if (d.to.type === 'elite') return ['#a688ff', { th: 'Elite: ท่าใหม่', en: 'Elite: new Art' }];

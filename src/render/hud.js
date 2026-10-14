@@ -1,4 +1,4 @@
-// Canvas HUD in pixels (see render/pixel.js): the player pane, the boss bar, skill slots and the minimap.
+// Canvas HUD in pixels (see render/pixel.js): the player pane, the boss bar, skill slots and off-screen guide arrows.
 // Coordinates here are HUD px (480 x 320); text is placed in HUD px and drawn crisp at screen resolution.
 import { G, rage } from '../world/state.ts';
 import { tr } from '../core/i18n.ts';
@@ -10,13 +10,10 @@ import { SKILLS } from '../data/skills.ts';
 import { ICON } from '../data/skillIcons.ts';
 import { ELEMENTS } from '../data/elements.ts';
 import { FLOORS } from '../data/floors.ts';
-import { IMG } from '../core/assets.ts';
+import { IMG, icon } from '../core/assets.ts';
 import { artElements, artColor, setProgress } from '../systems/build.js';
-import { on } from '../core/events.ts';
 import { keyLabel } from '../core/input.ts';
 import { FT } from './canvas.js';
-import { icon } from '../core/assets.ts';
-import { doorLook } from './world.js';
 import { PX, hc, LEAD, INK, INK2, beginPixels, endPixels, pane, ring, bar, gem, coin, text } from './pixel.js';
 
 const A = PLAYER.attack, HW = W / PX, HH = H / PX;
@@ -148,41 +145,26 @@ function drawSkillSlots() {
   hc.globalAlpha = 1;
 }
 
-// Minimap: static terrain is pre-rendered per floor at 1 HUD px = 20 world px, dots are drawn live
-const mm = document.createElement('canvas'), MM = 0.05;
-function paintMinimap() {
-  const L = G.L; mm.width = Math.round(L.w * MM); mm.height = Math.round(L.h * MM);
-  const g = mm.getContext('2d');
-  g.fillStyle = L.kind === 'town' ? '#c9a56e' : ['#7fa846', '#4f8f3d', '#3c5b47', '#3f7f9a'][actOf(G.floorIdx)]; g.fillRect(0, 0, mm.width, mm.height);
-  if (L.kind === 'boss') { g.fillStyle = '#4a3a44'; g.fillRect(Math.round(L.roomX * MM), 0, mm.width, mm.height); }
-  const r = (o, c) => { g.fillStyle = c; g.fillRect(Math.round(o.x * MM), Math.round(o.y * MM), Math.max(1, Math.round(o.w * MM)), Math.max(1, Math.round(o.h * MM))); };
-  for (const w of G.WALLS) r(w, '#1f2a22');
-  for (const p of G.ponds) r(p, '#3d8fd0');
+// Where to go when it is off screen: a pulsing pixel arrow on the screen edge, pointing at the open doors or the
+// portal. (Rooms are barely bigger than the screen, so a minimap mostly covered the corner without telling much.)
+function arrowAt(sx, sy, ang, col) {
+  hc.save(); hc.translate(Math.round(sx), Math.round(sy)); hc.rotate(Math.round(ang / (Math.PI / 4)) * (Math.PI / 4)); // 8 directions keep it on the grid
+  const tri = (k, c) => { hc.fillStyle = c; hc.beginPath(); hc.moveTo(7 + k, 0); hc.lineTo(-4 - k, -6 - k); hc.lineTo(-4 - k, 6 + k); hc.closePath(); hc.fill(); };
+  tri(2, LEAD); tri(0, col); hc.restore();
 }
-on('floorLoaded', paintMinimap);
-function drawMinimap() {
-  const { P, boss, portal } = G, w = mm.width, h = mm.height, x = HW - w - 8, y = 8;
-  veil(x, y, w, h);
-  pane(x - 3, y - 3, w + 6, h + 6, torchHex());
-  hc.save(); hc.beginPath(); hc.rect(x, y, w, h); hc.clip();
-  hc.drawImage(mm, x, y);
-  const at = (wx, wy) => [Math.round(x + wx * MM), Math.round(y + wy * MM)];
-  // what the screen shows right now
-  const [vx, vy] = at(G.cam.x, G.cam.y);
-  hc.fillStyle = 'rgba(255,255,255,.5)';
-  const vw = Math.round(W * MM), vh = Math.round(H * MM);
-  hc.fillRect(vx, vy, vw, 1); hc.fillRect(vx, vy + vh - 1, vw, 1); hc.fillRect(vx, vy, 1, vh); hc.fillRect(vx + vw - 1, vy, 1, vh);
-  const DOOR = G.L.door;
-  if (G.doorClosed && DOOR) { const [dx, dy] = at(DOOR.x, DOOR.y); hc.fillStyle = '#ff4a3a'; hc.fillRect(dx, dy, 2, Math.round(DOOR.h * MM)); }
-  for (const d of G.doors) { const [dx, dy] = at(d.x, d.y); hc.fillStyle = doorLook(d)[0]; hc.fillRect(dx, dy, 3, Math.round(d.h * MM)); }
-  hc.fillStyle = '#ff3a2a'; for (const m of G.mobs) if (m.hp > 0 && !m.sprout) { const [mx, my] = at(m.x, m.y); hc.fillRect(mx, my, 1, 1); }
-  if (portal) { const [px, py] = at(portal.x, portal.y); hc.fillStyle = '#5fc3ff'; hc.fillRect(px - 1, py - 1, 3, 3); }
-  if (boss.hp > 0 && (!boss.awake || Math.sin(G.time * 8) > -0.3)) {
-    const [bx, by] = at(boss.x, boss.y); hc.fillStyle = LEAD; hc.fillRect(bx - 2, by - 2, 5, 5); hc.fillStyle = '#ff2d2d'; hc.fillRect(bx - 1, by - 1, 3, 3);
+function drawGuides() {
+  const targets = [];
+  if (G.doors.length) targets.push([G.doors.reduce((a, d) => a + d.x + d.w / 2, 0) / G.doors.length, G.doors.reduce((a, d) => a + d.y + d.h / 2, 0) / G.doors.length, '#f4ecd8']);
+  if (G.portal) targets.push([G.portal.x, G.portal.y, '#5fc3ff']);
+  for (const [tx, ty, col] of targets) {
+    const sx = (tx - G.cam.x) / PX, sy = (ty - G.cam.y) / PX;
+    if (sx > 0 && sx < HW && sy > 0 && sy < HH) continue; // on screen: the thing itself is the guide
+    const cx = HW / 2, cy = HH / 2, ang = Math.atan2(sy - cy, sx - cx), m = 14;
+    const k = Math.min((HW / 2 - m) / Math.abs(Math.cos(ang) || 1e-6), (HH / 2 - m) / Math.abs(Math.sin(ang) || 1e-6));
+    hc.globalAlpha = 0.65 + 0.35 * Math.sin(G.time * 6);
+    arrowAt(cx + Math.cos(ang) * k, cy + Math.sin(ang) * k, ang, col);
+    hc.globalAlpha = 1;
   }
-  const [px, py] = at(P.x, P.y); hc.fillStyle = LEAD; hc.fillRect(px - 2, py - 2, 5, 5); hc.fillStyle = '#fff'; hc.fillRect(px - 1, py - 1, 3, 3);
-  hc.restore();
-  hc.globalAlpha = 1;
 }
 
 // Challenge room: seconds left and hits taken, top centre (red once the hit budget is gone)
@@ -195,6 +177,6 @@ function drawChallenge() {
 export function drawHud() {
   if (G.run.over) return; // the death/clear screen takes over; a stale HP bar behind it only confuses
   beginPixels();
-  drawPlayerPane(); drawBossBar(); drawSkillSlots(); drawMinimap(); drawChallenge();
+  drawPlayerPane(); drawBossBar(); drawSkillSlots(); drawGuides(); drawChallenge();
   endPixels();
 }
