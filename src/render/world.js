@@ -1,7 +1,7 @@
 // Drawing the live world: terrain, telegraphs, y-sorted actors, effects, fog and screen tint.
 import { G, rage } from '../world/state.ts';
 import { tr, t } from '../core/i18n.ts';
-import { kindOf, ELITE_MOD_NAME } from '../data/run.ts';
+import { kindOf, ELITE_MOD_NAME, actOf } from '../data/run.ts';
 import { W, H } from '../world/constants.ts';
 import { PLAYER } from '../data/player.ts';
 import { MOVES, BOSS_RULES, ARENA } from '../data/bosses.ts';
@@ -20,13 +20,26 @@ import { dominantElement } from '../systems/build.js';
 import { setActive } from '../systems/elements.js';
 import { ELEMENTS, ELEMENT_IDS } from '../data/elements.ts';
 import { drawHud } from './hud.js';
+import { pose, applyPose, REDUCED } from './anim.js';
 
 const SWING = PLAYER.attack.swing;
 
+// Render-side motion from the per-frame position change (entities carry no velocity field); kept in e.anim
+function motion(e) {
+  const a = e.anim ??= {};
+  if (a.t === undefined) Object.assign(a, { t: G.time, x: e.x, y: e.y, vx: 0, mv: false });
+  const dt = G.time - a.t;
+  if (dt > 0) {
+    const dx = e.x - a.x;
+    Object.assign(a, { vx: dx / dt, mv: Math.hypot(dx, e.y - a.y) > 0.3, t: G.time, x: e.x, y: e.y });
+  }
+  return a;
+}
+
 function drawMob(m) {
-  const { time } = G, M = m.def;
-  shadow(m.x, m.y, m.r);
-  if (m.sprout) { // a small green root shape that sways and shrinks as it withers
+  const { time } = G, M = m.def, dying = m.hp <= 0;
+  if (m.sprout) {
+    shadow(m.x, m.y, m.r); // a small green root shape that sways and shrinks as it withers
     const k = Math.min(1, m.life / 1.5), sw = Math.sin(time * 5 + m.sx) * 3;
     ctx.save(); ctx.translate(m.x, m.y); ctx.scale(k, k); ctx.lineCap = 'round';
     ctx.strokeStyle = m.hurt > 0 ? '#fff' : '#4f7a2c'; ctx.lineWidth = 7;
@@ -35,12 +48,15 @@ function drawMob(m) {
     return;
   }
   // wind-up: shake + red flash; lunge: hop toward the target
-  const jit = m.wind > 0 ? Math.sin(time * 70) * 2 : 0, hop = m.lunge > 0 ? Math.sin((m.lunge / M.lunge) * Math.PI) * 12 : 0;
+  const mo = motion(m), pz = dying ? pose(m, 'mob', time, { reduced: REDUCED, dyingFor: time - m.anim.deadAt })
+    : pose(m, 'mob', time, { reduced: REDUCED, vx: mo.vx, moving: mo.mv });
+  shadow(m.x, m.y, m.r, pz.alpha);
+  const jit = m.wind > 0 && !dying ? Math.sin(time * 70) * 2 : 0, hop = m.lunge > 0 ? Math.sin((m.lunge / M.lunge) * Math.PI) * 12 : 0;
   const x = Math.round(m.x + jit + Math.cos(m.face) * hop), y = Math.round(m.y + Math.sin(m.face) * hop);
   // reduced-flash mode: no white/blink frames, the steady red glow + "!" carry the wind-up
-  const flash = settings.flash && (m.hurt > 0 || (m.wind > 0 && Math.floor(time * 16) % 2 === 0));
+  const flash = settings.flash && !dying && (m.hurt > 0 || (m.wind > 0 && Math.floor(time * 16) % 2 === 0));
   const img = flash ? IMG[M.white] : IMG[M.img], k = M.scale ?? 1;
-  ctx.save();
+  ctx.save(); applyPose(ctx, x, y + m.r, pz);
   if (m.elite) { ctx.shadowColor = '#a688ff'; ctx.shadowBlur = 18; }
   if (m.wind > 0 && m.hurt <= 0) { ctx.shadowColor = '#ff2020'; ctx.shadowBlur = 14; }
   else if (M.armor && m.armorT <= 0) { ctx.shadowColor = '#9fd8ff'; ctx.shadowBlur = 10; } // steady blue rim = guard up
@@ -56,6 +72,7 @@ function drawMob(m) {
     frame(img, dirCol(m.face), row, x, y, 3 * k);
   }
   ctx.restore();
+  if (dying) return;
   if (M.armor) drawGuard(m, x, y - 30 * k - 14);
   if (m.wind > 0 && M.ranged) { // aim line toward the player, brighter as the shot gets close
     const P = G.P, k = 1 - m.wind / M.wind;
@@ -82,14 +99,17 @@ function drawBoss() {
   const jit = winding || b.act === 'roots' ? Math.sin(time * 60) * 3 : 0;
   if (F.boss.tree) { // the treant sways, swells while winding up, and glows red with rage
     const swell = winding || b.act === 'roots' ? 1 + 0.06 * Math.sin(time * 20) : 1;
-    ctx.save(); ctx.translate(b.x + jit, b.y + b.r * 0.6); ctx.rotate(Math.sin(time * 1.6) * 0.04); ctx.scale(swell, 1 / swell);
+    // treant keeps its own sway/swell: only the hit recoil and stun sway come from the pose (pose is read with breathing/walk ignored)
+    const bp = pose(b, 'boss', time, { reduced: REDUCED, kx: b.x - G.P.x, ky: b.y - G.P.y }), fx = b.hurt > 0 ? bp.ox : 0, fy = b.hurt > 0 ? bp.oy : 0;
+    ctx.save(); ctx.translate(b.x + jit + fx, b.y + b.r * 0.6 + fy); ctx.rotate(Math.sin(time * 1.6) * 0.04 + (b.stun > 0 ? bp.rot : 0)); ctx.scale(swell, 1 / swell);
     if (rage()) { ctx.shadowColor = '#ff4020'; ctx.shadowBlur = 30; }
     const img = b.hurt > 0 && settings.flash ? IMG.treantWhite : IMG[rage() ? F.boss.rageImg : F.boss.img];
     ctx.drawImage(img, -img.width / 2, -img.height);
     ctx.restore();
     return;
   }
-  ctx.save(); if (rage()) { ctx.shadowColor = '#ffb300'; ctx.shadowBlur = 25; }
+  const bm = motion(b), bp = pose(b, 'boss', time, { reduced: REDUCED, rage: rage(), vx: bm.vx, moving: bm.mv, kx: b.x - G.P.x, ky: b.y - G.P.y });
+  ctx.save(); applyPose(ctx, b.x + jit, b.y - b.z + b.r, bp); if (rage()) { ctx.shadowColor = '#ffb300'; ctx.shadowBlur = 25; }
   const img = b.hurt > 0 && settings.flash ? IMG[F.boss.img + 'White'] : IMG[rage() ? F.boss.rageImg : F.boss.img];
   frame(img, dirCol(b.ang), attacking ? 4 : Math.floor(time * 5) % 4, b.x + jit, b.y - b.z, F.boss.scale);
   ctx.restore();
@@ -305,8 +325,13 @@ function drawPlayer() {
   drawSkillFx(P);
   const skillFx = P.delay > 0 || P.dash > 0 || P.thrust > 0, col = dirCol(P.ang), sa = swordAngle(P);
   const hx = P.x + Math.cos(P.ang) * 6, hy = P.y + 4 + Math.sin(P.ang) * 4; // hand
+  const pm = motion(P), pp = pose(P, 'player', time, { reduced: REDUCED, vx: pm.vx }), foot = P.y + P.r;
+  if (P.moving && !REDUCED) { // dust every second footfall
+    const st = Math.floor(time * 10);
+    if (st !== pm.step) { pm.step = st; if ((pm.steps = (pm.steps ?? 0) + 1) % 2 === 0) burst(P.x, P.y + P.r, 3, actOf(G.floorIdx) === 3 ? '#bfe6ff' : '#b49a76', 60, 0.35, 3, false); }
+  }
   const sword = () => {
-    ctx.save(); ctx.translate(hx, hy); ctx.rotate(sa - Math.PI / 2); // sprite has the grip on top, blade pointing down
+    ctx.save(); applyPose(ctx, P.x, foot, pp); ctx.translate(hx, hy); ctx.rotate(sa - Math.PI / 2); // sprite has the grip on top, blade pointing down
     if (skillFx || P.swing > 0) { ctx.shadowColor = '#7fd4ff'; ctx.shadowBlur = skillFx ? 18 : 8; }
     if (P.glow > 0) { ctx.shadowColor = glowCol; ctx.shadowBlur = 24; }
     drawSword(42, bladeCol); ctx.restore();
@@ -315,22 +340,21 @@ function drawPlayer() {
   if (P.swing > 0) {
     const start = P.ang - P.swingDir * 1.3;
     const fin = P.finisher, a = 0.3 + P.swing / SWING * 0.7; // the combo finisher gets a wider, golden arc
-    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.shadowColor = fin ? '#ffcf6a' : '#bfe8ff'; ctx.shadowBlur = fin ? 26 : 18; ctx.lineCap = 'round';
+    ctx.save(); applyPose(ctx, P.x, foot, pp); ctx.globalCompositeOperation = 'lighter'; ctx.shadowColor = fin ? '#ffcf6a' : '#bfe8ff'; ctx.shadowBlur = fin ? 26 : 18; ctx.lineCap = 'round';
     ctx.strokeStyle = fin ? `rgba(255,215,130,${a})` : `rgba(220,240,255,${a})`; ctx.lineWidth = fin ? 16 : 10;
     ctx.beginPath(); ctx.arc(hx, hy, fin ? 54 : 40, Math.min(start, sa), Math.max(start, sa)); ctx.stroke();
     ctx.restore();
   }
   const behind = Math.sin(sa) < -0.3; // blade pointing up = behind the body
   if (behind) sword();
-  ctx.save();
+  ctx.save(); applyPose(ctx, P.x, foot, pp);
   if (skillFx) { ctx.shadowColor = P.delay > 0 ? '#ffb347' : '#7fd4ff'; ctx.shadowBlur = 22; }
   const row = P.swing > 0 || P.dash > 0 ? 4 : P.moving ? Math.floor(time * 10) % 4 : 0;
-  const bob = P.moving && P.swing <= 0 ? Math.abs(Math.sin(time * 20)) * -2 : 0;
-  if (P.inv > 0) ctx.globalAlpha = settings.flash && Math.floor(time * 20) % 2 ? 0.35 : 0.65; // i-frame blink (steady when flashing is off)
+  if (P.inv > 0) ctx.globalAlpha *= settings.flash && Math.floor(time * 20) % 2 ? 0.35 : 0.65; // i-frame blink (steady when flashing is off)
   if (P.roll > 0) { // roll: squashed, see-through, legs spinning fast
-    ctx.globalAlpha = 0.6; ctx.translate(P.x, P.y + 6); ctx.scale(1.1, 0.8); ctx.translate(-P.x, -P.y - 6);
+    ctx.globalAlpha *= 0.6; // the pose already squashes the roll
     frame(IMG.player, dirCol(P.rollAng), Math.floor(time * 30) % 4, P.x, P.y, 3);
-  } else frame(P.hurt > 0.15 && settings.flash ? IMG.playerWhite : IMG.player, col, row, P.x, P.y + bob, 3);
+  } else frame(P.hurt > 0.15 && settings.flash ? IMG.playerWhite : IMG.player, col, row, P.x, P.y, 3);
   ctx.restore();
   if (!behind) sword();
 }
@@ -525,7 +549,8 @@ export function drawWorld() {
   ctx.drawImage(bg, 0, 0);
   drawTorches(); drawDoor(); drawPortal(); drawDoors(); drawArena(); drawTelegraph();
   // y-sort so whoever is lower on screen is drawn in front
-  const actors = G.mobs.filter(m => m.hp > 0).map(m => ({ y: m.y, draw: () => drawMob(m) }));
+  for (const m of G.mobs) if (m.hp <= 0 && !m.sprout && m.anim?.deadAt === undefined) m.anim = { ...m.anim, deadAt: G.time };
+  const actors = G.mobs.filter(m => m.hp > 0 || (!m.sprout && G.time - m.anim.deadAt < 0.4)).map(m => ({ y: m.y, draw: () => drawMob(m) }));
   actors.push({ y: P.y, draw: drawPlayer });
   if (G.L.merchant) actors.push({ y: G.L.merchant.y, draw: drawMerchant });
   if (G.L.shrine) actors.push({ y: G.L.shrine.y, draw: drawShrine });

@@ -30,7 +30,7 @@ export interface Player extends Point {
 export interface Mob extends Point {
   sx: number; sy: number; wx: number; wy: number; r: number; hp: number; maxHp: number;
   cd: number; dead: number; hurt: number; face: number; side: number; sideDir: number;
-  wind: number; lunge: number; kx: number; ky: number; summoned: boolean; def: MobStats;
+  wind: number; lunge: number; kx: number; ky: number; summoned: boolean; def: MobStats; anim?: any; // anim: render-side scratch (render/anim)
   armorT: number; // > 0 while an armored mob's guard is broken
   burn?: { dps: number; t: number; stacks: number }; poison?: { dps: number; t: number }; slowT?: number; slowK?: number;
   frozen?: number; tide?: { n: number; t: number }; dotAcc?: number; dotTick?: number; elite?: boolean; mod?: EliteMod; sinceHit?: number;
