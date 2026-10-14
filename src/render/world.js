@@ -19,7 +19,9 @@ import { emit } from '../core/events.ts';
 import { dominantElement } from '../systems/build.js';
 import { setActive } from '../systems/elements.js';
 import { ELEMENTS, ELEMENT_IDS } from '../data/elements.ts';
+import { tallProps, drawTall } from './props.js';
 import { drawHud } from './hud.js';
+import { scenes } from '../core/app.ts';
 import { pose, applyPose, REDUCED } from './anim.js';
 
 const SWING = PLAYER.attack.swing;
@@ -119,14 +121,69 @@ function drawBoss() {
   }
 }
 
-// Town merchant: idles facing down; name tag always, the key prompt only when close enough to open the shop
+// Town merchant / shop wanderer: faces the player, hops and tilts through a wave, speaks in a bubble; name tag always,
+// the key prompt only when close enough to open the shop
+const bubbles = []; // collected during the actor pass, drawn last so nothing paints over speech
 function drawMerchant() {
-  const { x, y } = G.L.merchant;
+  const { x, y } = G.L.merchant, M = G.npc.merchant;
+  const mp = pose(G.L.merchant, 'npc', G.time, { reduced: REDUCED, moving: false });
+  if (M.wave > 0) { // wave: one hop and a few tilts over 0.6 s, halved under reduced motion
+    const p = 1 - M.wave / 0.6, k = REDUCED ? 0.5 : 1;
+    mp.oy -= 6 * k * Math.sin(p * Math.PI); mp.rot += 0.12 * k * Math.sin(p * Math.PI * 4);
+  }
   shadow(x, y, 14);
-  frame(IMG.merchant, 0, Math.floor(G.time * 2) % 2 ? 0 : 2, x, y, 3);
+  ctx.save(); applyPose(ctx, x, y, mp);
+  frame(IMG.merchant, M.face, Math.floor(G.time * 2) % 2 ? 0 : 2, x, y, 3);
+  ctx.restore();
   ctx.textAlign = 'center'; ctx.font = `700 13px ${FT}`; ctx.lineJoin = 'round'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.8)';
   const name = tr('ร้านค้า', 'Shop'), tag = nearMerchant() ? `[${keyLabel('interact')}] ${name}` : name;
   ctx.strokeText(tag, x, y - 34); ctx.fillStyle = nearMerchant() ? '#ffe14d' : '#fff'; ctx.fillText(tag, x, y - 34);
+  if (M.bubble && scenes.top?.name === 'play') bubbles.push([x, y - 52, M.bubble]);
+}
+
+function drawFolk(f) {
+  const fp = pose(f, 'npc', G.time, { reduced: REDUCED, moving: f.moving });
+  shadow(f.x, f.y, 12);
+  ctx.save(); applyPose(ctx, f.x, f.y, fp);
+  frame(IMG[f.sheet], f.face, f.moving ? Math.floor(G.time * 5) % 4 : Math.floor(G.time * 2) % 2 ? 0 : 2, f.x, f.y, 3);
+  ctx.restore();
+  if (f.bubble && scenes.top?.name === 'play') bubbles.push([f.x, f.y - 52, f.bubble]);
+}
+
+// Break a line into words (Thai has no spaces, so Intl.Segmenter finds the word edges), then into characters when
+// a single word is still wider than the box
+const seg = typeof Intl !== 'undefined' && Intl.Segmenter ? new Intl.Segmenter('th', { granularity: 'word' }) : null;
+function wrapText(text, max) {
+  const words = seg ? [...seg.segment(text)].map(s => s.segment) : text.split(/(?<= )/);
+  const lines = []; let cur = '';
+  const fits = s => ctx.measureText(s).width <= max;
+  for (const w of words) {
+    if (fits(cur + w)) { cur += w; continue; }
+    if (cur) { lines.push(cur.trimEnd()); cur = ''; }
+    for (const ch of w.trimStart()) { if (fits(cur + ch) || !cur) cur += ch; else { lines.push(cur); cur = ch; } }
+  }
+  if (cur.trim()) lines.push(cur.trimEnd());
+  return lines;
+}
+
+// Speech bubble: dark glass box with a tail, wrapped to 240 px, kept inside the screen; wrapping is cached per text and language
+function drawBubble(x, bottom, bubble) {
+  ctx.save(); ctx.font = `700 16px ${FT}`; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  const text = t(bubble.text), key = text + '|' + settings.lang;
+  if (bubble.wrap?.key !== key) { const lines = wrapText(text, 240); bubble.wrap = { key, lines, w: Math.max(...lines.map(l => ctx.measureText(l).width)) }; }
+  const { lines, w } = bubble.wrap, bw = w + 20, bh = lines.length * 24 + 16;
+  const bx = clamp(x - bw / 2, G.cam.x + 8, G.cam.x + W - 8 - bw);
+  const P = G.P; // never cover the player's head: lift the bubble above it when the player stands under it, behind the speaker
+  if (P.y < bottom + 52 && P.x > bx - 14 && P.x < bx + bw + 14) bottom = Math.min(bottom, P.y - 56);
+  bottom = Math.max(bottom, G.cam.y + 8 + bh);
+  const by = bottom - bh;
+  ctx.fillStyle = 'rgba(16,17,24,.94)'; ctx.strokeStyle = 'rgba(239,232,214,.45)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 10); ctx.fill(); ctx.stroke();
+  const tx = clamp(x, bx + 14, bx + bw - 14);
+  ctx.beginPath(); ctx.moveTo(tx - 6, bottom - 0.5); ctx.lineTo(tx + 6, bottom - 0.5); ctx.lineTo(x, bottom + 8); ctx.closePath(); ctx.fill();
+  ctx.lineJoin = 'round'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.85)'; ctx.fillStyle = '#fff6e0';
+  lines.forEach((l, i) => { ctx.strokeText(l, bx + 10, by + 28 + i * 24); ctx.fillText(l, bx + 10, by + 28 + i * 24); });
+  ctx.restore();
 }
 
 // Guard pip over armored mobs: a shield while it holds, a draining bar while it's broken
@@ -553,6 +610,8 @@ export function drawWorld() {
   const actors = G.mobs.filter(m => m.hp > 0 || (!m.sprout && G.time - m.anim.deadAt < 0.4)).map(m => ({ y: m.y, draw: () => drawMob(m) }));
   actors.push({ y: P.y, draw: drawPlayer });
   if (G.L.merchant) actors.push({ y: G.L.merchant.y, draw: drawMerchant });
+  for (const f of G.npc.folk ?? []) actors.push({ y: f.y, draw: () => drawFolk(f) });
+  for (const p of tallProps()) actors.push({ y: p.y + p.h, draw: () => drawTall(p) });
   if (G.L.shrine) actors.push({ y: G.L.shrine.y, draw: drawShrine });
   for (const p of G.arena?.pillars ?? []) actors.push({ y: p.y + p.h, draw: () => drawPillar(p) });
   if (G.boss.hp > 0) actors.push({ y: G.boss.y, draw: drawBoss });
@@ -561,6 +620,8 @@ export function drawWorld() {
   drawWaves();
   drawFx();
   if (G.F.fog && G.L.kind !== 'town') drawFog();
+  for (const b of bubbles) drawBubble(...b);
+  bubbles.length = 0;
   ctx.restore();
   ctx.drawImage(vig, 0, 0);
   drawVisionFog();

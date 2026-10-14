@@ -28,7 +28,7 @@ const HINTS = [
   { id: 'heal', when: () => G.L.kind !== 'town' && G.P.hp < G.P.maxHp * 0.4, title: () => tr('HP ต่ำ', 'Low HP'),
     sub: () => tr(`กด ${k('potion')} เพื่อดื่ม Potion ส่วนเมืองขององก์ถัดไปจะฟื้น HP ให้เต็ม`, `Press ${k('potion')} to drink a Potion. The next act's town heals you fully.`) },
   { id: 'shop', when: () => G.L.kind === 'town' && G.P.col >= 40, title: () => tr('มี Gold แล้ว', "You've got Gold"),
-    sub: () => tr(`พ่อค้าอยู่ข้างน้ำพุ กด ${k('interact')} เพื่อซื้อ Potion แล้วกด ${k('potion')} เพื่อดื่ม`, `The merchant is by the fountain. ${k('interact')} to buy Potions, ${k('potion')} to drink one.`) },
+    sub: () => tr(`พ่อค้าอยู่ที่แผงร้าน กด ${k('interact')} เพื่อซื้อ Potion แล้วกด ${k('potion')} เพื่อดื่ม`, `The merchant is at the market stall. ${k('interact')} to buy Potions, ${k('potion')} to drink one.`) },
   { id: 'doors', when: () => G.doors.length > 1, title: () => tr('เลือกทาง', 'Pick a door'),
     sub: () => tr('ป้ายเหนือประตูบอกว่าห้องถัดไปให้อะไร เดินเข้าประตูที่อยากไป', 'The sign over each door shows what the next room gives. Walk through the one you want.') },
   { id: 'boss', when: () => G.boss.awake, title: () => tr('ห้องบอส', 'Boss room'),

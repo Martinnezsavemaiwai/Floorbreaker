@@ -264,3 +264,21 @@ test('pick cards carry an animated preview', async ({ page }) => {
   await expect(page.locator('#upgrade-cards canvas[data-preview]').first()).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test('the merchant talks in the shop window and changes the line after a purchase', async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto('/');
+  await diveIn(page);
+  await settle(page);
+  await hook(page, 's.P.col = 999, s.P.x = s.L.merchant.x, s.P.y = s.L.merchant.y + 30');
+  await page.keyboard.press('KeyE');
+  await expect(page.locator('#shop-line')).not.toBeEmpty();
+  const before = await page.locator('#shop-line').textContent();
+  await page.keyboard.press('Digit1');
+  await expect(page.locator('#shop-line')).toHaveText('Thanks. Make it count.');
+  expect(before).not.toBe('Thanks. Make it count.');
+  await hook(page, 's.P.col = 999, s.P.potions = 3');
+  await page.keyboard.press('Digit1');
+  await expect(page.locator('#shop-line')).toHaveText("Your bag's full. No room for another Potion.");
+  expect(errors).toEqual([]);
+});

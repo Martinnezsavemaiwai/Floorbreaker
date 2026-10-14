@@ -3,6 +3,8 @@ import { updatePlayer } from './player.js';
 import { updateMobs } from './mobs.js';
 import { updateBoss } from './boss.js';
 import { updateArena } from './arena.js';
+import { updateMerchant } from './merchant.js';
+import { updateFolk } from './townsfolk.js';
 import { updateHints } from './hints.js';
 import { updateRoom, updateDoors } from './rooms.js';
 import { G } from '../world/state.ts';
@@ -13,6 +15,8 @@ export function updateGame(dt) {
   if (updatePlayer(dt)) return; // walked through the portal: the new floor starts next step
   if (updateDoors()) return; // walked through a door: same
   updateRoom(dt);
+  updateMerchant(dt);
+  updateFolk(dt);
   updateMobs(dt);
   updateBoss(dt);
   updateArena(dt);

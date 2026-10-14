@@ -14,7 +14,8 @@ export function tinted(img: HTMLImageElement, mode: GlobalCompositeOperation, co
 }
 // rage forms of the bosses: the same art pushed toward red/orange
 const TINTS: Record<string, Record<string, string>> = {
-  treant: { treantRage: '#ff7050' }, boss1: { boss1Rage: '#ffb070' }, boss2: { boss2Rage: '#ff8a8a' }, boss4: { boss4Rage: '#c0a0ff' },
+  treant: { treantRage: '#ff7050' }, merchant: { folkA: '#7fa8d8', folkB: '#b98c6a' }, // townsfolk reuse the merchant sheet
+  boss1: { boss1Rage: '#ffb070' }, boss2: { boss2Rage: '#ff8a8a' }, boss4: { boss4Rage: '#c0a0ff' },
 };
 const SPRITES = ['player', 'merchant', 'slinger', 'taurus', 'javelin', 'guardian', 'elf', 'mage', 'knight', 'wraith', 'tideguard',
   'boss1', 'boss2', 'boss4', 'boar', 'piglet', 'shadowpig', 'tidalboar', 'crab', 'treant'];

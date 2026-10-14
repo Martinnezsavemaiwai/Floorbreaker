@@ -40,9 +40,9 @@ export const inSubScreen = () => current === 'howto' || current === 'settings' |
 // Toasts queue up so a floor banner and a tutorial hint never overwrite each other
 const queue = [];
 let showing = false, timer = 0;
-function clearToasts() { queue.length = 0; clearTimeout(timer); showing = false; $('toast').classList.remove('on'); $('moment').classList.remove('on'); }
+function clearToasts() { emit('toastsCleared'); queue.length = 0; clearTimeout(timer); showing = false; $('toast').classList.remove('on'); $('moment').classList.remove('on'); }
 export function toast(title, sub, sec = 3.2) {
-  queue.push({ title, sub, sec });
+  queue.push({ title, sub, sec }); emit('toast', sec);
   if (!showing) nextToast();
 }
 function nextToast() {
@@ -119,7 +119,7 @@ export function showPicker(kind, cards) {
 }
 
 // Shop: one card per item with its price; cards you can't afford are disabled, not hidden
-export function renderShop(status = '') {
+export function renderShop(status = '', line = '') {
   const P = G.P;
   $('shop-col').textContent = tr(`มี ${P.col} Gold`, `${P.col} Gold`) + ` · Potion ${P.potions}/${SHOP.potion.max}`;
   $('shop-items').innerHTML = shopItems().map((id, i) => {
@@ -130,6 +130,7 @@ export function renderShop(status = '') {
       <kbd>${i + 1}</kbd><b>${it.name}</b><span>${t(it.desc)}</span><span class="price">${cost}</span></button>`;
   }).join('');
   $('shop-status').textContent = status;
+  if (line) $('shop-line').textContent = line;
 }
 
 // Shrine: two offers, each card shows what you get then the price; offers you can't take are disabled
@@ -250,7 +251,7 @@ on('bossDeath', () => bossCard(true));
 on('floorLoaded', i => {
   $('boss-card').classList.remove('on', 'down'); $('moment').classList.remove('on');
   const k = G.L.kind, type = G.room?.type, sub = k === 'boss' ? tr('บอส: ', 'Boss: ') + G.F.boss.name
-    : k === 'town' ? tr('ฟื้น HP เต็มแล้ว พ่อค้าอยู่ข้างน้ำพุ', 'Fully healed. The merchant is by the fountain.')
+    : k === 'town' ? tr('ฟื้น HP เต็มแล้ว พ่อค้าอยู่ที่แผงร้าน', 'Fully healed. The merchant is at the market stall.')
     : type === 'spring' ? tr('เดินไปที่น้ำพุเพื่อฟื้น HP ครึ่งหลอด', 'Walk to the fountain to heal half your HP.')
     : type === 'challenge' ? tr(`รอด ${ROOM_RULES.challengeTime} วินาที โดนตีไม่เกิน ${ROOM_RULES.challengeHits} ครั้ง ได้รางวัลสองเท่า`, `Survive ${ROOM_RULES.challengeTime} s and take ${ROOM_RULES.challengeHits} hits or fewer for a double reward.`)
     : type === 'shop' ? tr(`มีพ่อค้าเร่อยู่กลางห้อง กด ${keyLabel('interact')} เพื่อซื้อของ`, `A wandering merchant stands in the middle. Press ${keyLabel('interact')} to shop.`)

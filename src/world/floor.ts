@@ -1,6 +1,6 @@
 // Building a floor's live state from data. Rendering, HUD, toast and music react to the 'floorLoaded' event.
 import { G, type Mob, type Floor } from './state.ts';
-import { layoutFor, fountainHit } from './layout.ts';
+import { layoutFor, fountainHit, townPropsFor, cartProps } from './layout.ts';
 import { MOBS, type MobStats } from '../data/mobs.ts';
 import { BOSSES, BOSS_DEFAULTS, BOSS_RULES } from '../data/bosses.ts';
 import { FLOORS, TREE_TYPES } from '../data/floors.ts';
@@ -15,6 +15,8 @@ import { tr } from '../core/i18n.ts';
 import { settings, type Suspend } from '../core/save.ts';
 import { startRoom, makeDoors } from '../systems/rooms.js';
 import { buildArena } from '../systems/arena.js';
+import { newMerchantState } from '../systems/merchant.js';
+import { buildFolk } from '../systems/townsfolk.js';
 
 // An act's data with its mob/boss ids swapped for the actual stat objects (fails loudly on a typo'd id)
 function actData(a: number): Floor {
@@ -39,6 +41,8 @@ export function loadFloor(i: number, room: Room | null = null) {
   G.floorIdx = i; const act = actOf(i), kind = kindOf(i), F = G.F = actData(act), L = G.L = layoutFor(kind);
   if (room?.type === 'spring') L.fountain = { ...ROOM_POINT };
   if (room?.type === 'shop') L.merchant = { ...ROOM_POINT };
+  if (kind === 'town') L.props = townPropsFor(act);
+  if (room?.type === 'shop') L.props = cartProps();
   if (room?.type === 'shrine') L.shrine = { ...ROOM_POINT };
   // only floors with enemies carry (and use up) the curse
   G.cursed = (kind === 'boss' || ['battle', 'elite', 'challenge'].includes((room ?? { type: 'battle' }).type)) && kind !== 'town' && (G.run?.curse ?? 0) > 0;
@@ -51,7 +55,8 @@ export function loadFloor(i: number, room: Room | null = null) {
   G.trees = (preset?.trees ?? []).map(([x, y, k]) => [x, y, act === 2 && k === 'big' ? 'dark' : k]);
   G.ponds = preset?.ponds ?? [];
   G.WALLS = [...L.gate, ...(L.fountain ? [fountainHit(L.fountain)] : []), ...(L.shrine ? [{ x: L.shrine.x - 22, y: L.shrine.y - 18, w: 44, h: 22 }] : []),
-    ...G.trees.map(([x, y, k]) => { const h = TREE_TYPES[k].hit; return { x: x + h[0], y: y + h[1], w: h[2], h: h[3] }; }), ...G.ponds];
+    ...G.trees.map(([x, y, k]) => { const h = TREE_TYPES[k].hit; return { x: x + h[0], y: y + h[1], w: h[2], h: h[3] }; }), ...G.ponds, ...(L.props ?? []).filter(p => p.solid).map(({ x, y, w, h }) => ({ x, y, w, h }))];
+  G.npc = L.merchant ? { merchant: newMerchantState(), ...(kind === 'town' ? { folk: buildFolk() } : {}) } : {};
   G.mobs = []; G.doors = [];
   G.room = kind === 'room' ? startRoom(i, room ?? { type: 'battle', reward: 'xp' }) : null;
   if (kind === 'town') G.doors = makeDoors([{ type: 'battle', reward: 'xp' }]);

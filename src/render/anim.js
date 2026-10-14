@@ -3,16 +3,16 @@
 import { PLAYER } from '../data/player.ts';
 export const REDUCED = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 const A = {
-  breathe: 0.025, period: { player: 1.6, mob: 1.6, boss: 2.4 }, rageBreath: 1.5,
-  walk: { bounce: { player: 3, mob: 3, boss: 2 }, stretch: 0.05, squash: 0.06, rate: { player: 10, mob: 8, boss: 5 } },
+  breathe: 0.025, period: { player: 1.6, npc: 1.6, mob: 1.6, boss: 2.4 }, rageBreath: 1.5,
+  walk: { bounce: { player: 3, npc: 3, mob: 3, boss: 2 }, stretch: 0.05, squash: 0.06, rate: { player: 10, npc: 10, mob: 8, boss: 5 } },
   lean: 0.105, leanSpeed: 200, // full lean at this horizontal speed (px/s)
-  hit: { recoil: { player: 4, mob: 4, boss: 2 }, flat: 0.12, flatTime: 0.08 },
+  hit: { recoil: { player: 4, npc: 4, mob: 4, boss: 2 }, flat: 0.12, flatTime: 0.08 },
   wind: 0.1, lunge: 0.08, die: { time: 0.4, tilt: 1.22 }, stun: 0.08, dash: { sx: 1.12, sy: 0.9 },
   swing: { squash: 0.08, stretch: 0.06, squashTime: 0.06, finisher: 1.5 },
 };
 const SWING_LEN = PLAYER.attack.swing; // e.swing counts down from it
 // mirrors the hurt timers set in combat.js (player 0.25, mobs/boss 0.1); keep in sync if those change
-const HURT_LEN = { player: 0.25, mob: 0.1, boss: 0.1 };
+const HURT_LEN = { player: 0.25, npc: 0.25, mob: 0.1, boss: 0.1 };
 
 export function pose(e, kind, t, o = {}) {
   if (o.dyingFor !== undefined) { // tip over away from the killing hit, fading

@@ -10,6 +10,8 @@ export interface GameEvents {
   mobWindup: void; mobShot: void; mobDeath: void;
   bossWake: void; bossSummon: void; bossWind: MoveName; bossImpact: void; bossCharge: void; bossDeath: void; arenaWarn: ArenaId; artEvolved: string; setBonus: ElementId;
   portalOpen: void; roomCleared: void; challengeOver: boolean; floorLoaded: number;
+  toastsCleared: void;
+  toast: number; // seconds a banner will occupy the top of the screen
   hint: { title: string; sub: string };
   langChanged: 'th' | 'en';
   upgradePicked: string; finisher: void; roll: void; guardBreak: void; ending: void; bought: string; shrineTaken: string; potion: void;

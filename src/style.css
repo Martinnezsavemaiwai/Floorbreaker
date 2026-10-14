@@ -124,6 +124,7 @@ input[type=range]{flex:1;max-width:320px;accent-color:var(--glass)}
 .state{font-size:14px;color:var(--ink-2);min-width:2.5em;text-align:right}
 .hint{font-size:14px;color:var(--ink-2);margin:-2px 0 4px;line-height:1.55}
 .status{font-size:14px;color:var(--ink);min-height:1.5em;margin:0}
+.shop-line{font-size:14px;font-style:italic;color:var(--ink-2);min-height:1.5em;margin:0}
 .status.warn{color:var(--blood)}
 .rule{margin:0;padding:10px 12px;background:color-mix(in srgb,var(--blood) 14%,var(--win-bg));border:1px solid color-mix(in srgb,var(--blood) 45%,transparent);
   color:var(--ink);font-size:14px;line-height:1.6}

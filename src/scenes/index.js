@@ -20,6 +20,7 @@ import { kindOf, actOf } from '../data/run.ts';
 import { STORY } from '../data/story.ts';
 import { meta, saveMeta } from '../core/save.ts';
 import { SHOP } from '../data/shop.ts';
+import { sayEvent, shopText, potionsFullText } from '../systems/merchant.js';
 import { nextPick, cardsFor, applyCard } from '../systems/build.js';
 
 let resume = null; // suspend data to continue from once the intro finishes
@@ -75,18 +76,21 @@ $('upgrade-cards').addEventListener('click', e => {
 // Town shop: also freezes play. A bought Skill Scroll adds a pending pick, so the picker opens right after leaving.
 const shopScene = {
   name: 'shop', blocksUpdate: true,
-  enter() { releaseAll(); renderShop(); screen('shop'); },
+  enter() { releaseAll(); renderShop('', shopText('open')); if (G.npc.merchant) G.npc.merchant.greeted = true; screen('shop'); },
   exit() { screen(null); },
 };
 export const shopping = () => scenes.top === shopScene;
 export function openShop() { if (playing() && nearMerchant()) scenes.push(shopScene); }
-export function closeShop() { if (shopping()) scenes.pop(); }
+export function closeShop() { if (shopping()) { scenes.pop(); sayEvent('farewell'); } }
 export function buyItem(id) {
   if (!shopping() || !SHOP[id]) return;
   const noRoom = id === 'mod' && G.P.col >= price(id) && !canBuy(id);
-  renderShop(buy(id) ? tr(`ซื้อ ${SHOP[id].name} แล้ว`, `Bought: ${SHOP[id].name}`)
+  const ok = buy(id);
+  renderShop(ok ? tr(`ซื้อ ${SHOP[id].name} แล้ว`, `Bought: ${SHOP[id].name}`)
     : noRoom ? tr('ไม่มีท่าไหนใส่ธาตุเพิ่มได้แล้ว', 'None of your Arts has room for another element.')
-    : tr('Gold ไม่พอ หรือพกเต็มแล้ว', "Not enough Gold, or you can't carry more"));
+    : tr('Gold ไม่พอ หรือพกเต็มแล้ว', "Not enough Gold, or you can't carry more"),
+    ok ? shopText(id === 'mod' ? 'boughtMod' : 'bought') : G.P.col < price(id) ? shopText('cantAfford')
+      : id === 'potion' && G.P.potions >= SHOP.potion.max ? potionsFullText() : shopText('cantAfford'));
 }
 $('shop-items').addEventListener('click', e => {
   const card = /** @type {HTMLElement | null} */ (/** @type {Element} */ (e.target).closest('[data-buy]'));

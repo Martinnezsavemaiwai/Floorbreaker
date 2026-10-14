@@ -5,6 +5,8 @@ import { TREE_TYPES } from '../data/floors.ts';
 import { IMG } from '../core/assets.ts';
 import { on } from '../core/events.ts';
 import { rand, pick, overlaps } from '../core/math.ts';
+import { bakeLow } from './props.js';
+import { actOf } from '../data/run.ts';
 
 export const bg = document.createElement('canvas'); // sized per floor in paintFloor
 export const vig = document.createElement('canvas'); vig.width = W; vig.height = H;
@@ -46,6 +48,7 @@ function paintFloor() {
     fill(g, 'bossroom', L.roomX, 0, L.w - L.roomX, L.h);
     if (F.roomTint) { g.fillStyle = F.roomTint; g.fillRect(L.roomX, 0, L.w - L.roomX, L.h); }
   }
+  if (L.props) bakeLow(g, L.props, actOf(G.floorIdx));
   if (L.fountain) {
     const fn = IMG.fountain, f = L.fountain;
     g.fillStyle = 'rgba(0,0,0,.3)'; g.beginPath(); g.ellipse(f.x + 5, f.y + 30, fn.width * 0.5, fn.width * 0.22, 0, 0, 7); g.fill();
@@ -68,7 +71,6 @@ function paintFloor() {
     g.drawImage(img, x, y);
   }
   g.font = 'bold 22px system-ui'; g.textAlign = 'center'; g.fillStyle = 'rgba(255,255,255,.3)';
-  if (L.kind === 'town') g.fillText(F.town, L.w / 2, 80);
   if (L.kind === 'boss') g.fillText('Boss Room', (L.roomX + L.w) / 2 + 20, 160);
 }
 on('floorLoaded', paintFloor);
