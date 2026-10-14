@@ -37,17 +37,24 @@ export const openSub = id => { backTo = current; screen(id); };
 export const closeSub = () => screen(backTo);
 export const inSubScreen = () => current === 'howto' || current === 'settings' || current === 'skills';
 
-// Toasts queue up so a floor banner and a tutorial hint never overwrite each other
+// Toasts queue up so a floor banner and a tutorial hint never overwrite each other.
+// `floor` toasts (banners, cleared, challenge result) go stale once you move on: a new floor drops them.
 const queue = [];
-let showing = false, timer = 0;
-function clearToasts() { emit('toastsCleared'); queue.length = 0; clearTimeout(timer); showing = false; $('toast').classList.remove('on'); $('moment').classList.remove('on'); }
-export function toast(title, sub, sec = 3.2) {
-  queue.push({ title, sub, sec }); emit('toast', sec);
+let showing = null, timer = 0;
+function clearToasts() { emit('toastsCleared'); queue.length = 0; clearTimeout(timer); showing = null; $('toast').classList.remove('on'); $('moment').classList.remove('on'); }
+export function toast(title, sub, sec = 3.2, floor = false) {
+  queue[floor ? 'unshift' : 'push']({ title, sub, sec, floor }); emit('toast', sec); // floor news can't wait behind hints
   if (!showing) nextToast();
+}
+function dropFloorToasts() {
+  let sec = 0;
+  for (let i = queue.length - 1; i >= 0; i--) if (queue[i].floor) sec += queue.splice(i, 1)[0].sec;
+  if (showing?.floor) { clearTimeout(timer); sec += showing.sec; showing = null; }
+  emit('toast', -sec); // hand the dropped time back (the merchant waits for banners to clear)
 }
 function nextToast() {
   const item = queue.shift();
-  showing = !!item;
+  showing = item ?? null;
   if (!item) return;
   $('toast-title').textContent = item.title; $('toast-sub').textContent = item.sub;
   const t = $('toast'); t.classList.remove('on'); void t.offsetWidth; t.style.setProperty('--dur', item.sec + 's'); t.classList.add('on');
@@ -267,10 +274,11 @@ on('floorLoaded', i => {
     : type === 'shrine' ? tr(`ศาลเจ้าอยู่กลางห้อง กด ${keyLabel('interact')} เพื่อดูข้อเสนอ`, `A shrine stands in the middle. Press ${keyLabel('interact')} to see its offers.`)
     : type === 'elite' ? tr('ล้ม Elite แล้วเลือกท่าใหม่', 'Beat the Elite to pick a new Blade Art.')
     : tr('เคลียร์ห้องเพื่อเปิดประตู', 'Clear the room to open the doors.');
-  toast(`${floorLabel(i)} · ${G.F.town}`, sub);
+  dropFloorToasts();
+  toast(`${floorLabel(i)} · ${G.F.town}`, sub, 3.2, true);
 });
-on('challengeOver', ok => toast(ok ? tr('ผ่านการท้าทาย', 'Challenge passed') : tr('ไม่ผ่านการท้าทาย', 'Challenge failed'), ok ? tr('ได้รางวัลสองเท่า', 'Double reward.') : tr(`โดนตีเกิน ${ROOM_RULES.challengeHits} ครั้ง ไม่ได้รางวัล`, `More than ${ROOM_RULES.challengeHits} hits. No reward.`)));
-on('portalOpen', () => toast(tr(`ผ่าน ${floorLabel(G.floorIdx)} แล้ว`, `${floorLabel(G.floorIdx)} Cleared`), tr('เดินเข้าประตูสีฟ้าเพื่อขึ้นชั้นต่อไป', 'Step into the blue portal to go up.'), 4.5));
+on('challengeOver', ok => toast(ok ? tr('ผ่านการท้าทาย', 'Challenge passed') : tr('ไม่ผ่านการท้าทาย', 'Challenge failed'), ok ? tr('ได้รางวัลสองเท่า', 'Double reward.') : tr(`โดนตีเกิน ${ROOM_RULES.challengeHits} ครั้ง ไม่ได้รางวัล`, `More than ${ROOM_RULES.challengeHits} hits. No reward.`), 3.2, true));
+on('portalOpen', () => toast(tr(`ผ่าน ${floorLabel(G.floorIdx)} แล้ว`, `${floorLabel(G.floorIdx)} Cleared`), tr('เดินเข้าประตูสีฟ้าเพื่อขึ้นชั้นต่อไป', 'Step into the blue portal to go up.'), 4.5, true));
 // The evolve banner sits mid-screen and pauses under an open picker, so it shows once the picker closes
 on('artEvolved', art => {
   $('boss-card').classList.remove('on', 'down'); // a boss kill can offer an evolve pick; don't stack the two banners

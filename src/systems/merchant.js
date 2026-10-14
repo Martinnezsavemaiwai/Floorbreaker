@@ -11,7 +11,7 @@ import { shopItems, price } from './shop.js';
 const SEE = 220, HOLD = 1.5, // no speech while the floor toast is up
   WAVE_AT = 160, SHOWN = 3, QUIET = 9, WAVE_TIME = 0.6;
 let toastLeft = 0; // seconds of queued banner still on screen; the bubble would sit under it
-on('toast', sec => { toastLeft += sec; });
+on('toast', sec => { toastLeft = Math.max(0, toastLeft + sec); });
 on('toastsCleared', () => { toastLeft = 0; });
 export const toastHeld = () => toastLeft > 0;
 // one NPC bubble on screen at a time: ambient speech waits while any bubble is showing
