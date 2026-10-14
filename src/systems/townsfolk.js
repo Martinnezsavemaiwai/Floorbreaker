@@ -1,17 +1,19 @@
-// Two townspeople who wander between plaza points and say one line when you come close.
+// Two or three townspeople who wander between plaza points and say one line when you come close.
 // Cosmetic only: Math.random, never the seeded rng(); not saved; the player walks through them, mobs ignore them.
 import { G } from '../world/state.ts';
 import { actOf } from '../data/run.ts';
 import { pickLine } from '../data/dialogue.ts';
 import { move } from '../world/physics.ts';
 import { toastHeld, bubbleUp } from './merchant.js';
+import { IMG } from '../core/assets.ts';
 
 const SPEED = 55, TALK = 120, SHOWN = 3, STUCK = 1;
 const rnd = (a, b) => a + Math.random() * (b - a);
 
 export function buildFolk() {
   const pts = [...G.L.folkPoints].sort(() => Math.random() - 0.5);
-  return ['folkA', 'folkB'].map((sheet, i) => ({ x: pts[i].x, y: pts[i].y, r: 10, sheet, face: 0, target: null, wait: rnd(0, 2), moving: false,
+  const own = ['folk-1', 'folk-2', 'folk-3'].filter(n => IMG[n]); // our own townsfolk art, when it has been imported
+  return (own.length ? own : ['folkA', 'folkB']).map((sheet, i) => ({ x: pts[i].x, y: pts[i].y, r: 10, sheet, face: 0, target: null, wait: rnd(0, 2), moving: false,
     said: false, bubble: null, still: 0 }));
 }
 function pickTarget(f) {

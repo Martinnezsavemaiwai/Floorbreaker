@@ -45,6 +45,9 @@ SPRITES = {
     'fog': ('fog', 640, {}),
     # optional: the game draws its own doorway until these exist (see OPTIONAL in src/core/assets.ts)
     'door': ('item', 118, {}), 'door-boss': ('item', 118, {}),
+    'shrine': ('item', 80, {}), 'portal': ('item', 112, {}),
+    'shots': ('pieces', 40, {}),  # left to right: stone, javelin, magic bolt, water drop -> shots-1..4
+    'folk-1': ('character', 48, {'attack': False}), 'folk-2': ('character', 48, {'attack': False}), 'folk-3': ('character', 48, {'attack': False}),
 }
 
 

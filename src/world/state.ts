@@ -1,7 +1,7 @@
 // The live game state, shared by systems, rendering and UI. One plain object instead of module-level `let`s,
 // because ES module bindings can't be reassigned from other files.
 import { BOSS_RULES, type ArenaId, type MoveName, type ResolvedBoss } from '../data/bosses.ts';
-import type { MobStats } from '../data/mobs.ts';
+import type { MobStats, ShotKind } from '../data/mobs.ts';
 import type { FloorDef, TreeType } from '../data/floors.ts';
 import type { Point, Rect } from '../core/math.ts';
 import type { Layout } from './layout.ts';
@@ -38,7 +38,7 @@ export interface Mob extends Point {
   aggro?: boolean; // room mobs chase from anywhere
   sprout?: boolean; life?: number; // Elderroot's root sprouts: no AI, no rewards, wither after `life` s
 }
-export interface Shot extends Point { vx: number; vy: number; r: number; dmg: number; col: string; life: number }
+export interface Shot extends Point { vx: number; vy: number; r: number; dmg: number; col: string; life: number; kind?: ShotKind }
 export interface Wave extends Point { vx: number; vy: number; left: number; dmg: number; art: string; hit: Set<object>; r: number }
 export interface Boss extends Point {
   z: number; r: number; hp: number; maxHp: number; lag: number; awake: boolean; cd: number;

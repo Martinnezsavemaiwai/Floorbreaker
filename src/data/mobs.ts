@@ -3,13 +3,16 @@
 // ranged: keeps its distance and fires a dodgeable shot after the wind-up instead of lunging.
 // armor: normal hits do 25% and don't stagger; a heavy hit (combo finisher / Blade Art) breaks it for `regen` s.
 // scale: sprite/body size (swarm mobs are small).
+
+// What a shot looks like (render/world.js draws the matching sprite, or a glowing orb without one)
+export type ShotKind = 'stone' | 'javelin' | 'bolt' | 'water';
 export interface MobStats {
   name: string; img: string; white: string; kind: 'beast' | 'humanoid';
   hp: number; dmg: number; speed: number; wind: number; xp: number; col: number; // col = money dropped
   radius: number; reach: number; attackRange: number; attackCd: number; lunge: number;
   chaseRange: number; wanderSpeed: number; wanderRange: number;
   knockback: { light: number; heavy: number };
-  ranged?: { keep: number; range: number; shotSpeed: number; shotR: number; color: string };
+  ranged?: { keep: number; range: number; shotSpeed: number; shotR: number; color: string; shot: ShotKind };
   armor?: { regen: number }; scale?: number;
 }
 
@@ -28,11 +31,11 @@ export const MOBS = {
   darkElf: { ...BASE, name: 'Dark Elf Warrior', img: 'elf', white: 'elfWhite', kind: 'humanoid', hp: 140, dmg: 22, speed: 135, wind: 0.35, xp: 70, col: 12 },
   // ranged support mobs, one per floor
   houndfangSlinger: { ...BASE, name: 'Houndfang Slinger', img: 'slinger', white: 'slingerWhite', kind: 'humanoid', hp: 30, dmg: 8, speed: 110, wind: 0.6, xp: 20, col: 6,
-    attackCd: 2.2, ranged: { keep: 170, range: 300, shotSpeed: 320, shotR: 7, color: '#d8b070' } },
+    attackCd: 2.2, ranged: { keep: 170, range: 300, shotSpeed: 320, shotR: 7, color: '#d8b070', shot: 'stone' } },
   taurusJavelineer: { ...BASE, name: 'Taurus Javelineer', img: 'javelin', white: 'javelinWhite', kind: 'humanoid', hp: 60, dmg: 14, speed: 115, wind: 0.55, xp: 40, col: 10,
-    attackCd: 2, ranged: { keep: 180, range: 320, shotSpeed: 420, shotR: 8, color: '#ff9050' } },
+    attackCd: 2, ranged: { keep: 180, range: 320, shotSpeed: 420, shotR: 8, color: '#ff9050', shot: 'javelin' } },
   darkElfMage: { ...BASE, name: 'Dark Elf Mage', img: 'mage', white: 'mageWhite', kind: 'humanoid', hp: 90, dmg: 20, speed: 115, wind: 0.7, xp: 60, col: 14,
-    attackCd: 2.4, ranged: { keep: 190, range: 340, shotSpeed: 260, shotR: 11, color: '#b080ff' } },
+    attackCd: 2.4, ranged: { keep: 190, range: 340, shotSpeed: 260, shotR: 11, color: '#b080ff', shot: 'bolt' } },
   // swarms (come in groups) and armored guardians
   piglet: { ...BASE, name: 'Boar Piglet', img: 'piglet', white: 'pigletWhite', kind: 'beast', hp: 14, dmg: 5, speed: 175, wind: 0.25, xp: 6, col: 1,
     radius: 10, scale: 0.65 },
@@ -49,7 +52,7 @@ export const MOBS = {
   // floor 4 (Canalis, the water town)
   tidalBoar: { ...BASE, name: 'Tidal Boar', img: 'tidalboar', white: 'tidalboarWhite', kind: 'beast', hp: 200, dmg: 28, speed: 160, wind: 0.32, xp: 100, col: 16 },
   waterWraith: { ...BASE, name: 'Water Wraith', img: 'wraith', white: 'wraithWhite', kind: 'humanoid', hp: 120, dmg: 24, speed: 120, wind: 0.6, xp: 85, col: 18,
-    attackCd: 2.2, ranged: { keep: 190, range: 340, shotSpeed: 340, shotR: 9, color: '#6fd8ff' } },
+    attackCd: 2.2, ranged: { keep: 190, range: 340, shotSpeed: 340, shotR: 9, color: '#6fd8ff', shot: 'water' } },
   // Elderroot's root sprouts: harmless, rooted, cut them down to lift the fog (img is unused, drawn in drawMob)
   rootSprout: { ...BASE, name: 'Root Sprout', img: 'boar', white: 'boarWhite', kind: 'beast', hp: 30, dmg: 0, speed: 0, wind: 1, xp: 0, col: 0, radius: 18 },
 } satisfies Record<string, MobStats>;

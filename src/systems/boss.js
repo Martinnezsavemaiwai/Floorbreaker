@@ -85,7 +85,7 @@ const RESOLVE = {
   charge() { setAct('dash', MOVES.charge.dashTime); emit('bossCharge'); },
   volley(b) {
     const V = MOVES.volley, dmg = bossDmg('volley');
-    for (const a of b.angs) G.shots.push({ x: b.x, y: b.y, vx: Math.cos(a) * V.speed, vy: Math.sin(a) * V.speed, r: V.shotR, dmg, col: '#6fd8ff', life: V.range / V.speed });
+    for (const a of b.angs) G.shots.push({ x: b.x, y: b.y, vx: Math.cos(a) * V.speed, vy: Math.sin(a) * V.speed, r: V.shotR, dmg, col: '#6fd8ff', kind: 'water', life: V.range / V.speed });
     ring(b.x, b.y, 20, 90, 0.3, '111,216,255'); kick(0.03, 8); emit('mobShot'); endAct();
   },
 };

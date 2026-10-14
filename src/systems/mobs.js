@@ -63,7 +63,7 @@ export function updateMobs(dt) {
 function shoot(m, R, dmg) {
   const { P } = G, a = Math.atan2(P.y - m.y, P.x - m.x);
   G.shots.push({ x: m.x + Math.cos(a) * m.r, y: m.y + Math.sin(a) * m.r, vx: Math.cos(a) * R.shotSpeed, vy: Math.sin(a) * R.shotSpeed,
-                 r: R.shotR, dmg, col: R.color, life: R.range * 1.5 / R.shotSpeed });
+                 r: R.shotR, dmg, col: R.color, kind: R.shot, life: R.range * 1.5 / R.shotSpeed });
   emit('mobShot');
 }
 function updateShots(dt) {
