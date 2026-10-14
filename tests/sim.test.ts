@@ -7,7 +7,7 @@ import { keys, mouse } from '../src/core/input.ts';
 import { skill } from '../src/systems/index.js';
 
 describe('bot playthroughs', () => {
-  const runs = [1, 2, 3, 4, 5].map(seed => ({ seed, ...playRun(seed) }));
+  const runs = [100, 101, 102, 103, 104, 105, 106, 107].map(seed => ({ seed, ...playRun(seed) }));
 
   it('never breaks invariants (no NaN positions, nobody inside walls, hp <= max)', () => {
     for (const r of runs) expect(r.violations, `seed ${r.seed}`).toEqual([]);
@@ -17,10 +17,10 @@ describe('bot playthroughs', () => {
     for (const r of runs) expect(r.over, `seed ${r.seed}: ${JSON.stringify(r)}`).not.toBe('timeout');
   });
 
-  it('the game is beatable and most runs reach the first boss', () => {
-    // Balance guard: if a change makes this fail, the game got much harder (or broke a floor transition)
+  it('the game is beatable in some seeds and most runs reach floor 5', () => {
+    // Balance guard (tuned: seeds 100-139 win ~65%, all reach floor 5): if a change makes this fail, the game got much harder or a floor transition broke
     expect(runs.some(r => r.over === 'win'), JSON.stringify(runs)).toBe(true);
-    expect(runs.filter(r => r.floor >= 5).length, JSON.stringify(runs)).toBeGreaterThanOrEqual(3);
+    expect(runs.filter(r => r.floor >= 5).length, JSON.stringify(runs)).toBeGreaterThan(runs.length / 2);
   });
 });
 

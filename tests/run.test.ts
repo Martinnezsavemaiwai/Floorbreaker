@@ -17,8 +17,10 @@ describe('floor kinds', () => {
     expect(isFinalFloor(19)).toBe(true); expect(isFinalFloor(14)).toBe(false);
   });
 
-  it('mobs get 8% stronger per floor inside an act', () => {
-    expect(mobScale(0)).toBe(1); expect(mobScale(3)).toBeCloseTo(1.24); expect(mobScale(5)).toBe(1);
+  it('mobs get 8% stronger per floor inside an act and 45% per act', () => {
+    expect(mobScale(0)).toBe(1); expect(mobScale(3) / mobScale(0)).toBeCloseTo(1.24); expect(mobScale(8) / mobScale(5)).toBeCloseTo(1.24); expect(mobScale(5)).toBeGreaterThan(mobScale(0));
+    for (let i = 0; i < FLOOR_COUNT; i++) expect(mobScale(i)).toBeCloseTo((1 + 0.08 * stepOf(i)) * (1 + 0.45 * actOf(i)));
+    expect(mobScale(9) / mobScale(0)).toBeCloseTo((1 + 0.08 * stepOf(9)) * 1.45);
   });
 });
 

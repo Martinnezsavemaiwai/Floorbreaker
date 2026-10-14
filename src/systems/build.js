@@ -2,7 +2,7 @@
 // that change them. Three kinds of pick: a level-up (mods + stat upgrades), a new Art (elite rooms) and an
 // evolution shard (bosses). Card rolls use the seeded rng; "is there a pick?" checks never touch it.
 import { G } from '../world/state.ts';
-import { ELEMENT_IDS } from '../data/elements.ts';
+import { ELEMENT_IDS, ELEMENTS, EL } from '../data/elements.ts';
 import { SKILLS } from '../data/skills.ts';
 import { UPGRADES } from '../data/upgrades.ts';
 import { SHOP } from '../data/shop.ts';
@@ -12,11 +12,22 @@ import { isUnlocked } from './meta.js';
 import { applyUpgrade } from './upgrades.js';
 import { text, burst, kick } from './fx.js';
 import { gainCol } from './combat.js';
+import { elementCount, setActive } from './elements.js';
 
 const MAX_MODS = 2, OFFER = 3, MOD_WEIGHT = 2, STAT_WEIGHT = 1, SHARD_GOLD = 100;
 
 export const ownedArts = () => ['blade', ...G.P.skills.filter(Boolean)];
 const mods = art => G.P.mods[art] ?? [];
+export const artElements = art => [...mods(art)];
+// Most mods wins; a tie goes to the element gained first (elements never gained sort last, in ELEMENT_IDS order)
+const topElement = (count) => {
+  const order = G.P.modOrder ?? [], rank = el => (order.includes(el) ? order.indexOf(el) : order.length);
+  const best = ELEMENT_IDS.filter(el => count(el) > 0).sort((a, b) => count(b) - count(a) || rank(a) - rank(b));
+  return best[0] ?? null;
+};
+export const dominantElement = () => topElement(elementCount);
+export const artColor = art => { const els = mods(art), el = topElement(e => els.filter(x => x === e).length); return el ? ELEMENTS[el].color : null; };
+export const setProgress = () => ELEMENT_IDS.map(el => ({ el, n: elementCount(el), need: EL.set.need, active: setActive(el) }));
 export const freeModSlots = () => ownedArts().reduce((n, a) => n + MAX_MODS - mods(a).length, 0);
 export const modCards = () => ownedArts().filter(a => mods(a).length < MAX_MODS)
   .flatMap(art => ELEMENT_IDS.map(el => ({ kind: 'mod', art, el })));
@@ -53,7 +64,7 @@ export const cardsFor = kind => {
 export function evolve(art) {
   if (G.P.evolved.includes(art)) return;
   G.P.evolved.push(art); emit('artEvolved', art);
-  const P = G.P; text(P.x, P.y - 60, 'EVOLVED!', '#ffe9a8', true); burst(P.x, P.y, 40, '#fff6e2', 260, 0.9, 6, true); kick(0.5, 8);
+  const P = G.P; text(P.x, P.y - 60, 'EVOLVED!', '#ffe9a8', true); burst(P.x, P.y, 40, artColor(art) ?? '#fff6e2', 260, 0.9, 6, true); kick(0.5, 8);
 }
 
 // Apply a picked card. Returns follow-up cards when the pick needs a second choice (which slot to replace), else null.
@@ -69,7 +80,10 @@ export function applyCard(card, kind) {
     P.skills[card.slot] = card.id; P.skillCd[card.slot] = 0;
   } else if (card.kind === 'element') return modCards().filter(c => c.el === card.el); // second step: which Art
   else if (card.kind === 'mod') {
+    const before = elementCount(card.el);
     P.mods[card.art] = [...mods(card.art), card.el];
+    (P.modOrder ??= []).includes(card.el) || P.modOrder.push(card.el);
+    if (before < EL.set.need && elementCount(card.el) >= EL.set.need) emit('setBonus', card.el);
     if (P.mods[card.art].length >= MAX_MODS) evolve(card.art);
   } else if (card.kind === 'evolve') evolve(card.art);
   else if (card.kind === 'stat') { const left = P.pendingUpgrades; applyUpgrade(card.id); P.pendingUpgrades = left; } // applyUpgrade spends a level itself; undone here, spent below for level picks only

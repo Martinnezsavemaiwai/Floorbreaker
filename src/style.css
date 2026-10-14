@@ -193,13 +193,19 @@ dialog.dialog .btn{justify-content:center}
 #boss-card .win .body{text-align:center;gap:2px;padding:14px 18px}
 #boss-card b{font:800 24px var(--font-num);letter-spacing:.03em;color:var(--ink)}
 #boss-card span{font-size:14px;color:var(--ink-2);line-height:1.5}
+#moment{--dur:2s;position:fixed;left:50%;top:calc(var(--canvas-top) + var(--canvas-h) * .42);transform:translateX(-50%);pointer-events:none;display:none;width:min(480px,calc(100% - 32px))}
+#moment.on{display:block;animation:toast var(--dur) steps(24,end) forwards}
+#moment .win{animation:none}
+#moment .win .body{text-align:center;gap:2px;padding:18px 22px}
+#moment b{font:800 34px var(--font-num);letter-spacing:.03em;color:var(--ink)}
+#moment span{font-size:14px;color:var(--ink-2);line-height:1.5}
 #boss-card-hint{margin-top:4px;color:var(--ink)}
 #boss-card.down b{text-decoration:line-through;color:var(--ink-2)}
 #boss-card.down #boss-card-hint{display:none}
 @keyframes toast-still{0%,94%{opacity:1}100%{opacity:0}}
 @keyframes toast{0%{opacity:0;transform:translate(-50%,-8px)}8%,86%{opacity:1;transform:translate(-50%,0)}100%{opacity:0}}
-@media (prefers-reduced-motion:reduce){.screen.on,.win,#toast.on,#boss-card.on,.btn,.pane,.card{animation-duration:.01s !important}.switch::after{transition:none}}
-@media (prefers-reduced-motion:reduce){#toast.on,#boss-card.on{animation-name:toast-still;animation-duration:var(--dur,3.2s) !important;animation-timing-function:linear}}
+@media (prefers-reduced-motion:reduce){.screen.on,.win,#toast.on,#boss-card.on,#moment.on,.btn,.pane,.card{animation-duration:.01s !important}.switch::after{transition:none}}
+@media (prefers-reduced-motion:reduce){#toast.on,#boss-card.on,#moment.on{animation-name:toast-still;animation-duration:var(--dur,3.2s) !important;animation-timing-function:linear}}
 
 /* ---------- picker cards (level-up, shop, Blade Arts) ---------- */
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
@@ -208,6 +214,7 @@ dialog.dialog .btn{justify-content:center}
   border:3px solid var(--lead);box-shadow:inset 0 0 0 1px var(--line);color:var(--ink);font:400 14px/1.5 var(--font);cursor:pointer}
 .card:hover,.card:focus-visible{background:var(--rivets),linear-gradient(180deg,color-mix(in srgb,var(--glass) 80%,#fff),var(--glass));color:var(--lead);
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.4);animation:light .18s steps(2,end)}
+.card canvas{width:100%;height:auto;aspect-ratio:16/9;image-rendering:pixelated;border:2px solid var(--glass,var(--lead));display:block}
 .card kbd{justify-self:start}
 .card b{font:600 17px var(--font)}
 .card span{color:var(--ink-2)}
@@ -238,6 +245,21 @@ dialog.dialog .btn{justify-content:center}
 .credits{margin:4px 0 0;font-size:13px}
 /* banners never cover a menu window; the bottom story window leaves room for them */
 body:has(.screen.on:not(.story)) #toast{display:none}
-body:has(.screen.on) #boss-card{visibility:hidden;animation-play-state:paused}
+body:has(.screen.on) :is(#boss-card,#moment){visibility:hidden;animation-play-state:paused}
 /* tracking pulls Thai vowel and tone marks apart: Latin titles keep it, Thai sets solid */
 :lang(th) :is(.result-title,.pane-title,.win header),:lang(th) #result.dead .result-title{letter-spacing:0}
+
+/* Pause menu Build panel */
+.build h3{margin:0 0 6px;font-size:13px;color:var(--ink-2);font-weight:600}
+.build .arts{list-style:none;margin:0 0 8px;padding:0;display:grid;gap:6px}
+.build .arts li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 8px;padding:6px 10px;background:var(--win-raise);border:2px solid var(--lead);box-shadow:inset 0 0 0 1px var(--line);font-size:14px;min-width:0}
+.build .arts b{font-weight:600;overflow-wrap:anywhere}
+.build .arts i{font-size:13px;color:var(--ink-2);font-style:normal}
+.build .chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{padding:2px 8px;font-size:13px;color:var(--ink);background:var(--win-raise);border:2px solid var(--lead);border-left:6px solid var(--el);box-shadow:inset 0 0 0 1px var(--line)}
+.chip.set{opacity:.6}
+.chip.set.on{opacity:1;background:var(--el);color:var(--lead);font-weight:700}
+.build .hint{margin:8px 0 0}
+.build .fx{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:2px;font-size:13px;color:var(--ink-2);line-height:1.5}
+.build .fx li{overflow-wrap:anywhere}
+.build .fx li.on{color:var(--ink)}

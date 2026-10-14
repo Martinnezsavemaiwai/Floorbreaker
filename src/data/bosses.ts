@@ -36,7 +36,7 @@ export interface BossStats {
 
 export const BOSSES = {
   houndfangLord: {
-    name: 'Grask the Houndfang Warlord', epithet: { th: 'ผู้คุมหุบเขาหินถล่ม', en: 'Keeper of the Falling Stone' }, hint: { th: 'ดูเงาบนพื้น หินจะตกตรงนั้น', en: 'Watch the shadows on the floor. Rocks land there.' }, img: 'boss1', rageImg: 'boss1Rage', hp: 900, scale: 9, cd: [1.8, 1.1], arena: 'rockfall',
+    name: 'Grask the Houndfang Warlord', epithet: { th: 'ผู้คุมหุบเขาหินถล่ม', en: 'Keeper of the Falling Stone' }, hint: { th: 'ดูเงาบนพื้น หินจะตกตรงนั้น', en: 'Watch the shadows on the floor. Rocks land there.' }, img: 'boss1', rageImg: 'boss1Rage', hp: 750, scale: 9, cd: [1.8, 1.1], arena: 'rockfall',
     moves: ['slam', 'charge'], rageMoves: ['slam', 'charge', 'leap'], dmg: { slam: 30, charge: 24, leap: 34, quake: 0 },
   },
   asterius: {

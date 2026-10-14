@@ -10,10 +10,12 @@ import { SHOP } from '../data/shop.ts';
 import { price, canBuy, shopItems } from '../systems/shop.js';
 import { canTake } from '../systems/shrine.js';
 import { SKILLS, BLADE_EVO, artName, evoName } from '../data/skills.ts';
+import { ownedArts, artElements, setProgress } from '../systems/build.js';
 import { ELEMENTS } from '../data/elements.ts';
 import { awardShards, isUnlocked, unlockSkill } from '../systems/meta.js';
 import { SFX } from '../audio/audio.js';
 import { t, tr } from '../core/i18n.ts';
+import { previewFor, startPreviews } from '../render/preview.js';
 
 export const $ = id => /** @type {any} */ (document.getElementById(id)); // DOM ids come from index.html
 const fmtTime = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
@@ -38,7 +40,7 @@ export const inSubScreen = () => current === 'howto' || current === 'settings' |
 // Toasts queue up so a floor banner and a tutorial hint never overwrite each other
 const queue = [];
 let showing = false, timer = 0;
-function clearToasts() { queue.length = 0; clearTimeout(timer); showing = false; $('toast').classList.remove('on'); }
+function clearToasts() { queue.length = 0; clearTimeout(timer); showing = false; $('toast').classList.remove('on'); $('moment').classList.remove('on'); }
 export function toast(title, sub, sec = 3.2) {
   queue.push({ title, sub, sec });
   if (!showing) nextToast();
@@ -54,11 +56,23 @@ function nextToast() {
 
 function statCards(el, items) { el.innerHTML = items.map(([k, v]) => `<div class="stat"><span>${k}</span><b>${v}</b></div>`).join(''); }
 const runStats = () => [[tr('ชั้นที่ไปถึง', 'Floor'), G.run.floor], [tr('เลเวล', 'Level'), G.P.lv], [tr('ล้มศัตรู', 'Kills'), G.run.kills], [tr('เวลา', 'Time'), fmtTime(G.run.time)]];
-const upgradeList = () => Object.entries(G.P.up).filter(([, k]) => k).map(([id, k]) => `${t(UPGRADES[id].name)}${k > 1 ? ' ×' + k : ''}`).join(' · ');
+const upgradeList = () => Object.entries(G.P.up).filter(([, k]) => k).map(([id, k]) => `${t(UPGRADES[id].name)}${k > 1 ? ' ×' + k : ''}`).join(', ');
+const chip = (el, text, cls = '', extra = '') => `<span class="chip ${cls}" style="--el:${ELEMENTS[el].color}"${extra}>${text}</span>`;
+function renderBuild() {
+  const arts = ownedArts().map(a => {
+    const evo = G.P.evolved.includes(a), mods = artElements(a);
+    const nm = (a === 'blade' ? tr('ฟันปกติ', 'Slash') : artName(a)) + (evo ? ` / ${evoName(a)}` : '');
+    return `<li><b>${nm}${evo ? ' ★' : ''}</b><span class="chips">${mods.length ? mods.map(e => chip(e, ELEMENTS[e].name)).join('') : `<i>${tr('ไม่มี mod', 'No mods')}</i>`}</span></li>`;
+  }).join('');
+  const sp = setProgress();
+  const sets = sp.map(s => chip(s.el, `${ELEMENTS[s.el].name} ${Math.min(s.n, s.need)}/${s.need}${s.active ? ' ✓ ' + tr('ติดแล้ว', 'Active') : ''}`, `set${s.active ? ' on' : ''}`)).join('');
+  const fx = sp.map(s => `<li class="${s.active ? 'on' : ''}"><b>${ELEMENTS[s.el].name}:</b> ${t(ELEMENTS[s.el].set)}</li>`).join('');
+  const up = upgradeList();
+  $('pause-build').innerHTML = `<h3>${tr('บิลด์', 'Build')}</h3><ul class="arts">${arts}</ul><div class="chips">${sets}</div><ul class="fx">${fx}</ul>${up ? `<p class="hint">${tr('อัปเกรด: ', 'Upgrades: ')}${up}</p>` : ''}`;
+}
 export function showPauseStats() {
   statCards($('pause-stats'), runStats());
-  const list = upgradeList();
-  $('pause-upgrades').textContent = list ? tr('อัปเกรด: ', 'Upgrades: ') + list : '';
+  renderBuild();
 }
 
 // One picker for every pick: level-up (mods + stats), a new Art (elite), an evolution shard (boss), or which slot to replace
@@ -86,7 +100,8 @@ function cardHtml(c, i) {
   else if (c.kind === 'replace') { title = tr(`แทน ${SKILLS[P.skills[c.slot]].name}`, `Replace ${SKILLS[P.skills[c.slot]].name}`); body = tr(`ช่อง ${c.slot + 1} ได้ ${SKILLS[c.id].name} มอดของท่าเดิมจะหายไป`, `Slot ${c.slot + 1} gets ${SKILLS[c.id].name}. The old Art's mods are lost.`); }
   else if (c.kind === 'skip') { title = tr('ไม่เอาท่านี้', 'Keep my Arts'); body = tr('เก็บท่าที่มีอยู่ไว้ทั้งหมด', 'Keep everything as it is.'); }
   else if (c.kind === 'evolve') { title = `${name(c.art)} → ${evoName(c.art)}`; body = t(evoOf(c.art).desc); }
-  return `<button class="card" data-pick="${i}" ${glass ? `style="--glass:${glass}"` : ''} aria-label="${i + 1}: ${title}. ${body}">${key}<b>${title}</b><span>${body}</span>${extra}</button>`;
+  const pv = previewFor(c), cv = pv ? `<canvas data-preview='${JSON.stringify(pv)}' width="160" height="90" aria-hidden="true"></canvas>` : '';
+  return `<button class="card" data-pick="${i}" ${glass ? `style="--glass:${glass}"` : ''} aria-label="${i + 1}: ${title}. ${body}">${cv}${key}<b>${title}</b><span>${body}</span>${extra}</button>`;
 }
 export function showPicker(kind, cards) {
   $('upgrade-h').textContent = t(PICK_TITLE[kind]);
@@ -99,6 +114,7 @@ export function showPicker(kind, cards) {
     : tr('ช่องท่าเต็มแล้ว จะแทนท่าไหน', 'Both slots are full. Which Art should it replace?');
   $('upgrade-cards').innerHTML = cards.map(cardHtml).join('');
   screen('upgrade');
+  startPreviews($('upgrade-cards'));
   $('upgrade-cards').querySelector('.card')?.focus();
 }
 
@@ -232,7 +248,7 @@ $('boss-card').addEventListener('animationend', e => { if (e.target === e.curren
 on('bossWake', () => bossCard(false));
 on('bossDeath', () => bossCard(true));
 on('floorLoaded', i => {
-  $('boss-card').classList.remove('on', 'down');
+  $('boss-card').classList.remove('on', 'down'); $('moment').classList.remove('on');
   const k = G.L.kind, type = G.room?.type, sub = k === 'boss' ? tr('บอส: ', 'Boss: ') + G.F.boss.name
     : k === 'town' ? tr('ฟื้น HP เต็มแล้ว พ่อค้าอยู่ข้างน้ำพุ', 'Fully healed. The merchant is by the fountain.')
     : type === 'spring' ? tr('เดินไปที่น้ำพุเพื่อฟื้น HP ครึ่งหลอด', 'Walk to the fountain to heal half your HP.')
@@ -245,7 +261,14 @@ on('floorLoaded', i => {
 });
 on('challengeOver', ok => toast(ok ? tr('ผ่านการท้าทาย', 'Challenge passed') : tr('ไม่ผ่านการท้าทาย', 'Challenge failed'), ok ? tr('ได้รางวัลสองเท่า', 'Double reward.') : tr(`โดนตีเกิน ${ROOM_RULES.challengeHits} ครั้ง ไม่ได้รางวัล`, `More than ${ROOM_RULES.challengeHits} hits. No reward.`)));
 on('portalOpen', () => toast(tr(`ผ่าน ${floorLabel(G.floorIdx)} แล้ว`, `${floorLabel(G.floorIdx)} Cleared`), tr('เดินเข้าประตูสีฟ้าเพื่อขึ้นชั้นต่อไป', 'Step into the blue portal to go up.'), 4.5));
-on('artEvolved', art => toast(evoName(art), tr('ท่าวิวัฒน์แล้ว', 'Art evolved')));
+// The evolve banner sits mid-screen and pauses under an open picker, so it shows once the picker closes
+on('artEvolved', art => {
+  $('boss-card').classList.remove('on', 'down'); // a boss kill can offer an evolve pick; don't stack the two banners
+  $('moment-name').textContent = evoName(art); $('moment-sub').textContent = tr('ท่าวิวัฒน์แล้ว', 'Art evolved');
+  const m = $('moment'); m.classList.remove('on'); void m.offsetWidth; m.classList.add('on');
+});
+$('moment').addEventListener('animationend', e => { if (e.target === e.currentTarget) e.currentTarget.classList.remove('on'); });
+on('setBonus', el => { SFX.setBonus(); toast(tr(`ชุด ${ELEMENTS[el].name} ติดแล้ว`, `${ELEMENTS[el].name} set active`), t(ELEMENTS[el].set)); });
 on('hint', ({ title, sub }) => toast(title, sub, 4.5));
 
 // Buttons carry data-act="name"; main.js supplies what each name does

@@ -7,6 +7,8 @@ import { actOf, ROOM_RULES } from '../data/run.ts';
 import { PLAYER } from '../data/player.ts';
 import { SKILLS } from '../data/skills.ts';
 import { ICON } from '../data/skillIcons.ts';
+import { ELEMENTS } from '../data/elements.ts';
+import { artElements, artColor, setProgress } from '../systems/build.js';
 import { on } from '../core/events.ts';
 import { keyLabel } from '../core/input.ts';
 import { clamp } from '../core/math.ts';
@@ -40,7 +42,7 @@ function panel(x, y, w, h, r = 10) {
 
 function drawPlayerPanel() {
   const { P, F } = G;
-  slant(14, 14, 404, 60); ctx.fillStyle = 'rgba(10,14,24,.78)'; ctx.fill();
+  slant(14, 14, 404, 86); ctx.fillStyle = 'rgba(10,14,24,.78)'; ctx.fill();
   ctx.strokeStyle = 'rgba(255,255,255,.2)'; ctx.lineWidth = 1; ctx.stroke();
   // level badge
   ctx.beginPath(); ctx.arc(46, 44, 21, 0, 7); ctx.fillStyle = '#f39a1d'; ctx.fill();
@@ -54,8 +56,19 @@ function drawPlayerPanel() {
   ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.fillRect(78, 59, 240, 3);
   ctx.fillStyle = '#5fc3ff'; ctx.fillRect(78, 59, 240 * P.xp / PLAYER.xpToNext(P.lv), 3);
   const L = G.L, where = L.kind === 'town' ? ['SAFE ZONE · ' + tr('HP ฟื้นฟู', 'HP regen'), '#9fe89f'] : L.kind === 'boss' ? ['BOSS', '#ff8a7a'] : ['', '#cfd8e6'];
-  ctx.textAlign = 'left'; label([floorLabel(G.floorIdx), F.town, where[0], G.cursed && tr('คำสาป', 'Cursed')].filter(Boolean).join(' · '), 22, 92, G.cursed ? '#c9b6ff' : where[1], `600 13px ${FT}`);
-  label(`${P.col} Gold`, 22, 110, '#ffe14d', `700 13px ${FN}`);
+  ctx.textAlign = 'left'; label([floorLabel(G.floorIdx), F.town, where[0], G.cursed && tr('คำสาป', 'Cursed')].filter(Boolean).join(' · '), 22, 114, G.cursed ? '#c9b6ff' : where[1], `600 13px ${FT}`);
+  // element set gems: n/3 per element, dim until the set bonus is active
+  ctx.textAlign = 'left';
+  setProgress().forEach((e, i) => {
+    const gx = 24 + i * 52, gy = 87, col = ELEMENTS[e.el].color;
+    ctx.save(); ctx.globalAlpha = e.active ? 1 : e.n ? 0.65 : 0.35;
+    if (e.active) { ctx.shadowColor = col; ctx.shadowBlur = 10; }
+    ctx.beginPath(); ctx.moveTo(gx + 5, gy - 6); ctx.lineTo(gx + 11, gy); ctx.lineTo(gx + 5, gy + 6); ctx.lineTo(gx - 1, gy); ctx.closePath();
+    ctx.fillStyle = col; ctx.fill();
+    ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.stroke(); ctx.restore();
+    label(`${Math.min(e.n, e.need)}/${e.need}`, gx + 15, gy + 4, e.active ? '#fff' : '#c4ccd8', `800 11px ${FN}`);
+  });
+  label(`${P.col} Gold`, 22, 132, '#ffe14d', `700 13px ${FN}`);
 }
 
 function drawBossBar() {
@@ -90,10 +103,10 @@ function drawSkillSlots() {
   const P = G.P, s = 56, gap = 18, y = H - s - 18;
   const skill = (slot, action) => {
     const id = P.skills[slot], S = SKILLS[id], cd = P.skillCd[slot];
-    return { key: keyLabel(action), label: S.short, cd: Math.max(0, cd) / S.cd, glow: cd <= 0, secs: cd, icon: id };
+    return { key: keyLabel(action), label: S.short, cd: Math.max(0, cd) / S.cd, glow: cd <= 0, secs: cd, icon: id, art: id };
   };
   const slots = [
-    { key: keyLabel('attack'), label: tr('ฟัน', 'Slash'), cd: Math.max(0, P.atkCd) / A.cd, glow: false, icon: 'attack' },
+    { key: keyLabel('attack'), label: tr('ฟัน', 'Slash'), cd: Math.max(0, P.atkCd) / A.cd, glow: false, icon: 'attack', art: 'blade' },
     skill(0, 'skill'), ...(P.skills[1] ? [skill(1, 'skill2')] : []), ...(P.skills[2] ? [skill(2, 'skill3')] : []),
     { key: keyLabel('potion'), label: `Potion ×${P.potions}`, cd: 0, glow: false, potion: true },
   ];
@@ -103,7 +116,11 @@ function drawSkillSlots() {
     ctx.save();
     if (sl.glow) { ctx.shadowColor = '#f39a1d'; ctx.shadowBlur = 16; }
     panel(x, y, s, s, 12); ctx.restore();
-    if (sl.glow) { ctx.beginPath(); ctx.roundRect(x, y, s, s, 12); ctx.strokeStyle = '#f39a1d'; ctx.lineWidth = 2; ctx.stroke(); }
+    const mods = sl.art ? artElements(sl.art) : [], ac = sl.art ? artColor(sl.art) : null;
+    if (sl.glow || ac) { // ready = orange outer ring; element colour = inner ring, so both read
+      ctx.beginPath(); ctx.roundRect(x, y, s, s, 12); ctx.strokeStyle = sl.glow ? '#f39a1d' : ac; ctx.lineWidth = 2; ctx.stroke();
+      if (sl.glow && ac) { ctx.beginPath(); ctx.roundRect(x + 3, y + 3, s - 6, s - 6, 9); ctx.strokeStyle = ac; ctx.lineWidth = 2; ctx.stroke(); }
+    }
     if (sl.potion) drawFlask(cx, cy + 4, P.potions > 0);
     else {
       const [rot, glow] = ICON[sl.icon];
@@ -125,7 +142,18 @@ function drawSkillSlots() {
     const kw = Math.max(18, ctx.measureText(sl.key).width + 8); // wider badge for long names like Shift
     ctx.beginPath(); ctx.roundRect(x + 4, y + 4, kw, 16, 4); ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.fill();
     ctx.textAlign = 'center'; ctx.font = `800 11px ${FN}`; ctx.fillStyle = '#2b313b'; ctx.fillText(sl.key, x + 4 + kw / 2, y + 16);
-    label(sl.label, cx, y + s + 14, '#fff', `600 12px ${FT}`);
+    if (sl.art) {
+      for (let k = 0; k < 2; k++) { // two mod pips along the bottom edge
+        ctx.beginPath(); ctx.roundRect(cx - 11 + k * 12, y + s - 8, 10, 4, 2);
+        if (mods[k]) { ctx.fillStyle = ELEMENTS[mods[k]].color; ctx.fill(); } else { ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 1; ctx.stroke(); }
+      }
+      if (P.evolved.includes(sl.art)) { // evolved mark, top-right diamond
+        ctx.beginPath(); ctx.moveTo(x + s - 8, y + 3); ctx.lineTo(x + s - 4, y + 7); ctx.lineTo(x + s - 8, y + 11); ctx.lineTo(x + s - 12, y + 7); ctx.closePath();
+        ctx.fillStyle = '#ffd35a'; ctx.fill(); ctx.strokeStyle = '#2b313b'; ctx.lineWidth = 1; ctx.stroke();
+        if (sl.art === 'sonicLeap') { ctx.textAlign = 'left'; label(`×${P.galeCharges}`, x + 5, y + s - 12, '#ffd35a', `800 12px ${FN}`); }
+      }
+    }
+    ctx.textAlign = 'center'; label(sl.label, cx, y + s + 14, '#fff', `600 12px ${FT}`);
   });
 }
 

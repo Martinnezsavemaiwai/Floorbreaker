@@ -10,6 +10,7 @@ import { settings, loadSuspend, writeSuspend, clearSuspend } from '../core/save.
 import { on } from '../core/events.ts';
 import { updateGame, updateFx } from '../systems/index.js';
 import { drawWorld } from '../render/world.js';
+import { stopPreviews } from '../render/preview.js';
 import { refreshMenuBg, drawMenuBg, drawIntro, INTRO_TIME } from '../render/menu.js';
 import { initAudio, stopMusic, playMusic, pauseMusic, resumeMusic, SFX } from '../audio/audio.js';
 import { screen, showPicker, renderShop, renderShrine, showStoryLine, confirmDialog, $ } from '../ui/screens.js';
@@ -57,7 +58,7 @@ let pickKind = null, cards = [];
 const pickScene = {
   name: 'upgrade', blocksUpdate: true,
   enter() { releaseAll(); pickKind = nextPick(); cards = cardsFor(pickKind); showPicker(pickKind, cards); },
-  exit() { screen(null); },
+  exit() { stopPreviews(); screen(null); },
 };
 export const picking = () => scenes.top === pickScene;
 export function pickUpgrade(i) {

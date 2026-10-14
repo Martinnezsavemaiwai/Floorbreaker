@@ -133,8 +133,8 @@
 
 <section id="pause" class="screen" aria-labelledby="pause-h">
   <div class="win"><header id="pause-h" data-en="Paused">หยุดเกม</header><div class="body">
+    <div class="build" id="pause-build"></div>
     <div class="stats" id="pause-stats"></div>
-    <p class="hint" id="pause-upgrades"></p>
     <button class="btn primary" data-act="resume"><span class="ic"><svg class="ico"><use href="#i-play"/></svg></span><span data-en="Resume">เล่นต่อ</span><kbd>Esc</kbd></button>
     <button class="btn" data-act="settings"><span class="ic"><svg class="ico"><use href="#i-sliders"/></svg></span><span data-en="Settings">ตั้งค่า</span></button>
     <button class="btn" data-act="fullscreen"><span class="ic"><svg class="ico"><use href="#i-expand"/></svg></span><span data-en="Fullscreen">เต็มจอ</span><kbd>F</kbd></button>
@@ -202,6 +202,7 @@
 </dialog>
 
 <div id="boss-card" role="status" aria-live="polite"><div class="win"><div class="body"><b id="boss-card-name"></b><span id="boss-card-sub"></span><span id="boss-card-hint"></span></div></div></div>
+<div id="moment" role="status" aria-live="polite"><div class="win"><div class="body"><b id="moment-name"></b><span id="moment-sub"></span></div></div></div>
 <div id="toast" role="status" aria-live="polite"><div class="win"><div class="body"><b id="toast-title"></b><span id="toast-sub"></span></div></div></div>
 <script type="module" src="/src/main.js"></script>
 </body>

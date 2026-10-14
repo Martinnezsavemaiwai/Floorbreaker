@@ -176,7 +176,8 @@ test('an elite room awards a new Blade Art through the picker', async ({ page })
   await diveIn(page);
   await hook(page, "s.loadFloor(2, { type: 'elite', reward: null })");
   await settle(page);
-  await until(page, '(s.mobs.forEach(m => m.hp > 0 && s.hurtEnemy(m, m.hp + 1, true)), s.rewards.length > 0 || s.P.skills[1] !== null)', 30_000);
+  await hook(page, 's.P.pendingUpgrades = 0, s.P.xp = -1e9'); // kills must not open a level picker that steals the Art picker's key
+  await expect.poll(() => hook(page, '(s.mobs.forEach(m => m.hp > 0 && s.hurtEnemy(m, m.hp + 1, true)), s.rewards.length > 0)'), { timeout: 30_000 }).toBe(true);
   await expect(page.locator('#upgrade')).toBeVisible({ timeout: 5_000 });
   await page.keyboard.press('Digit1');
   await expect.poll(() => hook(page, 's.P.skills[1]')).not.toBeNull();
@@ -237,5 +238,29 @@ test('a boss wakes with an intro card and falls with a defeat card', async ({ pa
   await page.waitForTimeout(300);                       // a stale animationcancel would strip the class by now
   await expect(page.locator('#boss-card')).toHaveClass(/down/);
   await expect(page.locator('#boss-card')).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('the pause menu shows the build: Arts with mods, element sets and upgrades', async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto('/');
+  await diveIn(page);
+  await hook(page, "(s.P.skills[1] = 'horizontal', s.P.mods = { blade: ['storm'], horizontal: ['storm', 'storm'] }, s.P.evolved = ['horizontal'])");
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#pause-build')).toBeVisible();
+  await expect(page.locator('#pause-build')).toContainText('Cyclone Edge');
+  await expect(page.locator('#pause-build')).toContainText('Maelstrom Edge');   // evolved name shown
+  await expect(page.locator('#pause-build')).toContainText('Storm 3/3 ✓ Active');   // Storm set lit, with a text mark
+  await expect(page.locator('#pause-build')).toContainText('Every 6th hit calls down a bolt.');
+  expect(errors).toEqual([]);
+});
+
+test('pick cards carry an animated preview', async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto('/');
+  await diveIn(page);
+  await hook(page, "(s.P.pendingUpgrades = 1, s.P.xp = 0)");
+  await expect(page.locator('#upgrade')).toBeVisible({ timeout: 5_000 });
+  await expect(page.locator('#upgrade-cards canvas[data-preview]').first()).toBeVisible();
   expect(errors).toEqual([]);
 });

@@ -24,7 +24,7 @@ function actData(a: number): Floor {
 }
 export const floorLabel = (i: number) => tr(`ชั้น ${i + 1}/${FLOOR_COUNT}`, `Floor ${i + 1}/${FLOOR_COUNT}`);
 
-// Mob stats scaled for the floor (+8% HP and damage per floor inside an act)
+// Mob stats scaled for the floor (+8% HP and damage per floor inside an act, then x(1 + 0.45 * act) per act)
 export const scaled = (M: MobStats, i = G.floorIdx): MobStats => {
   const k = mobScale(i) * (G.cursed ? SHRINE_RULES.curseMult : 1);
   return k === 1 ? M : { ...M, hp: Math.round(M.hp * k), dmg: Math.round(M.dmg * k) };
@@ -81,7 +81,7 @@ function cleanBuild(b: { arts: (string | null)[]; mods: Record<string, ElementId
 function newPlayer() {
   // position/HP/transient fields are (re)set by loadFloor
   G.P = { r: PLAYER.radius, maxHp: PLAYER.hp, hp: PLAYER.hp, lag: PLAYER.hp, atk: PLAYER.atk, lv: 1, xp: 0, ang: 0, atkCd: 0,
-          skills: ['sonicLeap', null, null], skillCd: [0, 0, 0], mods: {}, evolved: [], stormHits: 0, shadeChain: 0, shadeLast: null, dashArt: null, parry: 0, slowmo: 0, spin: 0, thrust: 0, thrustAng: 0, beam: 0, spin2: 0, fangLine: 0, fangBeam: 0, fangX: 0, fangY: 0, galeCharges: 2, galeT: 0,
+          skills: ['sonicLeap', null, null], skillCd: [0, 0, 0], mods: {}, evolved: [], modOrder: [], glow: 0, stormHits: 0, shadeChain: 0, shadeLast: null, dashArt: null, parry: 0, slowmo: 0, spin: 0, thrust: 0, thrustAng: 0, beam: 0, spin2: 0, fangLine: 0, fangBeam: 0, fangX: 0, fangY: 0, galeCharges: 2, galeT: 0,
           hurt: 0, swing: 0, swingDir: 1, hitSet: null, x: 0, y: 0, dash: 0, delay: 0, trail: [], kx: 0, ky: 0, inv: 0, buf: null,
           up: {}, pendingUpgrades: 0, col: 0, potions: 0, scrolls: 0, modBuys: 0,
           combo: 0, comboT: 0, finisher: false, roll: 0, rollCd: 0, rollAng: 0 };
@@ -106,7 +106,7 @@ export function snapshotRun(): Suspend {
 }
 export function resumeRun(s: Suspend) {
   newPlayer(); const { build, hp, ...player } = s.player, b = cleanBuild(build as Parameters<typeof cleanBuild>[0]);
-  Object.assign(G.P!, player, { up: { ...s.player.up }, skills: ['sonicLeap', b.arts[0], b.arts[1]], mods: b.mods, evolved: b.evolved });
+  Object.assign(G.P!, player, { up: { ...s.player.up }, skills: ['sonicLeap', b.arts[0], b.arts[1]], mods: b.mods, evolved: b.evolved, modOrder: [...new Set(Object.values(b.mods).flat())] });
   if (hp !== undefined) G.P!.hp = Math.min(hp, G.P!.maxHp); // the HP saved at floor entry (a town heals to full in loadFloor)
   G.run = { ...s.run }; G.rewards = [];
   loadFloor(s.floorIdx, s.room as Room | null); // cast: tsconfig isn't strict, so zod drops null from the inferred type

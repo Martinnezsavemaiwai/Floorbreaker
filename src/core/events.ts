@@ -1,13 +1,14 @@
 // Tiny event bus for things several systems react to (hit -> sound, death -> results screen...).
 // Per-frame work and input don't go through here: hiding that control flow makes bugs hard to trace.
 import type { ArenaId, MoveName } from '../data/bosses.ts';
+import type { ElementId } from '../data/elements.ts';
 
 // Every event and its payload. Emitting a misspelled event or the wrong payload is a type error.
 export interface GameEvents {
   swing: void; skill: void; hit: { big: boolean }; dodge: void; levelUp: void;
   playerHurt: void; playerDeath: void; runOver: { cleared: boolean };
   mobWindup: void; mobShot: void; mobDeath: void;
-  bossWake: void; bossSummon: void; bossWind: MoveName; bossImpact: void; bossCharge: void; bossDeath: void; arenaWarn: ArenaId; artEvolved: string;
+  bossWake: void; bossSummon: void; bossWind: MoveName; bossImpact: void; bossCharge: void; bossDeath: void; arenaWarn: ArenaId; artEvolved: string; setBonus: ElementId;
   portalOpen: void; roomCleared: void; challengeOver: boolean; floorLoaded: number;
   hint: { title: string; sub: string };
   langChanged: 'th' | 'en';

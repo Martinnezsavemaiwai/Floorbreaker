@@ -14,7 +14,7 @@ export const actOf = (i: number) => Math.floor(i / ACT_LEN);
 export const stepOf = (i: number) => i % ACT_LEN; // 0 town, 1-3 rooms, 4 boss
 export const kindOf = (i: number): FloorKind => (stepOf(i) === 0 ? 'town' : stepOf(i) === ACT_LEN - 1 ? 'boss' : 'room');
 export const isFinalFloor = (i: number) => i === FLOOR_COUNT - 1;
-export const mobScale = (i: number) => 1 + 0.08 * stepOf(i); // inside an act: +8% HP and damage per floor
+export const mobScale = (i: number) => (1 + 0.08 * stepOf(i)) * (1 + 0.45 * actOf(i)); // +8% HP and damage per floor inside an act, +45% per act
 
 export const ROOM_TYPES = ['battle', 'elite', 'spring', 'shop', 'shrine', 'challenge'] as const;
 export type RoomType = (typeof ROOM_TYPES)[number];

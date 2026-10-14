@@ -15,8 +15,19 @@ export function frame(img, col, row, x, y, scale) {
 }
 // The sword sprite (hilt at the top, blade pointing down) at `h` px tall, keeping the image's proportions;
 // the origin is the hand, a little below the pommel
-export function sword(h) {
-  const img = IMG.sword, w = h * img.width / img.height;
+const tinted = new Map(); // colour -> sword sprite washed toward that colour (built once per colour)
+function tintedSword(col) {
+  let c = tinted.get(col);
+  if (!c) {
+    c = document.createElement('canvas'); c.width = IMG.sword.width; c.height = IMG.sword.height;
+    const g = c.getContext('2d'); g.drawImage(IMG.sword, 0, 0);
+    g.globalCompositeOperation = 'source-atop'; g.globalAlpha = 0.45; g.fillStyle = col; g.fillRect(0, 0, c.width, c.height);
+    tinted.set(col, c);
+  }
+  return c;
+}
+export function sword(h, tint) {
+  const img = tint ? tintedSword(tint) : IMG.sword, w = h * img.width / img.height;
   ctx.drawImage(img, -w / 2, -h * 0.15, w, h);
 }
 // Soft oval shadow under an actor; k < 1 shrinks and fades it (the boss mid-leap)

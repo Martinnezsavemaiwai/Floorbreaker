@@ -48,6 +48,7 @@ export function attack() {
     const dmg = (P.atk + m.atkBonus + rand(0, A.dmgRand));
     if (Math.abs(a) <= arc) hit(e, fin ? Math.round(dmg * C.mult) : Math.round(dmg), fin, m, 'blade');
   }
+  if (fin && P.evolved.includes('blade')) P.glow = 0.6;
   if (fin && P.evolved.includes('blade')) launchWave(P.x, P.y, P.ang, BLADE_EVO.range, Math.round((P.atk + m.atkBonus) * C.mult * BLADE_EVO.mult), 'blade');
 }
 // Dodge roll toward the movement keys (or the aim when standing still)
@@ -80,6 +81,7 @@ export function skill(slot = 0) {
   if (!canSkill(slot)) { P.buf = { kind: 'skill', slot, t: PLAYER.inputBuffer }; return; }
   assistAim();
   const S = SKILLS[id], m = mods();
+  if (P.evolved.includes(id)) P.glow = 0.6;
   P.skillCd[slot] = S.cd * m.skillCd; P.combo = 0; P.comboT = 0; emit('skill');
   text(P.x, P.y - 30, S.name + '!', '#ffb347', true);
   if (id === 'sonicLeap') {
@@ -207,7 +209,7 @@ function dashMove(P, dx, dy) {
 // Returns true when the player stepped into the portal and a new floor was loaded (skip the rest of this step)
 export function updatePlayer(dt) {
   const P = G.P;
-  P.atkCd -= dt; P.skillCd[0] -= dt; P.skillCd[1] -= dt; P.skillCd[2] -= dt; P.spin -= dt; P.beam -= dt; P.fangBeam -= dt; P.hurt -= dt; P.swing -= dt; P.inv -= dt; P.comboT -= dt; P.rollCd -= dt;
+  P.atkCd -= dt; P.skillCd[0] -= dt; P.skillCd[1] -= dt; P.skillCd[2] -= dt; P.spin -= dt; P.beam -= dt; P.fangBeam -= dt; P.hurt -= dt; P.swing -= dt; P.inv -= dt; P.comboT -= dt; P.rollCd -= dt; P.glow -= dt;
   if (P.buf) {
     const b = P.buf;
     if (b.kind === 'attack' ? canAttack() : canSkill(b.slot)) { P.buf = null; b.kind === 'attack' ? attack() : skill(b.slot); }

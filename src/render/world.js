@@ -16,6 +16,9 @@ import { burst } from '../systems/fx.js';
 import { ctx, frame, shadow, dirCol, FN, FT, sword as drawSword } from './canvas.js';
 import { bg, vig } from './terrain.js';
 import { emit } from '../core/events.ts';
+import { dominantElement } from '../systems/build.js';
+import { setActive } from '../systems/elements.js';
+import { ELEMENTS, ELEMENT_IDS } from '../data/elements.ts';
 import { drawHud } from './hud.js';
 
 const SWING = PLAYER.attack.swing;
@@ -265,6 +268,24 @@ function swordAngle(P) {
   if (P.delay > 0) return P.ang + P.swingDir * 1.4; // follow-through pose after the skill
   return P.ang + P.swingDir * -0.5 + Math.sin(G.time * 3) * 0.05;
 }
+// One thin ring at the feet per active set bonus, steady unless flashing is on
+function drawAura(P) {
+  const sets = ELEMENT_IDS.filter(setActive);
+  if (!sets.length) return;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineWidth = 2;
+  sets.forEach((el, i) => {
+    const pulse = settings.flash ? 0.5 + 0.2 * Math.sin(G.time * 3 + i) : 0.6;
+    ctx.strokeStyle = ELEMENTS[el].color; ctx.shadowColor = ELEMENTS[el].color; ctx.shadowBlur = 10; ctx.globalAlpha = pulse;
+    ctx.beginPath(); ctx.ellipse(P.x, P.y + P.r * 1.05, P.r * (1.5 + i * 0.35), P.r * (0.85 + i * 0.2), 0, 0, 7); ctx.stroke();
+  });
+  ctx.restore();
+}
+// Afterglow after an evolved Art fires: a soft halo round the body, in the Art's colour
+function drawGlow(P, col) {
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = Math.min(1, P.glow / 0.6) * 0.5;
+  const g = ctx.createRadialGradient(P.x, P.y, 4, P.x, P.y, 56); g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(P.x, P.y, 56, 0, 7); ctx.fill(); ctx.restore();
+}
 function drawPlayer() {
   const P = G.P, time = G.time;
   if (P.hp <= 0) return;
@@ -279,13 +300,16 @@ function drawPlayer() {
     ctx.restore();
   }
   shadow(P.x, P.y, P.r);
+  const dom = dominantElement(), bladeCol = dom && ELEMENTS[dom].color, glowCol = bladeCol ?? '#ffe9a8';
+  drawAura(P); if (P.glow > 0) drawGlow(P, glowCol);
   drawSkillFx(P);
   const skillFx = P.delay > 0 || P.dash > 0 || P.thrust > 0, col = dirCol(P.ang), sa = swordAngle(P);
   const hx = P.x + Math.cos(P.ang) * 6, hy = P.y + 4 + Math.sin(P.ang) * 4; // hand
   const sword = () => {
     ctx.save(); ctx.translate(hx, hy); ctx.rotate(sa - Math.PI / 2); // sprite has the grip on top, blade pointing down
     if (skillFx || P.swing > 0) { ctx.shadowColor = '#7fd4ff'; ctx.shadowBlur = skillFx ? 18 : 8; }
-    drawSword(42); ctx.restore();
+    if (P.glow > 0) { ctx.shadowColor = glowCol; ctx.shadowBlur = 24; }
+    drawSword(42, bladeCol); ctx.restore();
   };
   // Swing arc that follows the blade tip
   if (P.swing > 0) {
@@ -358,16 +382,57 @@ function doorLook(d) {
   if (d.to.type === 'challenge') { const r = DOOR_LOOK[d.to.reward][1]; return ['#ff8a5f', { th: `ท้าทาย: ${r.th} ×2`, en: `Challenge: ${r.en} ×2` }]; }
   return DOOR_LOOK[d.to.reward] ?? ['#f4ecd8', { th: 'ห้องถัดไป', en: 'Next room' }];
 }
+// Icon shown floating in each doorway, drawn at (0,0) in a ~28px box
+function doorIcon(d) {
+  if (!d.to) return kindOf(G.floorIdx + 1) === 'boss' ? 'skull' : 'arrow';
+  const { type, reward } = d.to;
+  return type === 'battle' || type === 'challenge' ? (type === 'challenge' ? 'swords' : { gold: 'coin', xp: 'star', potion: 'flask' }[reward] ?? 'arrow')
+    : { elite: 'mask', spring: 'drop', shop: 'bag', shrine: 'crystal' }[type] ?? 'arrow';
+}
+function drawIcon(kind, col) {
+  ctx.fillStyle = col; ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath();
+  if (kind === 'coin') { ctx.arc(0, 0, 11, 0, 7); ctx.fill(); ctx.strokeStyle = '#0c0d12'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, 6, 0, 7); ctx.stroke(); return; }
+  if (kind === 'star') { for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 5 : 13; ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); } ctx.closePath(); ctx.fill(); return; }
+  if (kind === 'flask') { ctx.moveTo(-3, -12); ctx.lineTo(3, -12); ctx.lineTo(3, -4); ctx.lineTo(10, 10); ctx.lineTo(-10, 10); ctx.lineTo(-3, -4); ctx.closePath(); ctx.fill(); return; }
+  if (kind === 'mask') {
+    ctx.moveTo(-12, -13); ctx.quadraticCurveTo(-13, -4, -7, -2); ctx.lineTo(-8, 4); ctx.lineTo(0, 13); ctx.lineTo(8, 4); ctx.lineTo(7, -2); ctx.quadraticCurveTo(13, -4, 12, -13);
+    ctx.quadraticCurveTo(6, -9, 0, -9); ctx.quadraticCurveTo(-6, -9, -12, -13); ctx.fill();
+    ctx.fillStyle = '#0c0d12'; ctx.fillRect(-6, -3, 4, 3); ctx.fillRect(2, -3, 4, 3); return;
+  }
+  if (kind === 'drop') { ctx.moveTo(0, -13); ctx.quadraticCurveTo(12, 2, 8, 8); ctx.quadraticCurveTo(0, 15, -8, 8); ctx.quadraticCurveTo(-12, 2, 0, -13); ctx.fill(); return; }
+  if (kind === 'bag') {
+    ctx.moveTo(-4, -12); ctx.lineTo(4, -12); ctx.lineTo(2, -6); ctx.quadraticCurveTo(12, 0, 10, 8); ctx.quadraticCurveTo(0, 14, -10, 8); ctx.quadraticCurveTo(-12, 0, -2, -6); ctx.closePath(); ctx.fill(); return;
+  }
+  if (kind === 'crystal') { ctx.moveTo(0, -14); ctx.lineTo(9, -2); ctx.lineTo(0, 14); ctx.lineTo(-9, -2); ctx.closePath(); ctx.fill(); return; }
+  if (kind === 'swords') { ctx.moveTo(-10, -10); ctx.lineTo(10, 10); ctx.moveTo(10, -10); ctx.lineTo(-10, 10); ctx.moveTo(-12, 4); ctx.lineTo(-4, 12); ctx.moveTo(12, 4); ctx.lineTo(4, 12); ctx.stroke(); return; }
+  if (kind === 'skull') {
+    ctx.arc(0, -3, 11, 0, 7); ctx.rect(-6, 4, 12, 9); ctx.fill();
+    ctx.fillStyle = '#0c0d12'; ctx.beginPath(); ctx.arc(-4, -3, 3, 0, 7); ctx.arc(4, -3, 3, 0, 7); ctx.fill(); return;
+  }
+  ctx.moveTo(-12, 0); ctx.lineTo(10, 0); ctx.moveTo(2, -9); ctx.lineTo(11, 0); ctx.lineTo(2, 9); ctx.stroke(); // arrow
+}
+function archPath(x, y, w, h) { // round-topped doorway filling the rect
+  const r = w / 2;
+  ctx.beginPath(); ctx.moveTo(x, y + h); ctx.lineTo(x, y + r); ctx.arc(x + r, y + r, r, Math.PI, 0); ctx.lineTo(x + w, y + h); ctx.closePath();
+}
 function drawDoors() {
   for (const d of G.doors) {
-    const [col, name] = doorLook(d), glow = 0.55 + 0.2 * Math.sin(G.time * 3 + d.y);
+    const [col, name] = doorLook(d), cx = d.x + d.w / 2, cy = d.y + d.h / 2;
+    const near = clamp((220 - Math.hypot(G.P.x - cx, G.P.y - cy)) / 80, 0, 1); // label fades in over the last 80px before 220
+    const glow = (0.55 + 0.2 * Math.sin(G.time * 3 + d.y)) * (d.armed ? 1 : 0.45);
     ctx.save();
-    ctx.fillStyle = '#3a3d4a'; ctx.fillRect(d.x - 8, d.y - 10, d.w + 16, d.h + 10);             // stone frame
-    ctx.fillStyle = '#0c0d12'; ctx.fillRect(d.x, d.y, d.w, d.h);                                 // opening
-    ctx.globalAlpha = glow; ctx.fillStyle = col; ctx.fillRect(d.x + 6, d.y + 6, d.w - 12, d.h - 6); // light inside
-    ctx.globalAlpha = 1;
+    ctx.globalAlpha = d.armed ? 1 : 0.7;
+    ctx.fillStyle = '#4a4d5c'; archPath(d.x - 8, d.y - 8, d.w + 16, d.h + 8); ctx.fill();         // stone arch
+    ctx.fillStyle = '#0c0d12'; archPath(d.x, d.y, d.w, d.h); ctx.fill();                          // opening
+    ctx.globalAlpha = glow; ctx.fillStyle = col; archPath(d.x + 6, d.y + 6, d.w - 12, d.h - 6); ctx.fill(); // inner glow
+    ctx.globalAlpha = d.armed ? 1 : 0.5; ctx.translate(cx, cy + 8 + Math.sin(G.time * 2.5 + d.y) * 4);
+    drawIcon(doorIcon(d), '#fff');
+    ctx.restore();
+    if (near <= 0) continue;
+    ctx.save(); ctx.globalAlpha = near * (d.armed ? 1 : 0.6);
     ctx.textAlign = 'center'; ctx.font = `800 15px ${FN}`; ctx.lineJoin = 'round'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,.85)';
-    const sx = Math.min(d.x + d.w / 2, G.L.w - 6 - ctx.measureText(t(name)).width / 2); // long signs stay inside the wall
+    const sx = Math.min(cx, G.L.w - 6 - ctx.measureText(t(name)).width / 2); // long signs stay inside the wall
     ctx.strokeText(t(name), sx, d.y - 18); ctx.fillStyle = col; ctx.fillText(t(name), sx, d.y - 18);
     ctx.restore();
   }

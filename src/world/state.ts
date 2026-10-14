@@ -23,6 +23,7 @@ export interface Player extends Point {
   combo: number; comboT: number; finisher: boolean; roll: number; rollCd: number; rollAng: number; // sword chain step, dodge roll
   mods: Record<string, ElementId[]>; evolved: string[]; // element mods per Art id ('blade' = the sword) and evolved Art ids
   stormHits: number; // Art hits counted for the Storm set bonus
+  modOrder: ElementId[]; glow: number; // elements in the order first gained (breaks dominant-element ties); evolved-Art afterglow timer
   col: number; potions: number; scrolls: number;       // money, potions carried, Skill Scrolls bought (sets their price)
   modBuys: number; // element mods bought this run (sets their price)
 }
