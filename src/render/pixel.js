@@ -5,6 +5,7 @@
 // The look is the title's "Spire glass" in pixels: lead outline, dark glass, one bevel row, a lit accent.
 import { W, H } from '../world/constants.ts';
 import { ctx, FN } from './canvas.js';
+import { IMG } from '../core/assets.ts';
 
 export const PX = 2;
 const buf = document.createElement('canvas'); buf.width = W / PX; buf.height = H / PX;
@@ -59,7 +60,10 @@ export function gem(x, y, col, lit) {
   hc.fillStyle = lit ? col : shade(col, 0.45); hc.fillRect(x + 3, y + 1, 1, 5); hc.fillRect(x + 1, y + 3, 5, 1); hc.fillRect(x + 2, y + 2, 3, 3);
   if (lit) { hc.fillStyle = '#fff'; hc.fillRect(x + 2, y + 2, 1, 1); }
 }
+// The Gold coin: the coin-1 sprite at screen resolution (1:1, like the coins dropped in the world), else a drawn one
 export function coin(x, y) {
+  const img = IMG['coin-1'];
+  if (img) return overlay(() => ctx.drawImage(img, x * PX, y * PX));
   hc.fillStyle = LEAD; hc.fillRect(x + 1, y, 4, 6); hc.fillRect(x, y + 1, 6, 4);
   hc.fillStyle = '#ffd35a'; hc.fillRect(x + 1, y + 1, 4, 4); hc.fillStyle = '#b8862a'; hc.fillRect(x + 2, y + 2, 2, 2); hc.fillStyle = '#fff6c8'; hc.fillRect(x + 1, y + 1, 1, 1);
 }
