@@ -3,7 +3,7 @@ import { IMG } from '../core/assets.ts';
 
 export const cv = /** @type {HTMLCanvasElement} */ (document.getElementById('c'));
 export const ctx = cv.getContext('2d');
-export const FN = "'Exo 2','Kanit',system-ui,sans-serif", FT = "'Kanit','Exo 2',system-ui,sans-serif";
+export const FN = "'Silk','Kanit',system-ui,sans-serif", FT = "'Kanit','Silk',system-ui,sans-serif"; // Silk: see style.css
 
 export const dirCol = a => Math.abs(Math.cos(a)) > Math.abs(Math.sin(a)) ? (Math.cos(a) > 0 ? 3 : 2) : (Math.sin(a) > 0 ? 0 : 1);
 // One cell of a 4-column character sheet; the cell size comes from the sheet, and `scale` is per 16 px of cell

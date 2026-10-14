@@ -11,7 +11,7 @@ import { IMG, ready } from '../core/assets.ts';
 import { FLOORS } from '../data/floors.ts';
 import { actOf } from '../data/run.ts';
 import { BOSSES } from '../data/bosses.ts';
-import { ctx, FN } from './canvas.js';
+import { ctx } from './canvas.js';
 import { drawText } from './pixel.js';
 
 export const INTRO_TIME = 1.9;
@@ -137,14 +137,15 @@ function buildGlass() {
   return c;
 }
 
+const WORDMARK = "'Exo 2','Kanit',system-ui,sans-serif"; // the logo keeps its own face
 // Text set small in Exo 2 with a hard alpha threshold, so scaling it up with smoothing off gives real pixel
 // letterforms from the game's own face
 function pixelText(text, size, fill) {
   // outline thickness grows with the size, plus a solid drop shadow, so the name holds up over busy key art
   const o = Math.max(1, Math.round(size / 16)), pad = o * 2 + 3, c = document.createElement('canvas'), g = c.getContext('2d', { willReadFrequently: true });
-  g.font = `800 ${size}px ${FN}`;
+  g.font = `800 ${size}px ${WORDMARK}`;
   c.width = Math.ceil(g.measureText(text).width + pad * 2); c.height = size + pad * 2 + 2;
-  g.font = `800 ${size}px ${FN}`; g.textBaseline = 'top'; g.textAlign = 'left';
+  g.font = `800 ${size}px ${WORDMARK}`; g.textBaseline = 'top'; g.textAlign = 'left';
   g.fillStyle = 'rgba(7,8,11,.9)'; g.fillText(text, pad + o + 1, pad + o + 2); // drop shadow
   g.fillStyle = LEAD;
   for (let ox = -o; ox <= o; ox++) for (let oy = -o; oy <= o; oy++) if (Math.abs(ox) + Math.abs(oy) <= o + 1) g.fillText(text, pad + ox, pad + oy);

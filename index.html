@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Floorbreaker</title>
+<!-- the title signs are 9-slices: fetch them with the page so the menu never shows bare text first -->
+<link rel="preload" as="image" href="assets/ui/plank.png"><link rel="preload" as="image" href="assets/ui/plank-gold.png"><link rel="preload" as="image" href="assets/ui/tag.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M6 31V14Q6 6 16 1 26 6 26 14V31Z' fill='%230c0d12'/%3E%3Cpath d='M9 28V15Q9 9 16 5 23 9 23 15V28Z' fill='%23ff963c'/%3E%3Cpath d='M9 18H23M16 5V28' stroke='%230c0d12' stroke-width='2'/%3E%3C/svg%3E">
 </head>
 <body>
@@ -76,7 +78,7 @@
       <li data-en="Towns are safe, and your HP refills there.">ในเมืองไม่มีมอนสเตอร์ และ HP จะฟื้นเอง</li>
       <li data-en="Beat the boss, then step into the blue portal to go up.">ล้มบอสแล้ว เดินเข้าประตูสีฟ้าเพื่อขึ้นชั้นต่อไป</li>
     </ul>
-    <p class="hint credits"><span data-en="All art and music were made for this game (music written in BeepBox). Fonts: Kanit and Exo 2 (OFL).">ภาพและเพลงทำขึ้นใหม่ทั้งหมดสำหรับเกมนี้ (เพลงแต่งด้วย BeepBox) ฟอนต์ Kanit และ Exo 2 (OFL)</span>
+    <p class="hint credits"><span data-en="All art and music were made for this game (music written in BeepBox). Fonts: Kanit, Exo 2 and Silkscreen (OFL).">ภาพและเพลงทำขึ้นใหม่ทั้งหมดสำหรับเกมนี้ (เพลงแต่งด้วย BeepBox) ฟอนต์ Kanit, Exo 2 และ Silkscreen (OFL)</span>
       <a href="CREDITS.txt" target="_blank" rel="noopener" data-en="Full credits">เครดิตทั้งหมด</a></p>
   </div>
   <footer class="win-foot"><button class="btn ghost" data-act="back"><span class="ic"><svg class="ico"><use href="#i-back"/></svg></span><span data-en="Back">กลับ</span><kbd>Esc</kbd></button></footer>

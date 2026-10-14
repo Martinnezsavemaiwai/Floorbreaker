@@ -183,9 +183,9 @@ function drawBubble(x, bottom, bubble) {
   if (P.y < bottom + 52 && P.x > bx - 14 && P.x < bx + bw + 14) bottom = Math.min(bottom, P.y - 56);
   bottom = Math.max(bottom, G.cam.y + 8 + bh);
   const by = bottom - bh;
-  const box = worldPane(ctx, bx, by, bw, bh, '#101118');
-  const tx = Math.round(clamp(x, bx + 14, bx + bw - 14) / 2) * 2, tb = box.y + box.h; // tail: three stepped rows of lead and glass
-  for (let k = 0; k < 3; k++) { ctx.fillStyle = '#0c0d12'; ctx.fillRect(tx - 6 + k * 2, tb - 2 + k * 2, 12 - k * 4, 4); ctx.fillStyle = '#101118'; ctx.fillRect(tx - 4 + k * 2, tb - 2 + k * 2, 8 - k * 4, 2); }
+  const box = worldPane(ctx, bx, by, bw, bh, '#3e251a');
+  const tx = Math.round(clamp(x, bx + 14, bx + bw - 14) / 2) * 2, tb = box.y + box.h; // tail: three stepped rows of outline and walnut
+  for (let k = 0; k < 3; k++) { ctx.fillStyle = '#1d1418'; ctx.fillRect(tx - 6 + k * 2, tb - 2 + k * 2, 12 - k * 4, 4); ctx.fillStyle = '#3e251a'; ctx.fillRect(tx - 4 + k * 2, tb - 2 + k * 2, 8 - k * 4, 2); }
   lines.forEach((l, i) => drawText(ctx, l, bx + 10, by + 28 + i * 24, { size: 16, font: FT, color: '#fff6e0', outline: null }));
   ctx.restore();
 }

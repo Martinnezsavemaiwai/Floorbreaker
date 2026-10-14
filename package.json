@@ -16,6 +16,7 @@
   "dependencies": {
     "@fontsource/exo-2": "^5.3.0",
     "@fontsource/kanit": "^5.3.0",
+    "@fontsource/silkscreen": "^5.3.0",
     "zod": "^4.6.5"
   },
   "devDependencies": {

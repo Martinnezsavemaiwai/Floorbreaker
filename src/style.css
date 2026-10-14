@@ -1,111 +1,120 @@
-/* "The Spire's glass": every window is a leaded pane. Black lead came, dark glass that lights up in one of the four
-   floor torch colors (Firstlight amber, Hornfield violet, Mistwell green, Canalis blue), square corners with rivets.
-   Each window or pane sets --glass to its floor color; the lit state fills the pane with it and sets lead-dark text.
-   Contrast (measured on --win-bg #101118): --ink 15.2:1, --ink-2 8.3:1; --lead on every lit glass color >= 7:1;
-   focus ring #fff on the dark wall 18:1 (it sits outside the pane, never on the glass). */
+/* "The notice board": every menu is built from the same wood, iron and paper as the town board the player walks past.
+   Windows: an oak frame with iron corner brackets (ui/frame.png) around dark walnut boards (ui/planks.png), a parchment
+   banner nailed across the top. Readable slips and choice cards are parchment notes (ui/paper.png) pinned by a brass tack.
+   Buttons are carved oak planks; the main action is a brass-banded plank. The 9-slices are 1x pixel art shown at 2x.
+   Contrast: --ink on walnut #3e251a 10.9:1, --ink-2 6.1:1; --paper-ink on parchment #ecd9a8 10.7:1, --paper-ink-2 5.8:1;
+   plank text #fbecc8 on oak #8e5024 5.5:1 (plus a dark shadow row); --paper-ink on gold #e8b04a 7.8:1. */
+/* Silkscreen Regular answers every weight: its bold is too wide for the signs, and declaring the range keeps the
+   browser from faking one. It has no Thai glyphs, so Thai falls through to Kanit at the weight that was asked for. */
+@font-face{font-family:'Silk';font-style:normal;font-weight:100 900;font-display:swap;
+  src:url('../node_modules/@fontsource/silkscreen/files/silkscreen-latin-400-normal.woff2') format('woff2')}
 :root{
-  --lead:#0c0d12; --wall:#07080b; --win-bg:#101118; --win-raise:#171822; --line:#2b2d38;
-  --ink:#efe8d6; --ink-2:#b9b2a2;
-  --firstlight:#ff963c; --hornfield:#a688ff; --mistwell:#78ff96; --canalis:#5ac8ff; --blood:#ff5a4e;
-  --glass:var(--firstlight); --focus:#fff;
-  --scrim:rgba(4,5,8,.62);
-  /* pixel frames (same look as the canvas HUD): one --px unit of lead with notched corners, one bevel row inside */
-  --px:3px;
-  --frame:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='3' height='3' shape-rendering='crispEdges'%3E%3Cpath fill='%230c0d12' d='M1 0h1v1H1zM0 1h1v1H0zM2 1h1v1H2zM1 2h1v1H1z'/%3E%3C/svg%3E");
-  --bevel:inset var(--px) var(--px) 0 rgba(255,255,255,.1),inset calc(var(--px) * -1) calc(var(--px) * -1) 0 rgba(0,0,0,.35);
-  --bevel-lit:inset var(--px) var(--px) 0 rgba(255,255,255,.5),inset calc(var(--px) * -1) calc(var(--px) * -1) 0 rgba(0,0,0,.22);
-  --drop:calc(var(--px) * 2) calc(var(--px) * 2) 0 rgba(0,0,0,.5);
-  --font:'Kanit','Exo 2',system-ui,sans-serif; --font-num:'Exo 2','Kanit',system-ui,sans-serif;
+  --line:#1d1418; --walnut:#3e251a; --walnut-dk:#24150f; --oak:#8e5024; --oak-lt:#cd9b55;
+  --ink:#f0dcae; --ink-2:#c9a77a; --paper:#ecd9a8; --paper-ink:#3a2414; --paper-ink-2:#6b4a2e; --plank-ink:#fbecc8;
+  --gold:#e8b04a; --brass:#c67c35; --seal:#9a2a1c; --blood:#ff7a62;
+  --firstlight:#ff963c; --hornfield:#a688ff; --mistwell:#78ff96; --canalis:#5ac8ff;
+  --glass:var(--firstlight); --focus:#fff6d8;
+  --scrim:rgba(12,7,4,.66);
+  --k:2px; /* one art pixel of the UI kit */
+  --font:'Kanit',system-ui,sans-serif;
+  --font-title:'Silk','Kanit',system-ui,sans-serif; --font-num:'Silk','Kanit',system-ui,sans-serif;
   /* where the canvas sits inside the window (it is letterboxed at 3:2) */
   --canvas-h:min(100vh,66.667vw); --canvas-w:calc(var(--canvas-h) * 1.5); --canvas-top:calc((100vh - var(--canvas-h)) / 2);
-  /* four lead rivets, one per corner: used by every pane, window and card */
-  --rivets:linear-gradient(var(--lead),var(--lead)) top left/7px 7px no-repeat,linear-gradient(var(--lead),var(--lead)) top right/7px 7px no-repeat,
-           linear-gradient(var(--lead),var(--lead)) bottom left/7px 7px no-repeat,linear-gradient(var(--lead),var(--lead)) bottom right/7px 7px no-repeat;
+  --boards:url(/assets/ui/planks.png) 0 0/calc(64 * var(--k)) calc(24 * var(--k)) repeat;
+  --drop:0 calc(4 * var(--k)) calc(10 * var(--k)) rgba(8,4,2,.55);
 }
 *{box-sizing:border-box}
 [hidden]{display:none !important} /* component display rules (.btn, panes) must never un-hide an element */
-html,body{margin:0;height:100%;background:var(--wall);color:var(--ink);font-family:var(--font);overflow:hidden}
+html,body{margin:0;height:100%;background:#0d0806;color:var(--ink);font-family:var(--font);overflow:hidden}
 body{display:grid;place-items:center}
-::selection{background:var(--firstlight);color:var(--lead)}
+::selection{background:var(--gold);color:var(--paper-ink)}
 canvas{display:block;width:min(100vw,150vh);height:auto;cursor:crosshair;image-rendering:pixelated}
 .ico{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:square;stroke-linejoin:miter;flex:none}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
-*{scrollbar-color:var(--line) transparent;scrollbar-width:thin}
+*{scrollbar-color:var(--oak) var(--walnut-dk);scrollbar-width:thin}
+:is(.win,.btn,.pane,.card,.stat,.tips,.rule,kbd,.bind,.tab-btn,[role=tab],select,.name-input,.build .arts li,.chip,.newrec,#toast .win){image-rendering:pixelated}
 
-/* ---------- screens & leaded windows ---------- */
+/* ---------- the kit: four 9-slice materials ---------- */
+.stat,.tips,.rule,.build .arts li,.chip,.card,select,.name-input,.newrec,#toast .win,#boss-card .win,#moment .win{
+  border:calc(4 * var(--k)) solid transparent;border-image:url(/assets/ui/paper.png) 4 fill / calc(4 * var(--k)) stretch;background:none;color:var(--paper-ink)}
+.btn:not(.ghost),.pane,.btn.ghost:hover,.btn.ghost:focus-visible{border:calc(4 * var(--k)) solid transparent;border-image:url(/assets/ui/plank.png) 4 fill / calc(4 * var(--k)) stretch;background:none}
+kbd,.bind,.tab-btn,[role=tab]{border:calc(3 * var(--k)) solid transparent;border-image:url(/assets/ui/tag.png) 3 fill / calc(3 * var(--k)) stretch;background:none}
+
+/* ---------- screens & board windows ---------- */
 .screen{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:16px;background:var(--scrim)}
 .screen.on{display:flex;animation:fade .16s ease-out}
-.win{position:relative;width:min(440px,100%);max-height:calc(100vh - 32px);display:flex;flex-direction:column;
-  background:var(--win-bg);color:var(--ink);border-radius:0;
-  box-shadow:inset 0 0 0 var(--px) var(--glass),var(--drop);
-  overflow:hidden;animation:settle .22s steps(3,end)}
-.win::after{content:'';position:absolute;inset:2px;background:var(--rivets);pointer-events:none;z-index:1}
-.win.wide{width:min(700px,100%)}
-/* the header is a strip of lit glass in the window's floor color, crossed by one lead came */
-.win header{display:flex;align-items:center;gap:12px;padding:11px 20px;flex:none;
-  background:var(--glass);box-shadow:inset 0 var(--px) 0 rgba(255,255,255,.45),inset 0 calc(var(--px) * -1) 0 rgba(0,0,0,.2);
-  border-bottom:var(--px) solid var(--lead);font:800 17px var(--font-num);letter-spacing:.02em;color:var(--lead)}
-.win .body{padding:16px 18px;display:grid;gap:10px;overflow-y:auto;scroll-padding-bottom:16px}
-.win-foot{flex:none;padding:8px 14px;border-top:var(--px) solid var(--lead);background:var(--win-raise)}
+.win{position:relative;width:min(460px,100%);max-height:min(calc(100vh - 32px),calc(var(--canvas-h) - 24px));display:flex;flex-direction:column;
+  border:calc(8 * var(--k)) solid transparent;border-image:url(/assets/ui/frame.png) 8 / calc(8 * var(--k)) repeat;
+  background:var(--boards);background-clip:padding-box;color:var(--ink);box-shadow:var(--drop);overflow:hidden;animation:settle .22s steps(3,end)}
+.win.wide{width:min(720px,100%)}
+/* the title is a parchment banner nailed across the top boards */
+.win header{display:flex;align-items:center;gap:12px;flex:none;margin:calc(2 * var(--k)) calc(2 * var(--k)) 0;padding:6px 16px;
+  border:calc(4 * var(--k)) solid transparent;border-image:url(/assets/ui/banner.png) 4 fill / calc(4 * var(--k)) stretch;
+  font:700 19px/1.15 var(--font-title);letter-spacing:.02em;color:var(--paper-ink)}
+.win header::before{content:'';width:calc(5 * var(--k));height:calc(5 * var(--k));flex:none;background:var(--glass);
+  box-shadow:0 0 0 var(--k) var(--paper-ink)} /* the window's floor color, as a small painted mark */
+.win .body{padding:14px 16px 16px;display:grid;gap:10px;overflow-y:auto;scroll-padding-bottom:16px}
+.win-foot{flex:none;padding:8px 14px 10px;border-top:calc(var(--k)) solid var(--walnut-dk);box-shadow:inset 0 var(--k) 0 rgba(255,220,160,.08);background:rgba(20,11,7,.35)}
 
-/* ---------- buttons: small dark panes that light up in their window's glass ---------- */
-.btn{font:600 16px var(--font);display:flex;align-items:center;gap:12px;width:100%;padding:10px 14px;border-radius:0;cursor:pointer;
-  background:var(--win-raise);color:var(--ink);text-align:left;box-shadow:var(--bevel)}
-.btn:hover,.btn:focus-visible{background:var(--glass);color:var(--lead);box-shadow:var(--bevel-lit);animation:light .18s steps(2,end)}
-.btn .ic{width:28px;height:28px;display:grid;place-items:center;background:var(--lead);color:var(--glass);flex:none}
-.btn:hover .ic,.btn:focus-visible .ic{color:var(--ink)}
-.btn.primary{background:var(--glass);color:var(--lead);box-shadow:var(--bevel-lit)}
-.btn.primary .ic{color:var(--ink)}
-.btn.primary:hover{background:color-mix(in srgb,var(--glass) 80%,#fff)}
-.btn.ghost{background:transparent;border-color:transparent;box-shadow:none;color:var(--ink-2);font-weight:400;padding:6px 10px;width:auto}
-.btn.ghost .ic{background:transparent;color:inherit;width:22px}
-.btn.ghost:hover,.btn.ghost:focus-visible{background:var(--win-raise);color:var(--ink);box-shadow:var(--bevel);animation:none}
-.btn.danger{--glass:var(--blood);background:var(--blood);color:var(--lead)}
+/* ---------- buttons: carved oak planks ---------- */
+.btn{font:600 16px var(--font);display:flex;align-items:center;gap:12px;width:100%;padding:6px 10px;cursor:pointer;
+  color:var(--plank-ink);text-align:left;text-shadow:0 var(--k) 0 rgba(20,10,5,.75);border-radius:0}
+.btn:hover,.btn:focus-visible{border-image-source:url(/assets/ui/plank-hot.png);animation:light .18s steps(2,end)}
+.btn:active{transform:translateY(var(--k))}
+.btn .ic{width:28px;height:28px;display:grid;place-items:center;background:rgba(24,13,8,.45);color:var(--plank-ink);flex:none;
+  box-shadow:inset 0 calc(-1 * var(--k)) 0 rgba(255,220,160,.18)}
+.btn.primary{border-image-source:url(/assets/ui/plank-gold.png);color:var(--paper-ink);text-shadow:0 var(--k) 0 rgba(255,244,210,.55)}
+.btn.primary:hover,.btn.primary:focus-visible{border-image-source:url(/assets/ui/plank-gold-hot.png)}
+.btn.primary .ic{background:rgba(58,36,20,.85);color:var(--gold);box-shadow:none}
+.btn.ghost{background:transparent;border:calc(4 * var(--k)) solid transparent;color:var(--ink-2);font-weight:400;width:auto;text-shadow:none}
+.btn.ghost .ic{background:transparent;color:inherit;width:22px;box-shadow:none}
+.btn.ghost:hover,.btn.ghost:focus-visible{color:var(--plank-ink);text-shadow:0 var(--k) 0 rgba(20,10,5,.75);animation:none}
+.btn.danger{border-image-source:url(/assets/ui/plank-blood.png)}
+.btn.danger:hover,.btn.danger:focus-visible{filter:brightness(1.15)}
 .btn .lbl{display:grid;gap:1px}
-.btn small{display:block;font:400 13px var(--font);color:inherit}
+.btn small{display:block;font:400 13px var(--font);color:inherit;opacity:.85}
 .btn kbd{margin-left:auto}
-/* One focus treatment for every control: a white ring outside the lead, never the hover glass */
+/* One focus treatment for every control: a warm-white ring outside the material */
 :is(.btn,.pane,.tab-btn,.bind,.card,[role=tab],select,input,a):focus-visible{outline:3px solid var(--focus);outline-offset:3px}
 :is(.btn,.pane,.tab-btn,.bind,.card,[role=tab],select,input,a):focus:not(:focus-visible){outline:none}
 
-/* ---------- title: the menu stands on the sill under the four windows ---------- */
+/* ---------- title: wooden signs hang under the key art ---------- */
 #title-screen{background:none;padding:0}
 .sill{position:absolute;left:50%;transform:translateX(-50%);top:calc(var(--canvas-top) + var(--canvas-h) * .735);
   width:min(calc(var(--canvas-w) * .86),calc(100% - 32px));display:flex;align-items:flex-end;justify-content:center;gap:calc(var(--canvas-h) * .016)}
 .pane{--glass:var(--firstlight);position:relative;display:grid;align-content:center;gap:2px;flex:1 1 0;min-width:0;
-  min-height:calc(var(--canvas-h) * .1);padding:10px 14px;border-radius:0;cursor:pointer;text-align:left;
-  color:var(--ink);
-  background:var(--rivets),linear-gradient(180deg,color-mix(in srgb,var(--glass) 30%,#12131b) 0 34%,color-mix(in srgb,var(--glass) 18%,#101118) 34% 68%,#0e0f15 68%);
-  box-shadow:inset 0 var(--px) 0 color-mix(in srgb,var(--glass) 70%,transparent),var(--bevel),var(--drop)}
-.pane-title{font:800 clamp(15px,calc(var(--canvas-h) * .03),21px)/1.1 var(--font-num);letter-spacing:.02em;white-space:nowrap}
-.pane small{font:400 clamp(11px,calc(var(--canvas-h) * .02),14px)/1.3 var(--font);color:var(--ink-2)}
-.pane:hover,.pane:focus-visible{background:var(--rivets),linear-gradient(180deg,color-mix(in srgb,var(--glass) 70%,#fff) 0 34%,color-mix(in srgb,var(--glass) 88%,#fff) 34% 68%,var(--glass) 68%);color:var(--lead);
-  box-shadow:var(--bevel-lit),var(--drop);
-  animation:light .2s steps(2,end)}
-.pane:hover small,.pane:focus-visible small{color:var(--lead)}
-/* the likely next step (Dive In, or Continue when a run is saved) is lit, wider, and breaks past the sill */
-.pane.lit{flex-grow:1.7;transform:translateY(calc(var(--canvas-h) * -.03));min-height:calc(var(--canvas-h) * .13);color:var(--lead);
-  background:var(--rivets),linear-gradient(180deg,#ffe2bd 0 34%,#ffb871 34% 68%,var(--firstlight) 68%);
-  box-shadow:var(--bevel-lit),var(--drop)}
+  min-height:calc(var(--canvas-h) * .1);padding:4px 10px;cursor:pointer;text-align:left;border-radius:0;
+  color:var(--plank-ink);text-shadow:0 var(--k) 0 rgba(20,10,5,.8);box-shadow:var(--drop)}
+/* two short chains: the sign hangs from the sill */
+.pane::before{content:'';position:absolute;bottom:100%;left:18%;right:18%;height:calc(var(--canvas-h) * .028);pointer-events:none;
+  background:repeating-linear-gradient(180deg,#535c63 0 var(--k),#262b33 var(--k) calc(2 * var(--k)),transparent calc(2 * var(--k)) calc(3 * var(--k))) left/calc(2 * var(--k)) 100% no-repeat,
+             repeating-linear-gradient(180deg,#535c63 0 var(--k),#262b33 var(--k) calc(2 * var(--k)),transparent calc(2 * var(--k)) calc(3 * var(--k))) right/calc(2 * var(--k)) 100% no-repeat}
+.pane-title{font:700 clamp(15px,calc(var(--canvas-h) * .03),21px)/1.1 var(--font-title);letter-spacing:.02em;white-space:nowrap}
+.pane small{font:400 clamp(11px,calc(var(--canvas-h) * .02),14px)/1.3 var(--font);color:#f1d9a6}
+.pane:hover,.pane:focus-visible{border-image-source:url(/assets/ui/plank-hot.png);animation:light .2s steps(2,end)}
+/* the floor color as a painted stripe along the foot of each sign */
+.pane::after{content:'';position:absolute;left:0;right:0;bottom:0;height:var(--k);background:var(--glass);opacity:.85}
+/* the likely next step (Dive In, or Continue when a run is saved) is the brass sign: wider, and it breaks past the sill */
+.pane.lit{flex-grow:1.7;transform:translateY(calc(var(--canvas-h) * -.03));min-height:calc(var(--canvas-h) * .13);
+  border-image-source:url(/assets/ui/plank-gold.png);color:var(--paper-ink);text-shadow:0 var(--k) 0 rgba(255,244,210,.55)}
+.pane.lit::after{display:none}
 .pane.lit .pane-title{font-size:clamp(18px,calc(var(--canvas-h) * .042),30px)}
-.pane.lit small{color:#3a1d05}
-.pane.lit:hover,.pane.lit:focus-visible{background:var(--rivets),linear-gradient(180deg,#fff 0 34%,#ffd5a3 34% 68%,#ffb36b 68%)}
+.pane.lit small{color:#4a2a10}
+.pane.lit:hover,.pane.lit:focus-visible{border-image-source:url(/assets/ui/plank-gold-hot.png)}
 .record{position:absolute;left:0;right:0;top:calc(var(--canvas-top) + var(--canvas-h) * .955);margin:0;text-align:center;
-  font:400 clamp(11px,calc(var(--canvas-h) * .022),14px) var(--font);color:var(--ink-2)}
+  font:400 clamp(11px,calc(var(--canvas-h) * .022),14px) var(--font);color:var(--ink);text-shadow:0 1px 0 #000,0 0 6px rgba(0,0,0,.8)}
 .record.note{top:calc(var(--canvas-top) + var(--canvas-h) * .915)}
-.tab-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:0;
-  background:rgba(16,17,24,.85);color:var(--ink-2);font:600 13px var(--font-num);cursor:pointer;box-shadow:var(--bevel)}
-.tab-btn:hover{color:var(--ink);background:var(--win-raise)}
-.tab-btn[aria-pressed=true]{background:var(--firstlight);color:var(--lead);box-shadow:var(--bevel-lit)}
-.lang{position:absolute;top:calc(var(--canvas-top) + 12px);left:calc(50% - var(--canvas-w) / 2 + 12px);display:flex}
-.lang .tab-btn+.tab-btn{margin-left:calc(var(--px) * -1)}
+.tab-btn{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;color:var(--paper-ink);font:600 13px var(--font-title);cursor:pointer}
+.tab-btn:hover{filter:brightness(1.12)}
+.tab-btn[aria-pressed=true]{border-image-source:url(/assets/ui/plank-gold.png);border-image-slice:4 fill;border-width:calc(3 * var(--k))}
+.lang{position:absolute;top:calc(var(--canvas-top) + 12px);left:calc(50% - var(--canvas-w) / 2 + 12px);display:flex;gap:2px}
 .corner{position:absolute;top:calc(var(--canvas-top) + 12px);right:calc(50% - var(--canvas-w) / 2 + 12px)}
-/* portrait phones: the canvas sits at the top, and the menu moves under it as a two-column grid */
+/* portrait phones: the canvas sits at the top, and the menu moves under it as a three-column grid */
 @media (max-aspect-ratio:1/1){
   body{place-items:start center} :root{--canvas-top:56px} canvas{margin-top:56px}
-  /* the menu sits at the bottom, in thumb reach; the three secondary panes share one row */
-  .sill{top:auto;bottom:40px;display:grid;grid-template-columns:repeat(3,1fr);width:calc(100% - 32px);gap:8px}
-  .pane{min-height:64px;padding:10px}
+  /* the menu sits at the bottom, in thumb reach; the three secondary signs share one row */
+  .sill{top:auto;bottom:40px;display:grid;grid-template-columns:repeat(3,1fr);align-items:stretch;width:calc(100% - 32px);gap:8px}
+  .pane{min-height:64px;padding:4px 8px} .pane::before{display:none}
   .pane.lit{grid-column:1/-1;transform:none;min-height:76px}
   .pane-title{font-size:15px;white-space:normal} .pane.lit .pane-title{font-size:22px} .pane small{font-size:12px}
   /* only the shard count gives way on phones; the permadeath line on Dive In always stays */
@@ -114,140 +123,134 @@ canvas{display:block;width:min(100vw,150vh);height:auto;cursor:crosshair;image-r
   .lang{left:12px;top:12px} .corner{right:12px;top:12px}
 }
 
-/* ---------- content bits ---------- */
+/* ---------- content bits: text sits on the boards, details on parchment slips ---------- */
 .row{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:15px;min-height:38px}
 .row label{color:var(--ink);min-width:110px;margin-right:auto}
 .row output{font-family:var(--font-num);color:var(--ink-2);min-width:36px;text-align:right;font-variant-numeric:tabular-nums}
-input[type=range]{flex:1;max-width:320px;accent-color:var(--glass)}
-.switch{appearance:none;width:44px;height:24px;border-radius:0;background:var(--line);border:var(--px) solid var(--lead);position:relative;cursor:pointer;flex:none;margin:0}
-.switch::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;box-shadow:inset -2px -2px 0 rgba(0,0,0,.3);background:var(--ink-2);transition:left .12s steps(2,end)}
-.switch:checked{background:var(--glass)} .switch:checked::after{left:22px;background:var(--lead)}
+input[type=range]{flex:1;max-width:320px;accent-color:var(--gold)}
+.switch{appearance:none;width:44px;height:24px;border-radius:0;background:var(--walnut-dk);border:var(--k) solid var(--line);position:relative;cursor:pointer;flex:none;margin:0;
+  box-shadow:inset 0 var(--k) 0 rgba(0,0,0,.5)}
+.switch::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;background:var(--ink-2);box-shadow:inset -2px -2px 0 rgba(0,0,0,.3);transition:left .12s steps(2,end)}
+.switch:checked{background:var(--oak)} .switch:checked::after{left:22px;background:var(--gold);box-shadow:inset -2px -2px 0 var(--brass),inset 2px 2px 0 #fff2c6}
 .state{font-size:14px;color:var(--ink-2);min-width:2.5em;text-align:right}
 .hint{font-size:14px;color:var(--ink-2);margin:-2px 0 4px;line-height:1.55}
 .status{font-size:14px;color:var(--ink);min-height:1.5em;margin:0}
 .shop-line{font-size:14px;font-style:italic;color:var(--ink-2);min-height:1.5em;margin:0}
 .status.warn{color:var(--blood)}
-.rule{margin:0;padding:10px 12px;background:color-mix(in srgb,var(--blood) 14%,var(--win-bg));border:var(--px) solid color-mix(in srgb,var(--blood) 45%,transparent);
-  color:var(--ink);font-size:14px;line-height:1.6}
-.rule strong{color:var(--blood);font-weight:600}
+/* the permadeath rule is a slip stamped with a red seal */
+.rule{margin:0;padding:8px 10px;font-size:14px;line-height:1.6}
+.rule strong{color:var(--seal);font-weight:700}
 .keys{display:grid;grid-template-columns:auto 1fr;gap:8px 12px;align-items:center;font-size:15px}
-kbd{font:700 12px var(--font-num);min-width:28px;padding:3px 7px 5px;border-radius:0;background:var(--win-raise);
-  color:var(--ink);text-align:center;display:inline-block;box-shadow:inset 0 calc(var(--px) * -1) 0 var(--lead),inset var(--px) var(--px) 0 rgba(255,255,255,.12)}
-.btn.primary kbd,.btn:not(.ghost):hover kbd,.btn:not(.ghost):focus-visible kbd{background:rgba(12,13,18,.18);color:var(--lead);box-shadow:inset 0 calc(var(--px) * -1) 0 rgba(12,13,18,.45)}
-.tips{margin:4px 0 0;padding:12px 14px 12px 30px;background:var(--win-raise);box-shadow:var(--bevel);color:var(--ink);font-size:14px;line-height:1.65}
-.tips li::marker{color:var(--glass)}
+kbd{font:700 14px var(--font-num);min-width:28px;padding:0 5px 2px;color:var(--paper-ink);text-align:center;display:inline-block;text-shadow:none}
+.tips{margin:4px 0 0;padding:6px 10px 6px 26px;font-size:14px;line-height:1.65}
+.tips li::marker{color:var(--brass)}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.stat{padding:10px 12px;background:var(--win-raise);box-shadow:var(--bevel)}
-.stat span{display:block;font-size:13px;color:var(--ink-2)}
-.stat b{font:800 22px var(--font-num);color:var(--ink);font-variant-numeric:tabular-nums}
+.stat{padding:4px 8px}
+.stat span{display:block;font-size:13px;color:var(--paper-ink-2)}
+.stat b{font:700 22px var(--font-num);color:var(--paper-ink);font-variant-numeric:tabular-nums}
 .pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-select{font:400 15px var(--font);padding:7px 10px;border-radius:0;background:var(--win-raise);color:var(--ink);cursor:pointer;
-  box-shadow:var(--bevel);max-width:100%}
-a{color:var(--glass);text-underline-offset:3px}
+select{font:400 15px var(--font);padding:2px 6px;border-radius:0;cursor:pointer;max-width:100%}
+select option{background:var(--paper);color:var(--paper-ink)}
+a{color:var(--gold);text-underline-offset:3px}
 
-/* ---------- settings: tabs + grouped key bindings ---------- */
-.tabs{display:flex;gap:2px;padding:8px 12px 0;border-bottom:var(--px) solid var(--lead);flex:none;overflow-x:auto;background:var(--win-raise)}
-[role=tab]{font:600 15px var(--font);padding:8px 14px;border:0;border-bottom:var(--px) solid transparent;margin-bottom:calc(var(--px) * -1);background:none;color:var(--ink-2);
-  cursor:pointer;white-space:nowrap;border-radius:0}
-[role=tab]:hover{color:var(--ink)}
-[role=tab][aria-selected=true]{color:var(--ink);border-bottom-color:var(--glass);background:var(--win-bg)}
+/* ---------- settings: tabs are tags on a strip of boards + grouped key bindings ---------- */
+.tabs{display:flex;gap:4px;padding:8px 12px 6px;flex:none;overflow-x:auto;border-bottom:var(--k) solid var(--walnut-dk);box-shadow:0 var(--k) 0 rgba(255,220,160,.08)}
+[role=tab]{font:600 15px var(--font);padding:2px 10px;color:var(--paper-ink);cursor:pointer;white-space:nowrap;filter:brightness(.72)}
+[role=tab]:hover{filter:brightness(.9)}
+[role=tab][aria-selected=true]{filter:none;border-image-source:url(/assets/ui/plank-gold.png);border-image-slice:4 fill}
 [role=tabpanel]{display:grid;gap:10px}
 .bind-groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
-.bind-group h3{margin:0 0 6px;font:600 14px var(--font);color:var(--glass)}
+.bind-group h3{margin:0 0 6px;font:700 15px var(--font-title);color:var(--gold)}
 .bind-group .rows{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center;font-size:15px}
-.bind{font:700 13px var(--font-num);min-width:76px;padding:6px 10px 8px;border-radius:0;
-  background:var(--win-raise);color:var(--ink);cursor:pointer;font-variant-numeric:tabular-nums;box-shadow:inset 0 calc(var(--px) * -1) 0 var(--lead),var(--bevel)}
-.bind:hover{background:var(--glass);color:var(--lead)}
-.bind.listening{background:var(--glass);color:var(--lead)}
-.bind.unset{color:var(--blood);box-shadow:inset 0 0 0 var(--px) var(--blood)}
+.bind{font:700 13px var(--font-num);min-width:76px;padding:2px 8px 4px;color:var(--paper-ink);cursor:pointer;font-variant-numeric:tabular-nums}
+.bind:hover,.bind.listening{border-image-source:url(/assets/ui/plank-gold.png);border-image-slice:4 fill}
+.bind.unset{color:var(--seal);border-image-source:url(/assets/ui/paper.png);border-image-slice:4 fill}
 
-/* ---------- result: a clear lights amber, a death bleeds red ---------- */
-.result-title{font:800 30px var(--font-num);letter-spacing:.06em;text-align:center;margin:2px 0;color:var(--glass)}
+/* ---------- result: a clear shines brass, a death is stamped in red ---------- */
+.result-title{font:700 32px var(--font-title);letter-spacing:.06em;text-align:center;margin:2px 0;color:var(--gold);text-shadow:0 var(--k) 0 #24150f}
 .result-msg{font-size:15px;color:var(--ink-2);text-align:center;margin:0;text-wrap:balance}
 #result-shards{text-align:center;text-wrap:balance;margin:0}
-.newrec{justify-self:center;font:600 13px var(--font);color:var(--lead);background:var(--firstlight);padding:3px 12px}
-#result.dead{--glass:var(--blood);background:radial-gradient(ellipse at center,rgba(70,0,0,.5),rgba(6,0,0,.9))}
-#result.dead .result-title{font-size:34px;letter-spacing:.1em}
+.newrec{justify-self:center;font:700 13px var(--font-title);padding:0 10px}
+#result.dead{--glass:var(--blood);background:radial-gradient(ellipse at center,rgba(60,8,4,.5),rgba(10,2,1,.9))}
+#result.dead .result-title{font-size:36px;letter-spacing:.1em;color:var(--blood)}
 #result.dead .win{animation:settle .3s steps(4,end)}
 
 /* ---------- confirm dialog ---------- */
-dialog.dialog{padding:0;width:min(400px,calc(100% - 32px));--glass:var(--blood)}
+dialog.dialog{padding:0;width:min(420px,calc(100% - 32px));--glass:var(--blood)}
 dialog.dialog:not([open]){display:none} /* .win sets display:flex, which would otherwise override the closed state */
-dialog.dialog::backdrop{background:rgba(4,5,8,.7)}
+dialog.dialog::backdrop{background:rgba(12,7,4,.72)}
 dialog.dialog p{margin:0;font-size:15px;line-height:1.6}
 dialog.dialog .btn{justify-content:center}
 #name-dialog{--glass:var(--firstlight)}
 #name-dialog .body{display:flex;flex-direction:column;gap:12px}
-.name-input{font:800 22px var(--font-num);letter-spacing:.04em;padding:10px 12px;border-radius:0;
-  background:#0b0c11;color:var(--ink);box-shadow:inset var(--px) var(--px) 0 rgba(0,0,0,.5)}
-.name-input::placeholder{color:var(--ink-2);opacity:.6}
-.name-input:focus-visible{outline:3px solid var(--glass);outline-offset:2px}
+.name-input{font:700 22px var(--font-title);letter-spacing:.04em;padding:4px 8px;border-radius:0}
+.name-input::placeholder{color:var(--paper-ink-2);opacity:.7}
+.name-input:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.name-input{caret-color:var(--seal)}
 
-/* ---------- toast: centred on the canvas, below the HUD's top panels ---------- */
+/* ---------- toast: a notice pinned at the top of the view, below the HUD panels ---------- */
 #toast{position:fixed;left:50%;top:calc(var(--canvas-top) + var(--canvas-h) * .16);transform:translateX(-50%);pointer-events:none;display:none;width:min(400px,calc(100% - 32px))}
 #toast.on{display:block;animation:toast var(--dur,3.2s) steps(24,end) forwards}
-#toast .win{animation:none}
-#toast .win .body{text-align:center;gap:2px;padding:12px 16px}
-#toast b{font:800 21px var(--font-num);letter-spacing:.03em;color:var(--ink)}
-#toast span{font-size:14px;color:var(--ink-2);line-height:1.5}
+:is(#toast,#boss-card,#moment) .win{animation:none;box-shadow:var(--drop);max-height:none}
+:is(#toast,#boss-card,#moment) .win::before{content:'';position:absolute;top:calc(-2 * var(--k));left:50%;width:calc(7 * var(--k));height:calc(7 * var(--k));
+  transform:translateX(-50%);background:url(/assets/ui/tack.png) 0 0/100% 100%}
+#toast .win .body{text-align:center;gap:2px;padding:6px 10px}
+#toast b{font:700 21px var(--font-title);letter-spacing:.03em;color:var(--paper-ink)}
+#toast span{font-size:14px;color:var(--paper-ink-2);line-height:1.5}
 
-/* nothing glides: windows and lit glass step in, overshoot a pixel, and settle */
+/* nothing glides: windows and lit planks step in, overshoot a pixel, and settle */
 @keyframes fade{from{opacity:0}}
 @keyframes settle{0%{opacity:0;transform:translateY(6px)}66%{opacity:1;transform:translateY(-1px)}100%{transform:none}}
-@keyframes light{0%{filter:brightness(.8)}50%{filter:brightness(1.15)}100%{filter:none}}
+@keyframes light{0%{filter:brightness(.85)}50%{filter:brightness(1.12)}100%{filter:none}}
 #boss-card{--dur:3.4s;position:fixed;left:50%;top:calc(var(--canvas-top) + var(--canvas-h) * .3);transform:translateX(-50%);pointer-events:none;display:none;width:min(440px,calc(100% - 32px))}
 #boss-card.on{display:block;animation:toast var(--dur) steps(24,end) forwards}
-#boss-card .win{animation:none}
-#boss-card .win .body{text-align:center;gap:2px;padding:14px 18px}
-#boss-card b{font:800 24px var(--font-num);letter-spacing:.03em;color:var(--ink)}
-#boss-card span{font-size:14px;color:var(--ink-2);line-height:1.5}
+#boss-card .win .body{text-align:center;gap:2px;padding:8px 14px}
+#boss-card b{font:700 24px var(--font-title);letter-spacing:.03em;color:var(--paper-ink)}
+#boss-card span{font-size:14px;color:var(--paper-ink-2);line-height:1.5}
 #moment{--dur:2s;position:fixed;left:50%;top:calc(var(--canvas-top) + var(--canvas-h) * .42);transform:translateX(-50%);pointer-events:none;display:none;width:min(480px,calc(100% - 32px))}
 #moment.on{display:block;animation:toast var(--dur) steps(24,end) forwards}
-#moment .win{animation:none}
-#moment .win .body{text-align:center;gap:2px;padding:18px 22px}
-#moment b{font:800 34px var(--font-num);letter-spacing:.03em;color:var(--ink)}
-#moment span{font-size:14px;color:var(--ink-2);line-height:1.5}
-#boss-card-hint{margin-top:4px;color:var(--ink)}
-#boss-card.down b{text-decoration:line-through;color:var(--ink-2)}
+#moment .win .body{text-align:center;gap:2px;padding:10px 18px}
+#moment b{font:700 34px var(--font-title);letter-spacing:.03em;color:var(--paper-ink)}
+#moment span{font-size:14px;color:var(--paper-ink-2);line-height:1.5}
+#boss-card-hint{margin-top:4px;color:var(--paper-ink)}
+#boss-card.down b{text-decoration:line-through;color:var(--paper-ink-2)}
 #boss-card.down #boss-card-hint{display:none}
 @keyframes toast-still{0%,94%{opacity:1}100%{opacity:0}}
 @keyframes toast{0%{opacity:0;transform:translate(-50%,-8px)}8%,86%{opacity:1;transform:translate(-50%,0)}100%{opacity:0}}
-@media (prefers-reduced-motion:reduce){.screen.on,.win,#toast.on,#boss-card.on,#moment.on,.btn,.pane,.card{animation-duration:.01s !important}.switch::after{transition:none}}
+@media (prefers-reduced-motion:reduce){.screen.on,.win,#toast.on,#boss-card.on,#moment.on,.btn,.pane,.card{animation-duration:.01s !important}.switch::after{transition:none}.btn:active,.card:active{transform:none}}
 @media (prefers-reduced-motion:reduce){#toast.on,#boss-card.on,#moment.on{animation-name:toast-still;animation-duration:var(--dur,3.2s) !important;animation-timing-function:linear}}
 
-/* ---------- picker cards (level-up, shop, Blade Arts) ---------- */
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
-.card{position:relative;display:grid;gap:6px;align-content:start;text-align:left;padding:14px;border-radius:0;
-  background:var(--rivets),var(--win-raise);
-  box-shadow:inset 0 var(--px) 0 color-mix(in srgb,var(--glass) 60%,transparent),var(--bevel);color:var(--ink);font:400 14px/1.5 var(--font);cursor:pointer}
-.card:hover,.card:focus-visible{background:var(--rivets),var(--glass);color:var(--lead);
-  box-shadow:var(--bevel-lit);animation:light .18s steps(2,end)}
-.card canvas{width:100%;height:auto;aspect-ratio:16/9;image-rendering:pixelated;border:var(--px) solid var(--lead);outline:var(--px) solid var(--glass);outline-offset:calc(var(--px) * -2);display:block}
+/* ---------- picker cards (level-up, shop, shrine, Blade Arts): parchment notes pinned to the boards ---------- */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;padding-top:4px}
+.card{position:relative;display:grid;gap:6px;align-content:start;text-align:left;padding:8px 8px 10px;border-radius:0;
+  font:400 14px/1.5 var(--font);cursor:pointer;box-shadow:var(--drop)}
+.card::before{content:'';position:absolute;top:calc(-6 * var(--k));left:50%;width:calc(7 * var(--k));height:calc(7 * var(--k));
+  transform:translateX(-50%);background:url(/assets/ui/tack.png) 0 0/100% 100%;z-index:1} /* one brass tack */
+.card:hover,.card:focus-visible{filter:brightness(1.07);transform:translateY(calc(-1 * var(--k)));animation:light .18s steps(2,end)}
+.card:active{transform:translateY(var(--k))}
+.card canvas{width:100%;height:auto;aspect-ratio:16/9;image-rendering:pixelated;border:var(--k) solid var(--paper-ink);display:block}
 .card kbd{justify-self:start}
-.card .ico{position:absolute;top:10px;right:10px;width:56px;height:56px;object-fit:contain;image-rendering:pixelated}
-.card:has(.ico){padding-right:76px}
-.card b{font:600 17px var(--font)}
-.card span{color:var(--ink-2)}
-.card:hover span,.card:focus-visible span{color:var(--lead)}
+.card .ico{position:absolute;top:8px;right:8px;width:56px;height:56px;object-fit:contain;image-rendering:pixelated}
+.card:has(.ico){padding-right:72px}
+.card b{font:600 17px var(--font);color:var(--paper-ink)}
+.card span{color:var(--paper-ink-2)}
 .card .pips{display:flex;gap:4px;margin-top:2px}
-.pips i{width:14px;height:6px;background:var(--line);outline:2px solid var(--lead)}
-.pips i.got{background:var(--glass)}
-.pips i.next{background:var(--glass);opacity:.45;animation:pulse 1s steps(2,end) infinite alternate}
-.card:hover .pips i.got,.card:focus-visible .pips i.got{background:var(--lead)}
+.pips i{width:14px;height:6px;background:#d2b47c;outline:var(--k) solid var(--paper-ink)}
+.pips i.got{background:var(--oak)}
+.pips i.next{background:var(--oak);opacity:.45;animation:pulse 1s steps(2,end) infinite alternate}
 @keyframes pulse{to{opacity:.95}}
 @media (prefers-reduced-motion: reduce){.pips i.next{animation:none}}
-.card[aria-disabled=true]{opacity:.5;cursor:not-allowed}
-.card[aria-disabled=true]:hover{background:var(--rivets),var(--win-raise);color:var(--ink);animation:none}
-.card[aria-disabled=true]:hover span{color:var(--ink-2)}
-.card .price{font:800 15px var(--font-num);color:var(--glass)}
-.card:hover .price,.card:focus-visible .price{color:var(--lead)}
-.card.on{box-shadow:inset 0 0 0 var(--px) var(--glass),var(--bevel)}
-.card.on[aria-disabled=true]{opacity:1;cursor:default}
+.card[aria-disabled=true]{opacity:.55;cursor:not-allowed;filter:grayscale(.4)}
+.card[aria-disabled=true]:hover{filter:grayscale(.4);transform:none;animation:none}
+.card .price{font:700 16px var(--font-num);color:#8a3b12}
+/* the equipped Art: its note is ringed in brass */
+.card.on{outline:calc(2 * var(--k)) solid var(--gold);outline-offset:var(--k)}
+.card.on[aria-disabled=true]{opacity:1;cursor:default;filter:none}
 #upgrade .win{--glass:var(--firstlight)} #shop .win{--glass:var(--firstlight)}
 
-/* ---------- story: dialogue pane along the bottom, the world stays visible ---------- */
+/* ---------- story: dialogue board along the bottom, the world stays visible ---------- */
 /* sits above the skill bar (the bottom ~16% of the canvas) so slot labels never show under it */
-.screen.story{align-items:flex-end;padding-bottom:calc(var(--canvas-top) + var(--canvas-h) * .17);background:linear-gradient(transparent 55%,rgba(4,5,8,.6))}
+.screen.story{align-items:flex-end;padding-bottom:calc(var(--canvas-top) + var(--canvas-h) * .17);background:linear-gradient(transparent 55%,rgba(12,7,4,.6))}
 .story-text{margin:0;font-size:17px;line-height:1.7;color:var(--ink);min-height:3.4em}
 .story-foot{display:flex;align-items:center;gap:8px}
 .story-foot .hint{margin:0 auto 0 0;font-family:var(--font-num)}
@@ -260,29 +263,25 @@ body:has(.screen.on) :is(#boss-card,#moment){visibility:hidden;animation-play-st
 :lang(th) :is(.result-title,.pane-title,.win header),:lang(th) #result.dead .result-title{letter-spacing:0}
 
 /* Pause menu Build panel */
-.build h3{margin:0 0 6px;font-size:13px;color:var(--ink-2);font-weight:600}
+.build h3{margin:0 0 6px;font:700 14px var(--font-title);color:var(--gold)}
 .build .arts{list-style:none;margin:0 0 8px;padding:0;display:grid;gap:6px}
-.build .arts li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 8px;padding:6px 10px;background:var(--win-raise);box-shadow:var(--bevel);font-size:14px;min-width:0}
+.build .arts li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 8px;padding:2px 6px;font-size:14px;min-width:0}
 .build .arts b{font-weight:600;overflow-wrap:anywhere}
-.build .arts i{font-size:13px;color:var(--ink-2);font-style:normal}
+.build .arts i{font-size:13px;color:var(--paper-ink-2);font-style:normal}
 .build .chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{padding:2px 8px 2px 14px;font-size:13px;color:var(--ink);background:var(--win-raise);box-shadow:inset 6px 0 0 var(--el),var(--bevel)}
-.chip.set{opacity:.6}
-.chip.set.on{opacity:1;background:var(--el);color:var(--lead);font-weight:700}
+.chip{padding:0 6px 0 12px;font-size:13px;box-shadow:inset 6px 0 0 var(--el)}
+.chip.set{opacity:.7}
+.chip.set.on{opacity:1;font-weight:700;box-shadow:inset 6px 0 0 var(--el),inset 0 0 0 999px color-mix(in srgb,var(--el) 35%,transparent)}
 .build .hint{margin:8px 0 0}
 .build .fx{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:2px;font-size:13px;color:var(--ink-2);line-height:1.5}
 .build .fx li{overflow-wrap:anywhere}
 .build .fx li.on{color:var(--ink)}
 
-/* ---------- pixel frames: every pane, window and control gets the same notched lead outline as the HUD ---------- */
-:is(.win,.btn:not(.ghost),.btn.ghost:hover,.btn.ghost:focus-visible,.pane,.card,.stat,.bind,select,.name-input,.tab-btn,kbd,.tips,.build .arts li,.chip,.newrec){
-  border:var(--px) solid transparent;border-image:var(--frame) 1 / var(--px) stretch;background-clip:padding-box}
-.btn.ghost{border:var(--px) solid transparent}
-/* range sliders: a lead-cased track and a square glass thumb (Firefox also fills the played part) */
+/* range sliders: a walnut groove and a brass slider block */
 input[type=range]{appearance:none;-webkit-appearance:none;height:20px;background:none;cursor:pointer}
-input[type=range]::-webkit-slider-runnable-track{height:9px;background:var(--line);box-shadow:inset 0 0 0 var(--px) var(--lead)}
-input[type=range]::-moz-range-track{height:9px;background:var(--line);box-shadow:inset 0 0 0 var(--px) var(--lead)}
-input[type=range]::-moz-range-progress{height:9px;background:var(--glass);box-shadow:inset 0 0 0 var(--px) var(--lead)}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:18px;margin-top:-4.5px;border-radius:0;background:var(--glass);
-  border:var(--px) solid var(--lead);box-shadow:inset 2px 2px 0 rgba(255,255,255,.45)}
-input[type=range]::-moz-range-thumb{width:6px;height:12px;border-radius:0;background:var(--glass);border:var(--px) solid var(--lead)}
+input[type=range]::-webkit-slider-runnable-track{height:8px;background:var(--walnut-dk);box-shadow:inset 0 0 0 var(--k) var(--line),inset 0 calc(2 * var(--k)) 0 rgba(0,0,0,.4)}
+input[type=range]::-moz-range-track{height:8px;background:var(--walnut-dk);box-shadow:inset 0 0 0 var(--k) var(--line)}
+input[type=range]::-moz-range-progress{height:8px;background:var(--oak);box-shadow:inset 0 0 0 var(--k) var(--line)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:20px;margin-top:-6px;border-radius:0;background:var(--gold);
+  border:var(--k) solid var(--line);box-shadow:inset 2px 2px 0 #fff2c6,inset -2px -2px 0 var(--brass)}
+input[type=range]::-moz-range-thumb{width:8px;height:16px;border-radius:0;background:var(--gold);border:var(--k) solid var(--line)}

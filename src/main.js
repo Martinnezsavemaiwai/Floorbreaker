@@ -1,5 +1,5 @@
 // Entry point: fonts/styles, input wiring, the frame loop, and the dev-only test hook.
-// Self-hosted fonts (Fontsource): Kanit for Thai, Exo 2 for numbers/Latin
+// Self-hosted fonts (Fontsource): Kanit for Thai and body text, Silkscreen for Latin titles/numbers (declared in style.css), Exo 2 for the title wordmark
 import '@fontsource/kanit/300.css';
 import { tr, applyLang } from './core/i18n.ts';
 import '@fontsource/kanit/400.css';
