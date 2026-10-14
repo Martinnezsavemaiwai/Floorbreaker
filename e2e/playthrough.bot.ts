@@ -5,7 +5,7 @@
 import { test, expect, type Page } from '@playwright/test';
 
 // The bot runs inside the page. It is the tests/harness.ts bot, but it only acts through key events.
-const BOT = `(() => {
+export const BOT = `(() => {
   const s = window.__saoy, log = [], seen = new Set();
   const key = (code, down) => window.dispatchEvent(new KeyboardEvent(down ? 'keydown' : 'keyup', { code, bubbles: true }));
   const tap = code => { key(code, true); key(code, false); };
