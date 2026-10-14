@@ -21,12 +21,27 @@ export function previewFor(c) {
 const ph = (t, a, b) => Math.max(0, Math.min(1, (t - a) / (b - a)));
 const lerp = (a, b, k) => a + (b - a) * k;
 
-function char(g, x, lean = 0, alpha = 1) {
+// The hero, facing right (sheet column 3), feet on the ground line, with the sword in his hand at `sword` radians
+// (0 = pointing straight ahead, positive = down). The sheet has no sword: the game draws it separately, so do we.
+const REST = 0.7;
+function blade(g, ang) {
+  const img = IMG.sword;
+  if (!img) return;
+  const h = 30, w = h * img.width / img.height;
+  g.save(); g.translate(5, -17); g.rotate(ang - Math.PI / 2); g.drawImage(img, -w / 2, -h * 0.15, w, h); g.restore(); // sprite: grip up, blade down
+}
+function shadowAt(g, x, w, a = 1) { g.save(); g.globalAlpha = 0.35 * a; g.fillStyle = '#000'; g.fillRect(x - w / 2, GROUND - 1, w, 3); g.restore(); }
+function char(g, x, lean = 0, alpha = 1, sword = REST) {
   const img = IMG.player;
-  if (img) { // the hero himself, facing right (sheet column 3), feet on the ground line
+  if (img) {
     const c = img.width / 4;
+    shadowAt(g, x, 18, alpha);
     g.save(); g.globalAlpha = alpha; g.imageSmoothingEnabled = false; g.translate(x, GROUND + 3); g.rotate(lean);
-    g.drawImage(img, 3 * c, 0, c, c, -c / 2, -c, c, c); g.restore(); return;
+    const behind = Math.sin(sword) < -0.3; // raised blade goes behind the body, like in the game
+    if (behind) blade(g, sword);
+    g.drawImage(img, 3 * c, 0, c, c, -c / 2, -c, c, c);
+    if (!behind) blade(g, sword);
+    g.restore(); return;
   }
   g.save(); g.globalAlpha = alpha; g.translate(x, GROUND); g.rotate(lean);
   g.fillStyle = '#d8dce8'; g.fillRect(-4, -22, 8, 14);          // body
@@ -36,6 +51,7 @@ function char(g, x, lean = 0, alpha = 1) {
   g.restore();
 }
 function dummy(g, x, hit = 0) {
+  shadowAt(g, x, 20);
   g.save(); g.translate(x + Math.sin(hit * 30) * 3 * hit, GROUND);
   g.fillStyle = '#6b5640'; g.fillRect(-2, -26, 4, 26); g.fillRect(-10, -22, 20, 4);
   g.fillStyle = hit > 0 ? '#fff' : '#9a7a52'; g.fillRect(-5, -34, 10, 9);
@@ -57,7 +73,9 @@ const flash = (t, at) => (t > at && t < at + 0.15 ? 1 - hitK(t, at) : 0);
 const SCENES = {
   blade(g, t, evo, c) {
     const dx = 124; let h = 0;
-    char(g, 36);
+    let sw = REST;
+    [0.1, 0.37, 0.64].forEach((at, i) => { const k = ph(t, at, at + 0.2); if (k > 0 && k < 1) sw = i % 2 ? lerp(0.9, -1.1, k) : lerp(-1.1, 0.9, k); });
+    char(g, 36, 0, 1, sw);
     [0.1, 0.37, 0.64].forEach((at, i) => {
       const k = ph(t, at, at + 0.2);
       if (k > 0 && k < 1) arc(g, 52, GROUND - 22, 22, i % 2 ? 0.9 : -1.9, i % 2 ? -0.9 + 1.2 + k : 0.9 * k, c, 1 - k);
@@ -75,24 +93,26 @@ const SCENES = {
       if (k > 0 && k < 1) bar(g, Math.min(x0, x), Math.max(x0, x), GROUND - 14, c, 6, 0.5);
       if (Math.abs(x - 112) < 14 && k > 0 && k < 1) { h = 1; sparks(g, 112, GROUND - 24, 0.2, c); }
     }
-    dummy(g, 112, h); char(g, x, 0.25);
+    dummy(g, 112, h); char(g, x, 0.25, 1, t > 0.08 ? 0 : REST); // blade levelled for the dash
   },
   horizontal(g, t, evo, c) {
     const rings = evo ? [0.1, 0.5] : [0.2], dx = evo ? lerp(136, 118, ph(t, 0.05, 0.4)) : 128; let h = 0;
     for (const at of rings) { const k = ph(t, at, at + 0.35); if (k > 0 && k < 1) { ring(g, 90, GROUND - 16, k * 52, c, 1 - k * 0.6); if (k > 0.55) h = 1; } }
     if (h) sparks(g, dx - 6, GROUND - 24, 0.3, c);
-    char(g, 90); dummy(g, dx, h);
+    let sw = REST; for (const at of rings) { const k = ph(t, at, at + 0.35); if (k > 0 && k < 1) sw = k * Math.PI * 2; } // the blade spins with the ring
+    char(g, 90, 0, 1, sw); dummy(g, dx, h);
   },
   vorpal(g, t, evo, c) {
     const wind = ph(t, 0, 0.3), k = ph(t, 0.3, 0.45);
-    char(g, 36, -0.25 * wind + (t > 0.3 ? 0.35 : 0));
+    char(g, 36, -0.25 * wind + (t > 0.3 ? 0.35 : 0), 1, t > 0.3 ? 0 : lerp(REST, 2.6, wind)); // drawn back, then thrust
     if (k > 0 && t < 0.62) bar(g, 44, lerp(44, 150, k), GROUND - 20, c, 5, 1 - ph(t, 0.45, 0.62));
     if (evo && t > 0.6) { const q = ph(t, 0.6, 0.85); bar(g, 0, W, GROUND - 22, c, 12 * (1 - q) + 2, 1 - q); bar(g, 0, W, GROUND - 22, '#fff', 3, 1 - q); }
     const h = Math.max(flash(t, 0.42), evo ? flash(t, 0.66) : 0);
     sparks(g, 118, GROUND - 24, hitK(t, 0.42), c); dummy(g, 124, h);
   },
   crescent(g, t, evo, c) {
-    char(g, 36);
+    const rel = ph(t, 0.15, 0.27);
+    char(g, 36, 0, 1, rel > 0 && rel < 1 ? lerp(-1.3, 0.9, rel) : t < 0.15 ? lerp(REST, -1.3, ph(t, 0, 0.15)) : REST); // raise, then cut the wave loose
     const waves = evo ? [[-14, 0.2], [0, 0.25], [14, 0.3]] : [[0, 0.25]]; let h = 0;
     for (const [dy, at] of waves) {
       const k = ph(t, at, at + 0.45); if (k <= 0 || k >= 1) continue;
@@ -103,7 +123,7 @@ const SCENES = {
   },
   riposte(g, t, evo, c) {
     const dx = lerp(124, 62, Math.sin(ph(t, 0.05, 0.3) * Math.PI / 2)) + lerp(0, 62, ph(t, 0.5, 0.7));
-    char(g, 36, -0.1);
+    char(g, 36, -0.1, 1, t < 0.5 ? -1.45 : lerp(-1.45, 0.9, ph(t, 0.5, 0.6))); // blade up in guard, then the counter
     if (t > 0.3 && t < 0.5) arc(g, 46, GROUND - 20, 18, -1.4, 1.4, '#fff', 1 - ph(t, 0.3, 0.5));   // guard flash
     const k = ph(t, 0.42, 0.75); if (k > 0 && k < 1) ring(g, 46, GROUND - 20, k * 60, c, 1 - k);
     dummy(g, dx, flash(t, 0.5)); sparks(g, dx, GROUND - 24, hitK(t, 0.5), c);
