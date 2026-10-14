@@ -14,6 +14,8 @@ pieces: several separate drawings in one image (read left to right, top to botto
 texture: a full-frame tileable texture -> a `size` px square (or `size` px tall strip with `wide`), edges
   blended so it repeats without a seam.
 fog: white mist on black -> white with the brightness as transparency (soft, not pixel art).
+scene: a full-frame picture (title key art) -> exactly `size` x `h` px, cut to SCENE_COLORS colours; the game
+  draws it at 2x with smoothing off, so a 480 x 320 scene fills the 960 x 640 canvas on a 2 px grid.
 
 `size` for characters/beasts is the cell size: pick 16 x the scale the game draws that sprite at, so it shows
 1:1 (48 for normal mobs at x3, 62 for the x1.3 guardians, 31 for x0.65 swarms, 16 x boss scale for bosses).
@@ -46,6 +48,13 @@ SPRITES = {
     # optional: the game draws its own doorway until these exist (see OPTIONAL in src/core/assets.ts)
     'door': ('item', 118, {}), 'door-boss': ('item', 118, {}),
     'shrine': ('item', 80, {}), 'portal': ('item', 112, {}),
+    'title-art': ('scene', 480, {'h': 320}),
+    # icons: one row each, left to right in the order of ICONS in src/core/assets.ts
+    'icons-arts': ('pieces', 28, {}), 'icons-upgrades': ('pieces', 28, {}), 'icons-elements': ('pieces', 28, {}),
+    'house': ('item', 220, {}), 'stall': ('item', 150, {}),
+    'town-props': ('pieces', 64, {}),  # barrel crate sacks bench lamp / board planter hay mooring cart -> town-props-1..10
+    'bird': ('beast', 20, {}), 'gull': ('beast', 24, {}),
+    'boss-gate': ('item', 120, {}), 'pillar': ('item', 175, {}), 'pillar-cracked': ('item', 175, {}), 'torch': ('item', 40, {}),
     'shots': ('pieces', 40, {}),  # left to right: stone, javelin, magic bolt, water drop -> shots-1..4
     'folk-1': ('character', 48, {'attack': False}), 'folk-2': ('character', 48, {'attack': False}), 'folk-3': ('character', 48, {'attack': False}),
 }
@@ -209,10 +218,23 @@ def fog(src, dst, width):
     print(f'{dst}: {out.size} fog from {src}')
 
 
+SCENE_COLORS = 64  # a whole landscape needs more colours than one sprite
+
+
+def scene(src, dst, size, h):
+    img = Image.open(src).convert('RGB')
+    k = max(size / img.width, h / img.height)  # cover, then crop the overflow evenly
+    img = img.resize((round(img.width * k), round(img.height * k)), Image.Resampling.BOX)
+    x, y = (img.width - size) // 2, (img.height - h) // 2
+    img = img.crop((x, y, x + size, y + h)).quantize(SCENE_COLORS, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
+    img.convert('RGB').save(dst)
+    print(f'{dst}: {size}x{h} scene from {src}')
+
+
 def build(name):
     kind, size, opt = SPRITES[name]
     src, dst = f'art-src/{opt.pop("src", name)}.png', f'public/assets/{name}.png'
-    {'character': character, 'beast': beast, 'item': item, 'pieces': pieces, 'texture': texture, 'fog': fog}[kind](src, dst, size, **opt)
+    {'character': character, 'beast': beast, 'item': item, 'pieces': pieces, 'texture': texture, 'fog': fog, 'scene': scene}[kind](src, dst, size, **opt)
 
 
 if __name__ == '__main__':

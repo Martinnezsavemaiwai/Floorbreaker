@@ -15,6 +15,7 @@ import { artElements, artColor, setProgress } from '../systems/build.js';
 import { on } from '../core/events.ts';
 import { keyLabel } from '../core/input.ts';
 import { FT } from './canvas.js';
+import { icon } from '../core/assets.ts';
 import { doorLook } from './world.js';
 import { PX, hc, LEAD, INK, INK2, beginPixels, endPixels, pane, ring, bar, gem, coin, text } from './pixel.js';
 
@@ -41,7 +42,8 @@ function drawPlayerPane() {
   pane(x, y, w, h, acc);
   pane(x + 4, y + 4, 34, 34, null, '#22232f'); portrait(x + 6, y + 6, 30);
   // level tag hanging off the portrait
-  pane(x + 4, y + 32, 28, 11, null, acc); text(`Lv ${P.lv}`, x + 18, y + 41, { size: 11, weight: 800, color: LEAD, align: 'center', outline: null });
+  pane(x + 3, y + 30, 32, 14, acc, '#101118'); // level plate over the portrait's foot: big white number, small LV
+  text('LV', x + 7, y + 41, { size: 10, weight: 800, color: acc }); text(String(P.lv), x + 31, y + 42, { size: 16, weight: 800, color: '#fff', align: 'right' });
   text(G.run.name || 'PLAYER', x + 43, y + 13, { size: 14, weight: 800 });
   text(`${Math.max(0, Math.ceil(P.hp))}/${P.maxHp}`, x + w - 5, y + 13, { size: 12, weight: 800, color: INK2, align: 'right' });
   bar(x + 42, y + 16, w - 47, 9, P.hp / P.maxHp, P.lag / P.maxHp, hpCol(P.hp / P.maxHp), 10);
@@ -113,10 +115,12 @@ function drawSkillSlots() {
   slots.forEach((sl, i) => {
     const x = x0 + i * (s + gap), cx = x + s / 2, cy = y + s / 2;
     const mods = sl.art ? artElements(sl.art) : [], ac = sl.art ? artColor(sl.art) : null;
-    pane(x, y, s, s, ac);
+    const img = sl.potion ? null : icon('art', sl.icon); // the Art's own framed icon; Slash and Potion keep the drawn pane
+    if (img) hc.drawImage(img, x + Math.round((s - img.width) / 2), y + Math.round((s - img.height) / 2));
+    else pane(x, y, s, s, ac);
     if (sl.ready) { ring(x, y, s, s, '#ff963c'); ring(x - 1, y - 1, s + 2, s + 2, 'rgba(255,150,60,.45)'); }
     if (sl.potion) flask(cx - 7, cy - 7, P.potions > 0);
-    else slotSword(cx, cy + 1, ICON[sl.icon][0]);
+    else if (!img) slotSword(cx, cy + 1, ICON[sl.icon][0]);
     hc.globalAlpha = a;
     if (sl.cd > 0) { // the cooldown drains top-down in whole pixels
       const ch = Math.ceil((s - 2) * sl.cd);

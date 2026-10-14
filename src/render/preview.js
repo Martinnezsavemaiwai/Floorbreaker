@@ -2,6 +2,7 @@
 // previewFor is pure (tested); the DOM and the one shared rAF loop only exist between startPreviews and stopPreviews.
 import { G } from '../world/state.ts';
 import { ELEMENTS } from '../data/elements.ts';
+import { IMG, icon } from '../core/assets.ts';
 
 const LOOP = 1600, W = 160, H = 90, GROUND = 70, GOLD = '#ffe9a8';
 
@@ -21,6 +22,12 @@ const ph = (t, a, b) => Math.max(0, Math.min(1, (t - a) / (b - a)));
 const lerp = (a, b, k) => a + (b - a) * k;
 
 function char(g, x, lean = 0, alpha = 1) {
+  const img = IMG.player;
+  if (img) { // the hero himself, facing right (sheet column 3), feet on the ground line
+    const c = img.width / 4;
+    g.save(); g.globalAlpha = alpha; g.imageSmoothingEnabled = false; g.translate(x, GROUND + 3); g.rotate(lean);
+    g.drawImage(img, 3 * c, 0, c, c, -c / 2, -c, c, c); g.restore(); return;
+  }
   g.save(); g.globalAlpha = alpha; g.translate(x, GROUND); g.rotate(lean);
   g.fillStyle = '#d8dce8'; g.fillRect(-4, -22, 8, 14);          // body
   g.fillStyle = '#f2d2b0'; g.fillRect(-3, -30, 6, 7);           // head
@@ -112,11 +119,13 @@ const SCENES = {
     bar(g, 36, 126, GROUND - 14, c, 2, t > 0.15 && t < 0.3 ? 0.4 : 0);
     sparks(g, 118, GROUND - 24, hitK(t, 0.4), c); if (evo) sparks(g, 142, GROUND - 24, hitK(t, 0.8), c);
   },
-  element(g, t, evo, c) {   // no Art yet: a gem in the element's colour
+  element(g, t, evo, c, p) {   // no Art yet: the element's icon, or a gem in its colour
+    if (bigIcon(g, t, icon('element', p.el))) return;
     const s = 1 + 0.18 * Math.sin(t * 12.56); g.save(); g.translate(W / 2, 42); g.rotate(Math.PI / 4); g.scale(s, s);
     g.fillStyle = c; g.shadowColor = c; g.shadowBlur = 16; g.fillRect(-14, -14, 28, 28); g.restore();
   },
-  stat(g, t, evo, c) {      // generic for every stat: arrows rising and fading
+  stat(g, t, evo, c, p) {      // the stat's icon, or arrows rising and fading
+    if (bigIcon(g, t, icon('upgrade', p.stat))) return;
     for (let i = 0; i < 3; i++) {
       const k = (t + i / 3) % 1, y = 74 - k * 56; g.save(); g.globalAlpha = Math.sin(k * Math.PI); g.fillStyle = c;
       g.beginPath(); g.moveTo(W / 2, y - 12); g.lineTo(W / 2 + 12, y + 4); g.lineTo(W / 2 - 12, y + 4); g.fill(); g.restore();
@@ -124,11 +133,20 @@ const SCENES = {
   },
 };
 
+// An icon at 2x in the middle of the card, bobbing one pixel; false when the icon hasn't been imported
+function bigIcon(g, t, img) {
+  if (!img) return false;
+  g.imageSmoothingEnabled = false;
+  g.drawImage(img, Math.round(W / 2 - img.width), Math.round(H / 2 - img.height + (t < 0.5 ? 0 : -2)), img.width * 2, img.height * 2);
+  return true;
+}
 export function drawPreview(g, p, t) {
   const c = p.el ? ELEMENTS[p.el].color : GOLD;
   g.clearRect(0, 0, W, H); g.fillStyle = '#12141c'; g.fillRect(0, 0, W, H);
   g.fillStyle = '#242838'; g.fillRect(0, GROUND, W, H - GROUND);
-  (SCENES[p.art ?? (p.stat ? 'stat' : 'element')] ?? SCENES.element)(g, t, p.evolved, c);
+  (SCENES[p.art ?? (p.stat ? 'stat' : 'element')] ?? SCENES.element)(g, t, p.evolved, c, p);
+  const tag = p.art && icon('art', p.art); // the Art's icon in the corner names the Art at a glance
+  if (tag) { g.imageSmoothingEnabled = false; g.drawImage(tag, 4, 4); }
 }
 
 let raf = 0, items = [], t0 = 0;

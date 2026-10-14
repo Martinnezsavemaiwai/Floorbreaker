@@ -25,9 +25,21 @@ const loadImg = (n: string) => { const i = new Image(); i.src = `assets/${n}.png
 // Headless (Node tests) there is no Image: nothing loads and IMG stays empty, so systems may read IMG safely
 const headless = typeof Image === 'undefined';
 // art the game can do without (ChatGPT drafts in progress): a missing file just leaves IMG[name] unset
-const OPTIONAL = ['door', 'door-boss', 'shrine', 'portal', 'shots-1', 'shots-2', 'shots-3', 'shots-4', 'folk-1', 'folk-2', 'folk-3'];
+const many = (n: string, k: number) => Array.from({ length: k }, (_, i) => `${n}-${i + 1}`);
+const OPTIONAL = ['title-art', 'door', 'door-boss', 'shrine', 'portal', ...many('shots', 4), ...many('folk', 3),
+  ...many('icons-arts', 6), ...many('icons-upgrades', 9), ...many('icons-elements', 4), ...many('town-props', 10),
+  'house', 'stall', 'bird', 'gull', 'boss-gate', 'pillar', 'pillar-cracked', 'torch'];
 const optional = headless ? null : Promise.all(OPTIONAL.map(n => loadImg(n).then(img => { IMG[n] = img; }, () => {})));
 export const ready = headless ? Promise.resolve() : Promise.all([optional, ...[...SPRITES, ...SCENERY, 'sword', 'fog'].map(n => loadImg(n).then(img => {
   IMG[n] = img; IMG[n + 'White'] = tinted(img, 'source-in', '#fff');
   for (const [k, col] of Object.entries(TINTS[n] || {})) IMG[k] = tinted(img, 'multiply', col);
 }))]);
+
+// Card and slot icons (art-src/icons-*.png, imported left to right in these orders); undefined until imported
+const ICONS: Record<'art' | 'upgrade' | 'element', string[]> = {
+  art: ['sonicLeap', 'horizontal', 'vorpal', 'crescent', 'riposte', 'shade'],
+  upgrade: ['keenEdge', 'quickSlash', 'leapPower', 'leapCharge', 'vitality', 'lifesteal', 'swift', 'critical', 'secondWind'],
+  element: ['ember', 'storm', 'thorn', 'tide'],
+};
+const ICON_FILE: Record<keyof typeof ICONS, string> = { art: 'icons-arts', upgrade: 'icons-upgrades', element: 'icons-elements' };
+export const icon = (kind: keyof typeof ICONS, id: string) => { const i = ICONS[kind].indexOf(id); return i < 0 ? undefined : IMG[`${ICON_FILE[kind]}-${i + 1}`]; };

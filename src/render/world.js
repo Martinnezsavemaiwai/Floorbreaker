@@ -268,6 +268,11 @@ function drawArena() {
 
 // Stone block; a crack shows after the first hit
 function drawPillar(p) {
+  const art = IMG[p.hits > 0 ? 'pillar-cracked' : 'pillar'] ?? IMG.pillar;
+  if (art) { // the art stands on the footprint's bottom edge, its shadow right under the base
+    ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(p.x + p.w / 2, p.y + p.h - 4, p.w * 0.6, 10, 0, 0, 7); ctx.fill();
+    ctx.drawImage(art, Math.round(p.x + p.w / 2 - art.width / 2), Math.round(p.y + p.h - art.height)); return;
+  }
   shadow(p.x + p.w / 2, p.y + p.h, p.w * 0.6);
   ctx.fillStyle = '#6b6560'; ctx.fillRect(p.x, p.y - 44, p.w, p.h + 44);
   ctx.fillStyle = '#8a837c'; ctx.fillRect(p.x, p.y - 44, p.w, 14);
@@ -428,6 +433,7 @@ function drawTorches() {
   const torch = G.F.torch;
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   for (const [x, y] of G.L.torches) {
+    if (IMG.torch) { ctx.save(); ctx.globalCompositeOperation = 'source-over'; ctx.drawImage(IMG.torch, Math.round(x - IMG.torch.width / 2), Math.round(y - IMG.torch.height * 0.35)); ctx.restore(); }
     const r = 110 + Math.sin(G.time * 9 + x) * 8 + Math.random() * 4;
     const g = ctx.createRadialGradient(x, y, 0, x, y, r);
     g.addColorStop(0, `rgba(${torch},.35)`); g.addColorStop(1, `rgba(${torch},0)`);
@@ -439,6 +445,10 @@ function drawTorches() {
 function drawDoor() {
   const DOOR = G.L.door;
   if (!G.doorClosed || !DOOR) return;
+  if (IMG['boss-gate']) { // the portcullis art, stretched to the doorway, with a pulsing red glow behind it
+    ctx.save(); ctx.globalAlpha = 0.35 + 0.15 * Math.sin(G.time * 6); ctx.fillStyle = '#c81e1e'; ctx.fillRect(DOOR.x, DOOR.y, DOOR.w, DOOR.h); ctx.restore();
+    ctx.drawImage(IMG['boss-gate'], DOOR.x, DOOR.y, DOOR.w, DOOR.h); return;
+  }
   ctx.save(); ctx.shadowColor = '#ff3030'; ctx.shadowBlur = 20;
   ctx.fillStyle = `rgba(200,30,30,${0.6 + 0.2 * Math.sin(G.time * 6)})`; ctx.fillRect(DOOR.x, DOOR.y, DOOR.w, DOOR.h);
   ctx.strokeStyle = '#ff8a80'; ctx.lineWidth = 2;
@@ -530,7 +540,7 @@ function archPath(x, y, w, h) { // round-topped doorway filling the rect
 function drawDoors() {
   for (const d of G.doors) {
     const [col, name] = doorLook(d), cx = d.x + d.w / 2, cy = d.y + d.h / 2;
-    const near = 0.55 + 0.45 * clamp((260 - Math.hypot(G.P.x - cx, G.P.y - cy)) / 80, 0, 1); // readable from across the room, full when close
+    const near = 0.85 + 0.15 * clamp((260 - Math.hypot(G.P.x - cx, G.P.y - cy)) / 80, 0, 1); // readable from across the room, full when close
     const glow = (0.55 + 0.2 * Math.sin(G.time * 3 + d.y)) * (d.armed ? 1 : 0.45);
     ctx.save();
     ctx.globalAlpha = d.armed ? 1 : 0.7;
@@ -636,7 +646,6 @@ export function drawWorld() {
   const { P, cam } = G;
   followCam(cam, P, G.L);
   ctx.imageSmoothingEnabled = false;
-  ctx.fillStyle = '#07080b'; ctx.fillRect(0, 0, W, H); // past the map edge
   const sx = (Math.random() - 0.5) * G.shake, sy = (Math.random() - 0.5) * G.shake;
   ctx.save(); ctx.translate(Math.round(-cam.x + sx), Math.round(-cam.y + sy));
   ctx.drawImage(bg, 0, 0);

@@ -6,6 +6,7 @@ import { actOf } from '../data/run.ts';
 import { on } from '../core/events.ts';
 import { ctx, FT } from './canvas.js';
 import { drawText } from './pixel.js';
+import { IMG } from '../core/assets.ts';
 import { REDUCED } from './anim.js';
 
 const GLASS = ['#ff963c', '#a688ff', '#78ff96', '#5ac8ff']; // --firstlight --hornfield --mistwell --canalis
@@ -141,10 +142,25 @@ const DRAW = {
   },
 };
 
+// Imported prop art (art-src/house.png, stall.png, town-props.png): [image, scale]. The sprite stands bottom-centre on
+// the prop's footprint; props without art keep their drawn version.
+const PROP_ART = { house: ['house', 1], stall: ['stall', 1], barrel: ['town-props-1', 1], crate: ['town-props-2', 1], sacks: ['town-props-3', 1],
+  bench: ['town-props-4', 1], lamp: ['town-props-5', 1], board: ['town-props-6', 1], planter: ['town-props-7', 1], hay: ['town-props-8', 1],
+  mooring: ['town-props-9', 1], cart: ['town-props-10', 2] }; // the cart is the one big piece of a small-scale sheet
+const propArt = p => { const [n, k] = PROP_ART[p.kind] ?? []; return IMG[n] ? { img: IMG[n], k } : null; };
+function drawProp(g, p, A) {
+  const art = propArt(p);
+  if (!art) return DRAW[p.kind]?.(g, p, A);
+  const w = art.img.width * art.k, h = art.img.height * art.k;
+  if (p.kind !== 'house') shade(g, p);
+  g.imageSmoothingEnabled = false;
+  g.drawImage(art.img, Math.round(p.x + p.w / 2 - w / 2), Math.round(p.y + p.h - h), w, h);
+}
+
 // ---- the floor background: low props, sorted by y so lower ones overlap higher ones ----
 export function bakeLow(g, props, act) {
   const A = pal(act);
-  for (const p of props.filter(q => !q.tall).sort((a, b) => a.y + a.h - (b.y + b.h))) DRAW[p.kind]?.(g, p, A);
+  for (const p of props.filter(q => !q.tall).sort((a, b) => a.y + a.h - (b.y + b.h))) drawProp(g, p, A);
   const hs = props.filter(q => q.kind === 'house');
   if (hs.length === 4) banner(g, (hs[1].x + hs[1].w + hs[2].x) / 2, A);
 }
@@ -168,7 +184,7 @@ function prerenderTall(props, act) {
     if (!p.tall) continue;
     const c = document.createElement('canvas'); c.width = p.w + PAD.x * 2; c.height = PAD.up + p.h + PAD.down;
     const g = c.getContext('2d'); g.translate(PAD.x - p.x, PAD.up - p.y); g.imageSmoothingEnabled = false;
-    DRAW[p.kind]?.(g, p, A); tall.set(p, c);
+    drawProp(g, p, A); tall.set(p, c);
   }
 }
 on('floorLoaded', i => prerenderTall(G.L.props ?? [], actOf(i)));
@@ -177,7 +193,14 @@ export const tallProps = () => tallList;
 export function drawTall(p) {
   const c = tall.get(p); if (!c) return;
   ctx.drawImage(c, p.x - PAD.x, p.y - PAD.up);
-  const A = tallA, t = G.time, k = REDUCED ? 0.5 : 1;
+  const A = tallA, t = G.time, k = REDUCED ? 0.5 : 1, art = propArt(p);
+  if (art) { // the art has its own lantern: just let it breathe light
+    if (p.kind !== 'lamp' && p.kind !== 'stall') return;
+    const lx = p.kind === 'lamp' ? p.x + p.w / 2 : p.x + p.w / 2 + art.img.width * 0.48, ly = p.kind === 'lamp' ? p.y + p.h - art.img.height + 10 : p.y + p.h - art.img.height * 0.55;
+    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.14 + 0.04 * Math.sin(t * 9 + p.x) * k;
+    ctx.fillStyle = '#ffb04a'; ctx.beginPath(); ctx.arc(lx, ly, 26, 0, 7); ctx.fill(); ctx.restore();
+    return;
+  }
   if (p.kind === 'lamp') { // flame flicker and a soft glow
     const fx = p.x + 6, fy = p.y - 70, f = 1 + Math.sin(t * 9 + p.x) * 0.15 * k;
     ctx.save(); ctx.globalAlpha = 0.16; ctx.fillStyle = A.g; ctx.beginPath(); ctx.arc(fx, fy, 30 * f, 0, 7); ctx.fill();

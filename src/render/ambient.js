@@ -2,6 +2,7 @@
 import { G } from '../world/state.ts';
 import { W, H } from '../world/constants.ts';
 import { ctx } from './canvas.js';
+import { IMG } from '../core/assets.ts';
 import { actOf } from '../data/run.ts';
 import { GRASS } from '../systems/ambient.js';
 
@@ -32,6 +33,11 @@ function draw(c) {
     case 'bubble': ctx.strokeStyle = 'rgba(200,240,255,.8)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, 1.5 + Math.min(c.t, 1.5) * 1.2, 0, 7); ctx.stroke(); break;
     case 'spray': ctx.globalAlpha = Math.min(1, c.life); ctx.fillStyle = '#d6f2ff'; ctx.fillRect(x, y, 2, 2); ctx.globalAlpha = 1; break;
     case 'gull': {
+      if (IMG.gull) {
+        const g = IMG.gull, cs = g.height;
+        ctx.save(); ctx.translate(Math.round(x), Math.round(y)); if (c.vx > 0) ctx.scale(-1, 1);
+        ctx.drawImage(g, (Math.sin(t * 8 + phase) > 0 ? 0 : 1) * cs, 0, cs, cs, -cs / 2, -cs / 2, cs, cs); ctx.restore(); break;
+      }
       const f = Math.sin(t * 8 + phase) * 3; ctx.strokeStyle = '#f2f2f2'; ctx.lineWidth = 2; ctx.beginPath();
       ctx.moveTo(x - 9, y + f); ctx.lineTo(x, y); ctx.lineTo(x + 9, y + f); ctx.stroke(); break;
     }
@@ -62,6 +68,13 @@ export const drawAmbientAir = () => { drawSet(false); drawBirdsAir(); };
 
 // birds: perched ones are a body + head with a peck bob; flying ones flap a two-frame V and cast a fading shadow
 function drawBird(b) {
+  const img = IMG.bird;
+  if (img && b.flying) { // two-frame strip facing left; flipped when flying right
+    const c = img.height, f = Math.sin(G.time * 24 + b.x) > 0 ? 0 : 1;
+    ctx.globalAlpha = Math.max(0, 0.3 * (1 - b.z / 220)); ctx.fillStyle = '#000'; ctx.fillRect(b.x - 4, b.y, 8, 2); ctx.globalAlpha = 1;
+    ctx.save(); ctx.translate(Math.round(b.x), Math.round(b.y - b.z)); if (b.vx > 0) ctx.scale(-1, 1);
+    ctx.drawImage(img, f * c, 0, c, c, -c / 2, -c / 2, c, c); ctx.restore(); return;
+  }
   ctx.save(); ctx.translate(b.x, b.y); ctx.scale(1.6, 1.6); ctx.translate(-b.x, -b.y); drawBird1(b); ctx.restore();
 }
 function drawBird1(b) {

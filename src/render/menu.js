@@ -140,22 +140,44 @@ function buildGlass() {
 // Text set small in Exo 2 with a hard alpha threshold, so scaling it up with smoothing off gives real pixel
 // letterforms from the game's own face
 function pixelText(text, size, fill) {
-  const c = document.createElement('canvas'), g = c.getContext('2d');
+  // outline thickness grows with the size, plus a solid drop shadow, so the name holds up over busy key art
+  const o = Math.max(1, Math.round(size / 16)), pad = o * 2 + 3, c = document.createElement('canvas'), g = c.getContext('2d', { willReadFrequently: true });
   g.font = `800 ${size}px ${FN}`;
-  c.width = Math.ceil(g.measureText(text).width + 6); c.height = size + 8;
+  c.width = Math.ceil(g.measureText(text).width + pad * 2); c.height = size + pad * 2 + 2;
   g.font = `800 ${size}px ${FN}`; g.textBaseline = 'top'; g.textAlign = 'left';
-  g.fillStyle = LEAD; for (const [ox, oy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [1, 1]]) g.fillText(text, 3 + ox, 4 + oy);
-  const bands = g.createLinearGradient(0, 4, 0, 4 + size);
+  g.fillStyle = 'rgba(7,8,11,.9)'; g.fillText(text, pad + o + 1, pad + o + 2); // drop shadow
+  g.fillStyle = LEAD;
+  for (let ox = -o; ox <= o; ox++) for (let oy = -o; oy <= o; oy++) if (Math.abs(ox) + Math.abs(oy) <= o + 1) g.fillText(text, pad + ox, pad + oy);
+  const bands = g.createLinearGradient(0, pad, 0, pad + size);
   fill.forEach((col, k) => { bands.addColorStop(k / fill.length, col); bands.addColorStop((k + 1) / fill.length - 0.001, col); });
-  g.fillStyle = bands; g.fillText(text, 3, 4);
+  g.fillStyle = bands; g.fillText(text, pad, pad);
   const d = g.getImageData(0, 0, c.width, c.height), px = d.data;
   for (let i = 3; i < px.length; i += 4) px[i] = px[i] > 110 ? 255 : 0;
   g.putImageData(d, 0, 0);
   return c;
 }
-const buildLogo = () => pixelText('FLOORBREAKER', 20, ['#fff8e8', '#f4ecd8', '#ffd9a0', '#ffb062', '#ff963c']);
+const buildLogo = () => pixelText('FLOORBREAKER', 40, ['#fff8e8', '#f4ecd8', '#ffd9a0', '#ffb062', '#ff963c']);
+
+// With key art (art-src/title-art.png) the painting fills the screen. Its tower already climbs through the four
+// floor colours, so the progress windows are left out (the best-record line under the menu still says how far you got).
+// The picture is lifted by ART_LIFT of its height: the hero stands above the menu panes instead of behind them.
+const ART_LIFT = 0.1;
+function drawArtBg(art) {
+  logo ??= buildLogo();
+  ctx.save(); ctx.imageSmoothingEnabled = false;
+  const lift = Math.round(art.height * ART_LIFT);
+  ctx.drawImage(art, 0, lift, art.width, art.height - lift, 0, 0, W, H - lift * S);
+  ctx.drawImage(art, 0, art.height - 1, art.width, 1, 0, H - lift * S, W, lift * S); // the plaza's last row fills the gap
+  [[0, 0.3], [0.17, 0.18], [0.24, 0.08]].forEach(([y, a], k, l) => { ctx.fillStyle = `rgba(7,8,11,${a})`; ctx.fillRect(0, H * y, W, H * ((l[k + 1]?.[0] ?? 0.28) - y)); }); // shade the sky under the name
+  // the menu stands on the lower band: darken it in three steps so the panes read on any painting
+  [[0.62, 0.18], [0.7, 0.32], [0.82, 0.5]].forEach(([y, a]) => { ctx.fillStyle = `rgba(7,8,11,${a})`; ctx.fillRect(0, H * y, W, H * (1 - y)); });
+  const lw = logo.width * 2, lh = logo.height * 2;
+  ctx.drawImage(logo, Math.round((W - lw) / 2), 22 * S + Math.round((42 * S - lh) / 2), lw, lh);
+  ctx.restore();
+}
 
 export function drawMenuBg() {
+  if (IMG['title-art']) return drawArtBg(IMG['title-art']);
   buf ??= buildGlass();
   logo ??= buildLogo();
   ctx.save(); ctx.imageSmoothingEnabled = false;
@@ -176,7 +198,7 @@ export function drawMenuBg() {
     drawText(ctx, i < reached ? FLOORS[i].town.toUpperCase().split('').join(' ') : '? ? ?', (lancetX(i) + LANCET.w / 2) * S, (LANCET.foot - 9) * S + 5,
       { size: 15, weight: 800, color: i < reached ? `rgb(${r},${gr},${b})` : '#4a4d5c', align: 'center', outline: null });
   }
-  const lw = logo.width * 4, lh = logo.height * 4;
+  const lw = logo.width * 2, lh = logo.height * 2;
   ctx.drawImage(logo, Math.round((W - lw) / 2), 22 * S + Math.round((42 * S - lh) / 2), lw, lh);
   ctx.restore();
 }
@@ -210,10 +232,10 @@ export function drawIntro() {
   ctx.fillStyle = '#07080b'; ctx.fillRect(0, 0, W, H);
   // the first floor's name, waiting behind the glass
   const act = actOf(G.introFloor), [r, gr, b] = torch(act);
-  if (titleAct !== act) { title = pixelText(FLOORS[act].town.toUpperCase(), 20, ['#fff8e8', rgbK([r, gr, b], 1.3), `rgb(${r},${gr},${b})`]); titleAct = act; }
+  if (titleAct !== act) { title = pixelText(FLOORS[act].town.toUpperCase(), 40, ['#fff8e8', rgbK([r, gr, b], 1.3), `rgb(${r},${gr},${b})`]); titleAct = act; }
   const show = clamp((t - 0.7) * 2.5, 0, 1);
   ctx.save(); ctx.imageSmoothingEnabled = false; ctx.globalAlpha = show;
-  const tw = title.width * 4, th = title.height * 4;
+  const tw = title.width * 2, th = title.height * 2;
   ctx.drawImage(title, Math.round((W - tw) / 2), Math.round(H / 2 - th / 2 - 10), tw, th);
   drawText(ctx, `T H E   S P I R E   ·   ${G.introFloor + 1}`, W / 2, H / 2 + th / 2 + 18, { size: 16, weight: 800, color: '#b9b2a2', align: 'center', outline: null });
   ctx.restore();
