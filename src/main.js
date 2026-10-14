@@ -89,8 +89,8 @@ const focusables = () => /** @type {HTMLElement[]} */ ([...(document.querySelect
   'button:not([hidden]):not([disabled]), input, select, [role=tab][aria-selected=true]') ?? []]).filter(el => el.offsetParent); // visible only
 function padMenu(btn) {
   const list = focusables(), el = /** @type {HTMLElement} */ (document.activeElement), i = list.indexOf(el);
-  if (btn === PAD.A) return i < 0 ? list[0]?.focus() : el.click();
-  if (btn === PAD.B || btn === 9) return dialogOpen() ? /** @type {HTMLDialogElement} */ ($('confirm')).close('cancel') : back();
+  if (btn === PAD.A) return i < 0 ? list[0]?.focus() : el.id === 'name-input' ? /** @type {HTMLDialogElement} */ ($('name-dialog')).close('ok') : el.click(); // A on the name box = keep it and go
+  if (btn === PAD.B || btn === 9) return dialogOpen() ? /** @type {HTMLDialogElement} */ (document.querySelector('dialog[open]')).close('cancel') : back();
   const step = btn === PAD.UP || btn === PAD.LEFT ? -1 : btn === PAD.DOWN || btn === PAD.RIGHT ? 1 : 0;
   if (!step) return;
   if (el instanceof HTMLInputElement && el.type === 'range' && (btn === PAD.LEFT || btn === PAD.RIGHT)) { // sliders take left/right
