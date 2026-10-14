@@ -199,9 +199,19 @@ function drawGuard(m, x, y) {
   ctx.restore();
 }
 
+// Shot sprites point right; they turn to face where they fly (stones and water drops just spin a little)
+const SHOT_IMG = { stone: 'shots-1', javelin: 'shots-2', bolt: 'shots-3', water: 'shots-4' };
 function drawShots() {
+  for (const s of G.shots) {
+    const img = IMG[SHOT_IMG[s.kind]];
+    if (!img) continue;
+    const a = s.kind === 'stone' ? G.time * 12 : Math.atan2(s.vy, s.vx);
+    ctx.save(); ctx.translate(Math.round(s.x), Math.round(s.y)); ctx.rotate(a);
+    ctx.drawImage(img, -Math.round(img.width / 2), -Math.round(img.height / 2)); ctx.restore();
+  }
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   for (const s of G.shots) {
+    if (IMG[SHOT_IMG[s.kind]]) continue;
     ctx.shadowColor = s.col; ctx.shadowBlur = 14; ctx.fillStyle = s.col;
     ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 7); ctx.fill();
     ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(s.x, s.y, s.r * 0.45, 0, 7); ctx.fill();
@@ -444,9 +454,20 @@ const DOOR_LOOK = {
 function drawShrine() {
   const s = G.L.shrine, used = G.room?.shrineUsed, glow = used ? 0.15 : 0.6 + 0.25 * Math.sin(G.time * 3);
   shadow(s.x, s.y, 22);
-  ctx.fillStyle = '#4a4d5c'; ctx.fillRect(s.x - 22, s.y - 18, 44, 22); ctx.fillStyle = '#5f6375'; ctx.fillRect(s.x - 16, s.y - 30, 32, 14);
-  ctx.save(); ctx.globalAlpha = glow; ctx.shadowColor = '#a688ff'; ctx.shadowBlur = used ? 0 : 18; ctx.fillStyle = '#c9b6ff';
-  ctx.beginPath(); ctx.moveTo(s.x, s.y - 62); ctx.lineTo(s.x + 9, s.y - 44); ctx.lineTo(s.x, s.y - 30); ctx.lineTo(s.x - 9, s.y - 44); ctx.closePath(); ctx.fill(); ctx.restore();
+  const img = IMG.shrine;
+  if (img) { // the altar sprite stands on (s.x, s.y); a used shrine goes grey, a live one breathes violet light
+    ctx.save(); if (used) ctx.filter = 'saturate(0.2) brightness(0.7)';
+    ctx.drawImage(img, Math.round(s.x - img.width / 2), Math.round(s.y + 8 - img.height)); ctx.restore();
+    if (!used) {
+      const cy = s.y + 8 - img.height * 0.75, g = ctx.createRadialGradient(s.x, cy, 0, s.x, cy, 46);
+      g.addColorStop(0, `rgba(166,136,255,${0.35 * glow})`); g.addColorStop(1, 'rgba(166,136,255,0)');
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.fillRect(s.x - 46, cy - 46, 92, 92); ctx.restore();
+    }
+  } else {
+    ctx.fillStyle = '#4a4d5c'; ctx.fillRect(s.x - 22, s.y - 18, 44, 22); ctx.fillStyle = '#5f6375'; ctx.fillRect(s.x - 16, s.y - 30, 32, 14);
+    ctx.save(); ctx.globalAlpha = glow; ctx.shadowColor = '#a688ff'; ctx.shadowBlur = used ? 0 : 18; ctx.fillStyle = '#c9b6ff';
+    ctx.beginPath(); ctx.moveTo(s.x, s.y - 62); ctx.lineTo(s.x + 9, s.y - 44); ctx.lineTo(s.x, s.y - 30); ctx.lineTo(s.x - 9, s.y - 44); ctx.closePath(); ctx.fill(); ctx.restore();
+  }
   if (used) return;
   const name = tr('ศาลเจ้า', 'Shrine'), tag = nearShrine() ? `[${keyLabel('interact')}] ${name}` : name;
   drawText(ctx, tag, s.x, s.y - 72, { size: 13, font: FT, color: nearShrine() ? '#e7dcff' : '#fff', align: 'center' });
@@ -538,6 +559,8 @@ function drawPortal() {
   const portal = G.portal;
   if (!portal) return;
   const k = 1 - Math.max(0, portal.wait) / BOSS_RULES.portalDelay; // grows open while it can't be entered yet
+  const img = IMG.portal; // the stone ring on the floor; the light swirls inside it
+  if (img) { ctx.drawImage(img, Math.round(portal.x - img.width / 2), Math.round(portal.y - img.height / 2)); }
   ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.translate(portal.x, portal.y); ctx.scale(k, k);
   for (let i = 0; i < 3; i++) {
     ctx.rotate(G.time * (1 + i * 0.5));
