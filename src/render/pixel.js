@@ -1,6 +1,7 @@
 // Pixel UI kit for the canvas HUD. Shapes are drawn into a half-resolution buffer (1 HUD px = 2 screen px) and
 // scaled up with smoothing off, so every edge lands on the same pixel grid as the sprites. Text is set at screen
-// resolution with a hard alpha threshold and a solid outline: crisp like pixel type, but Thai stays readable.
+// resolution with a solid outline and whole-pixel placement. The font keeps its own edge smoothing: a hard
+// threshold looked more pixel-like but broke Thai vowel and tone marks into fragments.
 // The look is the title's "Spire glass" in pixels: lead outline, dark glass, one bevel row, a lit accent.
 import { W, H } from '../world/constants.ts';
 import { ctx, FN } from './canvas.js';
@@ -63,24 +64,25 @@ export function coin(x, y) {
   hc.fillStyle = '#ffd35a'; hc.fillRect(x + 1, y + 1, 4, 4); hc.fillStyle = '#b8862a'; hc.fillRect(x + 2, y + 2, 2, 2); hc.fillStyle = '#fff6c8'; hc.fillRect(x + 1, y + 1, 1, 1);
 }
 
-// ---------- crisp text ----------
+// ---------- text ----------
 const cache = new Map();
+// Text drawn while a webfont (or one of its subsets, like Thai) is still loading comes out partly invisible;
+// rebuild every glyph once a font arrives, or those broken glyphs stay cached for the whole session
+document.fonts?.addEventListener('loadingdone', () => cache.clear());
 function glyphs(text, font, color, outline) {
   const key = `${font}|${color}|${outline}|${text}`;
   let c = cache.get(key);
   if (c) return c;
   if (cache.size > 400) cache.clear(); // HP numbers and timers churn; a full flush is cheap
   c = document.createElement('canvas');
-  const g = c.getContext('2d'); g.font = font;
+  // CPU-backed: hundreds of cached GPU canvases get evicted by Chrome and come back with glyphs missing
+  const g = c.getContext('2d', { willReadFrequently: true }); g.font = font;
   const m = g.measureText(text), size = parseInt(font.match(/(\d+)px/)[1], 10);
   c.width = Math.ceil(m.width) + 6; c.height = Math.ceil(size * 1.6) + 6;
   g.font = font; g.textBaseline = 'alphabetic';
   const bx = 3, by = Math.ceil(size * 1.15) + 3;
   if (outline) { g.fillStyle = outline; for (let ox = -2; ox <= 2; ox++) for (let oy = -2; oy <= 2; oy++) if (Math.abs(ox) + Math.abs(oy) <= 3) g.fillText(text, bx + ox, by + oy); }
   g.fillStyle = color; g.fillText(text, bx, by);
-  const d = g.getImageData(0, 0, c.width, c.height), px = d.data;
-  for (let i = 3; i < px.length; i += 4) px[i] = px[i] > 100 ? 255 : 0;
-  g.putImageData(d, 0, 0);
   c.base = by; cache.set(key, c);
   return c;
 }
