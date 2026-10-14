@@ -61,7 +61,8 @@ export function hurtEnemy(e, d, big, crit = false, art = null) {
 // Death of a mob or the boss: shared by hits and damage-over-time
 export function kill(e) {
   const { F, boss, run } = G;
-  if (e.dead === Infinity) return;
+  // run.over: the player died earlier this frame (a shot lands before the boss's burn ticks); no rewards, no win
+  if (e.dead === Infinity || run.over) return;
   if (!e.sprout) onElementKill(e); // sprouts are props: no Ember blast, no Thorn heal
   if (e === boss) {
     e.dead = Infinity;

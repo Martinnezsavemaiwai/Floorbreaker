@@ -1,7 +1,8 @@
 // Focused checks of individual mechanics, each in a quiet arena (mobs removed) on a fresh seeded run.
 import { describe, it, expect, beforeEach } from 'vitest';
 import { G, STEP, startRun, frame, enterRoom, enterBoss } from './harness.ts';
-import { attack, skill, roll, hurtPlayer, startBossMove } from '../src/systems/index.js';
+import { attack, skill, roll, hurtPlayer, startBossMove, updateGame } from '../src/systems/index.js';
+import { on } from '../src/core/events.ts';
 import { keys, mouse } from '../src/core/input.ts';
 import { gainXp } from '../src/systems/combat.js';
 import { loadFloor } from '../src/world/floor.ts';
@@ -111,6 +112,19 @@ describe('boss', () => {
     const hp = G.P!.hp;
     startBossMove('slam'); frames(Math.ceil(MOVES.slam.wind[0] * 60) + 2);
     expect(G.P!.hp).toBe(hp);
+  });
+
+  // updateMobs (shots) runs before updateBoss (burn ticks): both can die in one step
+  it('a player killed on the final floor stays dead when the boss burns out the same frame', () => {
+    quietField(); enterBoss(19);
+    const P = G.P!, b = G.boss!, lv = P.lv, overs: unknown[] = [];
+    b.awake = true; G.doorClosed = true;
+    P.x = b.x - 200; P.y = b.y; P.hp = 1; P.inv = 0;
+    b.hp = 3; b.burn = { t: 2, dps: 50, stacks: 1 }; b.dotAcc = 10; b.dotTick = 0;
+    G.shots = [{ x: P.x, y: P.y, vx: 0, vy: 0, r: 8, dmg: 50, col: '#6fd8ff', life: 1 }];
+    on('runOver', e => overs.push(e));
+    updateGame(STEP);
+    expect({ over: G.run!.over, hp: P.hp, lv: P.lv, runOver: overs }).toEqual({ over: 'dead', hp: 0, lv, runOver: [{ cleared: false }] });
   });
 });
 
