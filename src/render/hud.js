@@ -80,6 +80,8 @@ function drawBossBar() {
 
 function flask(x, y, full) {
   hc.globalAlpha *= full ? 1 : 0.4;
+  const img = IMG.potion; // the potion sprite, centred on the drawn flask's 14 px box
+  if (img) { hc.drawImage(img, x + Math.round((14 - img.width) / 2), y + Math.round((14 - img.height) / 2)); hc.globalAlpha = 1; return; }
   hc.fillStyle = LEAD; hc.fillRect(x + 4, y, 6, 4); hc.fillRect(x + 1, y + 4, 12, 10); hc.fillRect(x + 2, y + 3, 10, 12);
   hc.fillStyle = '#b8642a'; hc.fillRect(x + 5, y + 1, 4, 2);                 // cork
   hc.fillStyle = '#e8eef7'; hc.fillRect(x + 2, y + 5, 10, 8); hc.fillRect(x + 3, y + 4, 8, 10);

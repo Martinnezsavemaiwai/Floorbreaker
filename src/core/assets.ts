@@ -29,7 +29,7 @@ const many = (n: string, k: number) => Array.from({ length: k }, (_, i) => `${n}
 const OPTIONAL = ['title-art', 'door', 'door-boss', 'shrine', 'portal', ...many('shots', 4), ...many('folk', 3),
   ...many('icons-arts', 6), ...many('icons-upgrades', 9), ...many('icons-elements', 4), ...many('town-props', 10),
   'house', 'stall', 'bird', 'gull', 'boss-gate', 'pillar', 'pillar-cracked', 'torch', 'rock', 'root-sprout', 'lanterns',
-  ...many('coin', 4), ...many('xp-orb', 4)];
+  ...many('coin', 4), ...many('xp-orb', 4), 'potion', 'platform', 'moss', ...many('icons-shop', 3), ...many('icons-shrine', 4)];
 const optional = headless ? null : Promise.all(OPTIONAL.map(n => loadImg(n).then(img => { IMG[n] = img; }, () => {})));
 export const ready = headless ? Promise.resolve() : Promise.all([optional, ...[...SPRITES, ...SCENERY, 'sword', 'fog'].map(n => loadImg(n).then(img => {
   IMG[n] = img; IMG[n + 'White'] = tinted(img, 'source-in', '#fff');

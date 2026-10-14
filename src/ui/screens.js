@@ -3,7 +3,7 @@ import { G } from '../world/state.ts';
 import { meta, saveMeta, loadSuspend, takeLegacyNotice } from '../core/save.ts';
 import { on, emit } from '../core/events.ts';
 import { keyLabel } from '../core/input.ts';
-import { FLOOR_COUNT, SHRINE, ROOM_RULES } from '../data/run.ts';
+import { FLOOR_COUNT, SHRINE, SHRINE_IDS, ROOM_RULES } from '../data/run.ts';
 import { floorLabel } from '../world/floor.ts';
 import { UPGRADES } from '../data/upgrades.ts';
 import { SHOP } from '../data/shop.ts';
@@ -16,6 +16,7 @@ import { awardShards, isUnlocked, unlockSkill } from '../systems/meta.js';
 import { SFX } from '../audio/audio.js';
 import { t, tr } from '../core/i18n.ts';
 import { previewFor, startPreviews } from '../render/preview.js';
+import { IMG } from '../core/assets.ts';
 
 export const $ = id => /** @type {any} */ (document.getElementById(id)); // DOM ids come from index.html
 const fmtTime = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
@@ -126,6 +127,8 @@ export function showPicker(kind, cards) {
 }
 
 // Shop: one card per item with its price; cards you can't afford are disabled, not hidden
+// Shop and shrine card art (art-src/icons-shop.png, icons-shrine.png); nothing until imported
+const cardIcon = (/** @type {string} */ n) => { const img = IMG[n]; return img instanceof HTMLImageElement ? `<img class="ico" src="${img.src}" alt="">` : ''; };
 export function renderShop(status = '', line = '') {
   const P = G.P;
   $('shop-col').textContent = tr(`มี ${P.col} Gold`, `${P.col} Gold`) + ` · Potion ${P.potions}/${SHOP.potion.max}`;
@@ -134,7 +137,7 @@ export function renderShop(status = '', line = '') {
     const full = id === 'potion' && P.potions >= it.max, ok = canBuy(id), cost = full ? tr('เต็มแล้ว', 'Full') : price(id) + ' Gold';
     return `<button class="card" data-buy="${id}" ${ok ? '' : 'aria-disabled="true"'}
       aria-label="${i + 1}: ${it.name}, ${cost}. ${t(it.desc)}">
-      <kbd>${i + 1}</kbd><b>${it.name}</b><span>${t(it.desc)}</span><span class="price">${cost}</span></button>`;
+      <kbd>${i + 1}</kbd>${cardIcon(`icons-shop-${Object.keys(SHOP).indexOf(id) + 1}`)}<b>${it.name}</b><span>${t(it.desc)}</span><span class="price">${cost}</span></button>`;
   }).join('');
   $('shop-status').textContent = status;
   if (line) $('shop-line').textContent = line;
@@ -145,7 +148,7 @@ export function renderShrine() {
   $('shrine-offers').innerHTML = (G.room?.offers ?? []).map((id, i) => {
     const o = SHRINE[id], ok = canTake(id);
     return `<button class="card" data-offer="${id}" ${ok ? '' : 'aria-disabled="true"'} aria-label="${i + 1}: ${t(o.cost)}. ${t(o.gain)}">
-      <kbd>${i + 1}</kbd><b>${t(o.gain)}</b><span>${t(o.cost)}</span></button>`;
+      <kbd>${i + 1}</kbd>${cardIcon(`icons-shrine-${SHRINE_IDS.indexOf(id) + 1}`)}<b>${t(o.gain)}</b><span>${t(o.cost)}</span></button>`;
   }).join('');
 }
 

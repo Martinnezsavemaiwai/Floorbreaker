@@ -253,18 +253,23 @@ function drawArena() {
   if (A.id === 'flood') {
     const F = ARENA.flood, f = A.flood, L = G.L, rx = L.roomX, rw = L.w - rx;
     const plats = () => { for (const [x, y] of F.platforms) { ctx.beginPath(); ctx.arc(x, y, F.platR, 0, 7); ctx.fill(); } };
+    // the platform art is a 3/4-view disc: the water's hole follows its ellipse (the safe circle is a little larger)
+    const art = IMG.platform, ry = art ? F.platR * art.height / art.width : F.platR;
     if (f.on > 0) { // water everywhere except the platforms
       ctx.save(); ctx.beginPath(); ctx.rect(rx, 0, rw, L.h);
-      for (const [x, y] of F.platforms) { ctx.moveTo(x + F.platR, y); ctx.arc(x, y, F.platR, 0, 7, true); }
+      for (const [x, y] of F.platforms) { ctx.moveTo(x + F.platR, y); ctx.ellipse(x, y, F.platR, ry, 0, 0, 7, true); }
       ctx.clip('evenodd');
       ctx.fillStyle = 'rgba(40,110,190,.42)'; ctx.fillRect(rx, 0, rw, L.h);
       ctx.strokeStyle = 'rgba(190,230,255,.35)'; ctx.lineWidth = 2;
       for (let y = 20; y < L.h; y += 36) { ctx.beginPath(); for (let x = rx; x <= L.w; x += 20) ctx.lineTo(x, y + Math.sin(x / 38 + G.time * 3 + y) * 5); ctx.stroke(); }
       ctx.restore();
     }
-    ctx.fillStyle = '#6f6a63'; plats(); // stone discs, drawn over the water
-    ctx.strokeStyle = '#4e4945'; ctx.lineWidth = 4; for (const [x, y] of F.platforms) { ctx.beginPath(); ctx.arc(x, y, F.platR, 0, 7); ctx.stroke(); }
-    ctx.strokeStyle = '#8a837c'; ctx.lineWidth = 2; for (const [x, y] of F.platforms) { ctx.beginPath(); ctx.arc(x, y, F.platR * 0.6, 0, 7); ctx.stroke(); }
+    if (art) for (const [x, y] of F.platforms) ctx.drawImage(art, Math.round(x - art.width / 2), Math.round(y - art.height / 2));
+    else {
+      ctx.fillStyle = '#6f6a63'; plats(); // stone discs, drawn over the water
+      ctx.strokeStyle = '#4e4945'; ctx.lineWidth = 4; for (const [x, y] of F.platforms) { ctx.beginPath(); ctx.arc(x, y, F.platR, 0, 7); ctx.stroke(); }
+      ctx.strokeStyle = '#8a837c'; ctx.lineWidth = 2; for (const [x, y] of F.platforms) { ctx.beginPath(); ctx.arc(x, y, F.platR * 0.6, 0, 7); ctx.stroke(); }
+    }
     if (f.warn > 0) { // blue creeping in from the room edges
       const k = 1 - f.warn / F.warn, g = ctx.createRadialGradient(rx + rw / 2, L.h / 2, 150, rx + rw / 2, L.h / 2, rw * 0.62);
       g.addColorStop(0, 'rgba(60,140,230,0)'); g.addColorStop(1, `rgba(60,140,230,${0.55 * k})`);

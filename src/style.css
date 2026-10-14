@@ -224,6 +224,8 @@ dialog.dialog .btn{justify-content:center}
   box-shadow:var(--bevel-lit);animation:light .18s steps(2,end)}
 .card canvas{width:100%;height:auto;aspect-ratio:16/9;image-rendering:pixelated;border:var(--px) solid var(--lead);outline:var(--px) solid var(--glass);outline-offset:calc(var(--px) * -2);display:block}
 .card kbd{justify-self:start}
+.card .ico{position:absolute;top:10px;right:10px;width:56px;height:56px;object-fit:contain;image-rendering:pixelated}
+.card:has(.ico){padding-right:76px}
 .card b{font:600 17px var(--font)}
 .card span{color:var(--ink-2)}
 .card:hover span,.card:focus-visible span{color:var(--lead)}

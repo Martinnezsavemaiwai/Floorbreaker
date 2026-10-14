@@ -57,6 +57,9 @@ SPRITES = {
     'boss-gate': ('item', 120, {}), 'pillar': ('item', 175, {}), 'pillar-cracked': ('item', 175, {}), 'torch': ('item', 40, {}),
     'rock': ('item', 34, {}), 'root-sprout': ('beast', 34, {}), 'lanterns': ('item', 220, {}),
     'coin': ('pieces', 12, {}), 'xp-orb': ('pieces', 12, {}),  # 4-frame spin / pulse, left to right
+    'potion': ('item', 16, {}), 'platform': ('item', 128, {}), 'moss': ('item', 80, {}),
+    'icons-shop': ('pieces', 28, {}),  # potion, skill scroll, element mod -> icons-shop-1..3
+    'icons-shrine': ('pieces', 28, {}),  # blood, gold, curse, potion (SHRINE_IDS order) -> icons-shrine-1..4
     'shots': ('pieces', 40, {}),  # left to right: stone, javelin, magic bolt, water drop -> shots-1..4
     'folk-1': ('character', 48, {'attack': False}), 'folk-2': ('character', 48, {'attack': False}), 'folk-3': ('character', 48, {'attack': False}),
 }
