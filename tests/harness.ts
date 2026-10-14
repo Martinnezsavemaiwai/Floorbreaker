@@ -4,14 +4,14 @@
 import { G } from '../src/world/state.ts';
 import { newRun, loadFloor } from '../src/world/floor.ts';
 import { hitWall } from '../src/world/physics.ts';
-import { W, H } from '../src/world/constants.ts';
+import { W, H, followCam } from '../src/world/constants.ts';
 import { scenes, clock } from '../src/core/app.ts';
 import { STEP } from '../src/core/loop.ts';
 import { seedRng } from '../src/core/rng.ts';
 import { settings } from '../src/core/save.ts';
 import { keys, mouse, releaseAll } from '../src/core/input.ts';
 import { ARENA } from '../src/data/bosses.ts';
-import { dist, clamp, type Point } from '../src/core/math.ts';
+import { dist, type Point } from '../src/core/math.ts';
 import { updateGame, updateFx, attack, skill, roll } from '../src/systems/index.js';
 import { nextPick, cardsFor, applyCard } from '../src/systems/build.js';
 import { buy, drinkPotion } from '../src/systems/shop.js';
@@ -81,7 +81,7 @@ export function createBot() {
   const away = (from: Point, k = 5) => walkTo(G.P!.x + (G.P!.x - from.x) * k + 1, G.P!.y + (G.P!.y - from.y) * k + 1);
   const aim = (e: Point) => {
     const P = G.P!, L = G.L!;
-    G.cam.x = clamp(P.x - W / 2, 0, L.w - W); G.cam.y = clamp(P.y - H / 2, 0, L.h - H);
+    followCam(G.cam, P, L);
     mouse.x = e.x - G.cam.x; mouse.y = e.y - G.cam.y;
   };
   // Fire each Art by what it is for: Riposte into a wind-up, Crescent from range, Shade Step to close in, the rest in melee reach
