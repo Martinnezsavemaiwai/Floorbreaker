@@ -49,7 +49,7 @@ export interface Boss extends Point {
   frozen?: number; tide?: { n: number; t: number }; dotAcc?: number; dotTick?: number;
 }
 export type Floor = Omit<FloorDef, 'mob' | 'boss' | 'ranged'> & { mob: MobStats; ranged: MobStats; boss: ResolvedBoss };
-export interface Run { curse?: number; floor: number; kills: number; time: number; seed: number; bosses: number; assisted?: boolean; over?: 'dead' | 'win' }
+export interface Run { name?: string; curse?: number; floor: number; kills: number; time: number; seed: number; bosses: number; assisted?: boolean; over?: 'dead' | 'win' }
 export interface RoomState extends Room { waves: WaveMob[][]; wave: number; next: number; cleared: boolean; healed?: boolean; shrineUsed?: boolean; offers?: ShrineId[]; challenge?: { left: number; hits: number; spawnT: number; failed?: boolean } }
 export interface FolkState { x: number; y: number; r: number; sheet: string; face: number; target: Point | null; wait: number; moving: boolean; said: boolean; bubble: MerchantState['bubble']; still: number }
 export interface MerchantState { face: number; waved: boolean; wave: number; bubble: { text: Text; t: number; wrap?: { key: string; lines: string[]; w: number } } | null; quiet: number; greeted: boolean; age: number }
@@ -81,7 +81,7 @@ export const G = {
   rewards: [] as ('art' | 'evolve' | 'mod')[], // non-level picks waiting for the player (elite Art, boss shard, bought mod)
   entry: null as Suspend | null, // snapshot taken as the current floor loaded: what a suspend writes (Continue restarts the floor)
   cam: { x: 0, y: 0 },
-  shake: 0, time: 0, introT: 0,
+  shake: 0, time: 0, introT: 0, introFloor: 0, // introFloor: the floor the Dive In / Continue intro names
 };
 
 export const rage = () => G.boss.hp < G.boss.maxHp * BOSS_RULES.rageAt;

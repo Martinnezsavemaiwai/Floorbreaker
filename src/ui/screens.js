@@ -230,6 +230,15 @@ export function confirmDialog({ title, msg, ok }) {
   d.querySelector('button[value=cancel]').focus(); // the safe choice is the default
   return new Promise(resolve => d.addEventListener('close', () => resolve(d.returnValue === 'ok'), { once: true }));
 }
+// Name for a new character; resolves to the trimmed name ('' = PLAYER) or null when cancelled
+export function nameDialog(last) {
+  const d = $('name-dialog'), input = $('name-input');
+  input.value = last; d.returnValue = '';
+  // Enter would submit with the form's first button (Cancel); it means "go" here
+  input.onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); d.close('ok'); } };
+  d.showModal(); input.select();
+  return new Promise(resolve => d.addEventListener('close', () => resolve(d.returnValue === 'ok' ? input.value.trim() : null), { once: true }));
+}
 export const dialogOpen = () => !!document.querySelector('dialog[open]');
 on('runOver', endRun);
 // a language switch re-renders whatever is open, without moving focus

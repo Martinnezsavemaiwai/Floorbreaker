@@ -32,6 +32,7 @@ const SettingsSchema = z.object({
   aim: z.enum(['move', 'mouse']).default('move'), // face where you walk (+ aim assist) or aim with the mouse
   assistDamage: z.number().min(0.25).max(1).default(1), // damage taken multiplier
   assistSpeed: z.number().min(0.5).max(1).default(1),   // game speed multiplier
+  name: z.string().max(16).default(''), // the last character name, offered again on the next Dive In
   bindings: z.record(z.string(), z.array(z.string())).default({}), // per-action overrides of data/controls.ts
 });
 const BestSchema = z.object({
@@ -53,7 +54,7 @@ const SuspendSchema = z.object({
     }).default({ arts: [null, null], mods: {}, evolved: [] }),
     col: z.number().int().min(0).default(0), potions: z.number().int().min(0).default(0), scrolls: z.number().int().min(0).default(0), modBuys: z.number().int().min(0).default(0) }),
   run: z.object({ floor: z.number().int().min(1), kills: z.number().int().min(0), time: z.number().min(0), assisted: z.boolean().default(false),
-    seed: z.number().int(), bosses: z.number().int().min(0).default(0), curse: z.number().int().min(0).default(0) }),
+    seed: z.number().int(), name: z.string().max(16).optional(), bosses: z.number().int().min(0).default(0), curse: z.number().int().min(0).default(0) }),
 });
 export type Settings = z.infer<typeof SettingsSchema>;
 export type Lang = Settings['lang'];

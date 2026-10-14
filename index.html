@@ -202,6 +202,21 @@
   </form>
 </dialog>
 
+<!-- New character: the name shown on the HUD; Enter accepts the last name used -->
+<dialog id="name-dialog" class="win dialog" aria-labelledby="name-title">
+  <form method="dialog">
+    <header id="name-title" data-en="Name your character">ตั้งชื่อตัวละคร</header>
+    <div class="body">
+      <label class="hint" for="name-input" data-en="Up to 12 characters. One life.">ไม่เกิน 12 ตัวอักษร ตายครั้งเดียวจบ</label>
+      <input id="name-input" class="name-input" maxlength="12" autocomplete="off" spellcheck="false" placeholder="PLAYER">
+      <div class="pair">
+        <button class="btn" value="cancel" formnovalidate data-en="Cancel">ยกเลิก</button>
+        <button class="btn primary" value="ok" data-en="Dive In">เริ่มเล่น</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
 <div id="boss-card" role="status" aria-live="polite"><div class="win"><div class="body"><b id="boss-card-name"></b><span id="boss-card-sub"></span><span id="boss-card-hint"></span></div></div></div>
 <div id="moment" role="status" aria-live="polite"><div class="win"><div class="body"><b id="moment-name"></b><span id="moment-sub"></span></div></div></div>
 <div id="toast" role="status" aria-live="polite"><div class="win"><div class="body"><b id="toast-title"></b><span id="toast-sub"></span></div></div></div>

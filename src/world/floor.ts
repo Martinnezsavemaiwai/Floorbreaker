@@ -95,7 +95,7 @@ export const assistOn = () => settings.assistDamage < 1 || settings.assistSpeed 
 
 export function newRun() {
   newPlayer();
-  G.run = { floor: 1, kills: 0, time: 0, seed: Math.floor(rng() * 2 ** 31), bosses: 0, assisted: assistOn(), curse: 0 };
+  G.run = { name: settings.name, floor: 1, kills: 0, time: 0, seed: Math.floor(rng() * 2 ** 31), bosses: 0, assisted: assistOn(), curse: 0 };
   G.rewards = [];
   loadFloor(0);
 }
@@ -107,7 +107,7 @@ export function snapshotRun(): Suspend {
   return { floorIdx: G.floorIdx, room: G.room ? { type: G.room.type, reward: G.room.reward } : null,
     player: { lv: P!.lv, xp: P!.xp, hp: P!.hp, maxHp: P!.maxHp, atk: P!.atk, up: { ...P!.up }, pendingUpgrades: P!.pendingUpgrades,
       build: { arts: [P!.skills[1], P!.skills[2]], mods: structuredClone(P!.mods), evolved: [...P!.evolved] }, col: P!.col, potions: P!.potions, scrolls: P!.scrolls, modBuys: P!.modBuys },
-    run: { floor: run!.floor, kills: run!.kills, time: run!.time, assisted: !!run!.assisted, seed: run!.seed, bosses: run!.bosses, curse: run!.curse ?? 0 } };
+    run: { name: run!.name ?? '', floor: run!.floor, kills: run!.kills, time: run!.time, assisted: !!run!.assisted, seed: run!.seed, bosses: run!.bosses, curse: run!.curse ?? 0 } };
 }
 export function resumeRun(s: Suspend) {
   newPlayer(); const { build, hp, ...player } = s.player, b = cleanBuild(build as Parameters<typeof cleanBuild>[0]);
