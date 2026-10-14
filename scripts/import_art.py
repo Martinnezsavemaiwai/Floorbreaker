@@ -43,6 +43,8 @@ SPRITES = {
     'fountain': ('item', 132, {}), 'treant': ('item', 224, {}),
     'patches': ('pieces', 150, {}), 'deco': ('pieces', 40, {}),
     'fog': ('fog', 640, {}),
+    # optional: the game draws its own doorway until these exist (see OPTIONAL in src/core/assets.ts)
+    'door': ('item', 118, {}), 'door-boss': ('item', 118, {}),
 }
 
 

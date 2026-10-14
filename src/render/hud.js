@@ -1,4 +1,5 @@
-// Canvas HUD: system-window player panel, stacked boss HP bars, skill slots and the minimap.
+// Canvas HUD in pixels (see render/pixel.js): the player pane, the boss bar, skill slots and the minimap.
+// Coordinates here are HUD px (480 x 320); text is placed in HUD px and drawn crisp at screen resolution.
 import { G, rage } from '../world/state.ts';
 import { tr } from '../core/i18n.ts';
 import { W, H } from '../world/constants.ts';
@@ -8,67 +9,55 @@ import { PLAYER } from '../data/player.ts';
 import { SKILLS } from '../data/skills.ts';
 import { ICON } from '../data/skillIcons.ts';
 import { ELEMENTS } from '../data/elements.ts';
+import { FLOORS } from '../data/floors.ts';
+import { IMG } from '../core/assets.ts';
 import { artElements, artColor, setProgress } from '../systems/build.js';
 import { on } from '../core/events.ts';
 import { keyLabel } from '../core/input.ts';
-import { clamp } from '../core/math.ts';
-import { ctx, FN, FT, sword } from './canvas.js';
+import { FT } from './canvas.js';
+import { doorLook } from './world.js';
+import { PX, hc, LEAD, INK, INK2, beginPixels, endPixels, pane, ring, bar, gem, coin, text } from './pixel.js';
 
-const A = PLAYER.attack;
+const A = PLAYER.attack, HW = W / PX, HH = H / PX;
+const torchHex = () => '#' + FLOORS[actOf(G.floorIdx)].torch.split(',').map(n => (+n).toString(16).padStart(2, '0')).join('');
+const hpCol = f => f > 0.5 ? '#5fd35a' : f > 0.25 ? '#e8b931' : '#e8473a';
 
-// Slanted HP bar with a white "damage lag" segment
-function slant(x, y, w, h) {
-  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + w, y); ctx.lineTo(x + w - h * 0.8, y + h); ctx.lineTo(x, y + h); ctx.closePath();
-}
-function hpBar(x, y, w, h, frac, lag) {
-  slant(x, y, w, h); ctx.fillStyle = 'rgba(8,12,20,.85)'; ctx.fill();
-  ctx.save(); ctx.clip();
-  ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.fillRect(x, y, w * clamp(lag, 0, 1), h);
-  const col = frac > 0.5 ? ['#a6ff8a', '#3fbf3f'] : frac > 0.25 ? ['#ffe58a', '#d4a017'] : ['#ff9a8a', '#d42f2f'];
-  const g = ctx.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, col[0]); g.addColorStop(1, col[1]);
-  ctx.fillStyle = g; ctx.fillRect(x, y, w * clamp(frac, 0, 1), h);
-  ctx.restore();
-  slant(x, y, w, h); ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 1.5; ctx.stroke();
-}
-// Small text over the world gets a dark outline so it reads on bright grass and stone
-function label(text, x, y, color, font) {
-  ctx.font = font; ctx.lineJoin = 'round'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.85)';
-  ctx.strokeText(text, x, y); ctx.fillStyle = color; ctx.fillText(text, x, y);
-}
-function panel(x, y, w, h, r = 10) {
-  ctx.beginPath(); ctx.roundRect(x, y, w, h, r);
-  ctx.fillStyle = 'rgba(10,14,24,.78)'; ctx.fill(); ctx.strokeStyle = 'rgba(255,255,255,.18)'; ctx.lineWidth = 1; ctx.stroke();
+// A HUD block turns see-through while the player or the boss stands behind it (rect in HUD px)
+function veil(x, y, w, h) {
+  const behind = e => { const sx = (e.x - G.cam.x) / PX, sy = (e.y - G.cam.y) / PX; return sx > x - 12 && sx < x + w + 12 && sy > y - 20 && sy < y + h + 15; };
+  hc.globalAlpha = behind(G.P) || (G.boss.hp > 0 && behind(G.boss)) ? 0.3 : 1;
 }
 
-function drawPlayerPanel() {
-  const { P, F } = G;
-  slant(14, 14, 404, 86); ctx.fillStyle = 'rgba(10,14,24,.78)'; ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,.2)'; ctx.lineWidth = 1; ctx.stroke();
-  // level badge
-  ctx.beginPath(); ctx.arc(46, 44, 21, 0, 7); ctx.fillStyle = '#f39a1d'; ctx.fill();
-  ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.stroke();
-  ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.font = `700 10px ${FN}`; ctx.fillText('LV', 46, 36);
-  ctx.font = `800 17px ${FN}`; ctx.fillText(String(P.lv), 46, 54);
-  ctx.textAlign = 'left'; ctx.font = `700 14px ${FN}`; ctx.fillStyle = '#fff'; ctx.fillText('PLAYER', 78, 33);
-  hpBar(78, 39, 316, 15, P.hp / P.maxHp, P.lag / P.maxHp);
-  ctx.textAlign = 'right'; ctx.font = `700 13px ${FN}`; ctx.fillStyle = '#fff';
-  ctx.fillText(`${Math.max(0, Math.ceil(P.hp))} / ${P.maxHp}`, 380, 33);
-  ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.fillRect(78, 59, 240, 3);
-  ctx.fillStyle = '#5fc3ff'; ctx.fillRect(78, 59, 240 * P.xp / PLAYER.xpToNext(P.lv), 3);
-  const L = G.L, where = L.kind === 'town' ? ['SAFE ZONE · ' + tr('HP ฟื้นฟู', 'HP regen'), '#9fe89f'] : L.kind === 'boss' ? ['BOSS', '#ff8a7a'] : ['', '#cfd8e6'];
-  ctx.textAlign = 'left'; label([floorLabel(G.floorIdx), F.town, where[0], G.cursed && tr('คำสาป', 'Cursed')].filter(Boolean).join(' · '), 22, 114, G.cursed ? '#c9b6ff' : where[1], `600 13px ${FT}`);
-  // element set gems: n/3 per element, dim until the set bonus is active
-  ctx.textAlign = 'left';
+function portrait(x, y, s) {
+  const img = IMG.player;
+  if (!img) return;
+  const c = img.width / 4; // facing down, standing: head and shoulders
+  hc.drawImage(img, c * 0.18, c * 0.02, c * 0.64, c * 0.64, x, y, s, s);
+}
+
+function drawPlayerPane() {
+  const { P, F, L } = G, x = 6, y = 6, w = 176, h = 46, acc = torchHex();
+  veil(x, y, w, h + 22);
+  pane(x, y, w, h, acc);
+  pane(x + 4, y + 4, 34, 34, null, '#22232f'); portrait(x + 6, y + 6, 30);
+  // level tag hanging off the portrait
+  pane(x + 4, y + 32, 28, 11, null, acc); text(`Lv ${P.lv}`, x + 18, y + 41, { size: 11, weight: 800, color: LEAD, align: 'center', outline: null });
+  text(G.run.name || 'PLAYER', x + 43, y + 13, { size: 14, weight: 800 });
+  text(`${Math.max(0, Math.ceil(P.hp))}/${P.maxHp}`, x + w - 5, y + 13, { size: 12, weight: 800, color: INK2, align: 'right' });
+  bar(x + 42, y + 16, w - 47, 9, P.hp / P.maxHp, P.lag / P.maxHp, hpCol(P.hp / P.maxHp), 10);
+  bar(x + 42, y + 26, w - 47, 4, P.xp / PLAYER.xpToNext(P.lv), 0, '#5fc3ff');
+  // element sets: n/3 per element, lit once the set bonus is on
   setProgress().forEach((e, i) => {
-    const gx = 24 + i * 52, gy = 87, col = ELEMENTS[e.el].color;
-    ctx.save(); ctx.globalAlpha = e.active ? 1 : e.n ? 0.65 : 0.35;
-    if (e.active) { ctx.shadowColor = col; ctx.shadowBlur = 10; }
-    ctx.beginPath(); ctx.moveTo(gx + 5, gy - 6); ctx.lineTo(gx + 11, gy); ctx.lineTo(gx + 5, gy + 6); ctx.lineTo(gx - 1, gy); ctx.closePath();
-    ctx.fillStyle = col; ctx.fill();
-    ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.stroke(); ctx.restore();
-    label(`${Math.min(e.n, e.need)}/${e.need}`, gx + 15, gy + 4, e.active ? '#fff' : '#c4ccd8', `800 11px ${FN}`);
+    const gx = x + 42 + i * 33, gy = y + 33;
+    gem(gx, gy, ELEMENTS[e.el].color, e.active || e.n > 0);
+    text(`${Math.min(e.n, e.need)}/${e.need}`, gx + 9, gy + 7, { size: 11, weight: 800, color: e.active ? '#fff' : INK2 });
   });
-  label(`${P.col} Gold`, 22, 132, '#ffe14d', `700 13px ${FN}`);
+  // under the pane: where you are, and your Gold
+  const where = L.kind === 'town' ? ['SAFE ZONE · ' + tr('HP ฟื้นฟู', 'HP regen'), '#9fe89f'] : L.kind === 'boss' ? ['BOSS', '#ff8a7a'] : ['', INK];
+  text([floorLabel(G.floorIdx), F.town, where[0], G.cursed && tr('คำสาป', 'Cursed')].filter(Boolean).join(' · '), x + 2, y + h + 9,
+    { size: 12, weight: 600, font: FT, color: G.cursed ? '#c9b6ff' : where[1] });
+  coin(x + 2, y + h + 13); text(`${P.col}`, x + 11, y + h + 19, { size: 12, weight: 800, color: '#ffe14d' });
+  hc.globalAlpha = 1;
 }
 
 function drawBossBar() {
@@ -77,117 +66,119 @@ function drawBossBar() {
   // Bosses show several stacked HP bars: one drains at a time, pips count the ones left
   const bars = F.boss.bars, seg = boss.maxHp / bars, left = Math.ceil(boss.hp / seg);
   const frac = (boss.hp - (left - 1) * seg) / seg, lag = boss.lag > left * seg ? 1 : (boss.lag - (left - 1) * seg) / seg;
-  const w = 440, x = (W - w) / 2, y = H - 118; // bottom centre, above the skill slots
-  panel(x - 12, y - 28, w + 24, 60, 10); // backing plate so the bar reads over any floor
-  ctx.textAlign = 'center'; label(F.boss.name, W / 2, y - 9, rage() ? '#ffd760' : '#fff', `700 14px ${FN}`);
-  hpBar(x, y, w, 14, frac, lag);
+  const w = 204, x = (HW - w) / 2, y = HH - 52; // bottom centre, just above the skill slots
+  veil(x, y - 10, w, 22);
+  text(F.boss.name, HW / 2, y - 3, { size: 13, weight: 800, color: rage() ? '#ffd760' : INK, align: 'center' });
+  bar(x, y, w, 7, frac, lag, rage() ? '#ff7a3a' : '#d8372c', 0);
   // pips = bars still to go after this one (filled) / already broken (hollow)
   for (let i = 0; i < bars; i++) {
-    slant(x + i * 26, y + 20, 22, 7);
-    if (i < left - 1) { ctx.fillStyle = '#ff6a4d'; ctx.fill(); }
-    else { ctx.strokeStyle = 'rgba(255,255,255,.45)'; ctx.lineWidth = 1; ctx.stroke(); }
+    hc.fillStyle = LEAD; hc.fillRect(x + i * 9, y + 9, 7, 4);
+    hc.fillStyle = i < left - 1 ? '#ff6a4d' : '#26202a'; hc.fillRect(x + i * 9 + 1, y + 10, 5, 2);
   }
-  ctx.textAlign = 'right'; label(`×${left}`, x + w, y + 27, '#fff', `800 12px ${FN}`);
+  text(`×${left}`, x + w, y + 15, { size: 11, weight: 800, align: 'right' });
+  hc.globalAlpha = 1;
 }
 
-function drawFlask(x, y, full) {
-  ctx.save(); ctx.globalAlpha = full ? 1 : 0.35;
-  ctx.fillStyle = '#e8eef7'; ctx.fillRect(x - 4, y - 18, 8, 7);                  // neck
-  ctx.beginPath(); ctx.arc(x, y, 11, 0, 7); ctx.fillStyle = '#e8eef7'; ctx.fill(); // glass
-  ctx.beginPath(); ctx.arc(x, y + 1, 8.5, 0, 7); ctx.fillStyle = '#ff5a6a'; ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.fillRect(x - 5, y - 4, 3, 5);       // shine
-  ctx.restore();
+function flask(x, y, full) {
+  hc.globalAlpha *= full ? 1 : 0.4;
+  hc.fillStyle = LEAD; hc.fillRect(x + 4, y, 6, 4); hc.fillRect(x + 1, y + 4, 12, 10); hc.fillRect(x + 2, y + 3, 10, 12);
+  hc.fillStyle = '#b8642a'; hc.fillRect(x + 5, y + 1, 4, 2);                 // cork
+  hc.fillStyle = '#e8eef7'; hc.fillRect(x + 2, y + 5, 10, 8); hc.fillRect(x + 3, y + 4, 8, 10);
+  hc.fillStyle = '#ff5a6a'; hc.fillRect(x + 3, y + 8, 8, 5); hc.fillRect(x + 4, y + 7, 6, 7);
+  hc.fillStyle = '#fff'; hc.fillRect(x + 4, y + 5, 1, 2);                    // shine
+  hc.globalAlpha = 1;
+}
+// The sword sprite, rotated into a slot (pixel-art rotation at HUD resolution keeps it on the grid)
+function slotSword(cx, cy, rot) {
+  const img = IMG.sword;
+  if (!img) return;
+  const h = 22, w = h * img.width / img.height;
+  hc.save(); hc.translate(cx, cy); hc.rotate(rot); hc.drawImage(img, -w / 2, -h / 2, w, h); hc.restore();
 }
 
 function drawSkillSlots() {
-  const P = G.P, s = 56, gap = 18, y = H - s - 18;
+  const P = G.P, s = 28, gap = 9, y = HH - s - 10;
   const skill = (slot, action) => {
     const id = P.skills[slot], S = SKILLS[id], cd = P.skillCd[slot];
-    return { key: keyLabel(action), label: S.short, cd: Math.max(0, cd) / S.cd, glow: cd <= 0, secs: cd, icon: id, art: id };
+    return { key: keyLabel(action), label: S.short, cd: Math.max(0, cd) / S.cd, ready: cd <= 0, secs: cd, icon: id, art: id };
   };
   const slots = [
-    { key: keyLabel('attack'), label: tr('ฟัน', 'Slash'), cd: Math.max(0, P.atkCd) / A.cd, glow: false, icon: 'attack', art: 'blade' },
+    { key: keyLabel('attack'), label: tr('ฟัน', 'Slash'), cd: Math.max(0, P.atkCd) / A.cd, ready: false, icon: 'attack', art: 'blade' },
     skill(0, 'skill'), ...(P.skills[1] ? [skill(1, 'skill2')] : []), ...(P.skills[2] ? [skill(2, 'skill3')] : []),
-    { key: keyLabel('potion'), label: `Potion ×${P.potions}`, cd: 0, glow: false, potion: true },
+    { key: keyLabel('potion'), label: `Potion ×${P.potions}`, cd: 0, ready: false, potion: true },
   ];
-  const x0 = W / 2 - (slots.length * s + (slots.length - 1) * gap) / 2;
+  const x0 = Math.round(HW / 2 - (slots.length * s + (slots.length - 1) * gap) / 2);
+  veil(x0, y, slots.length * (s + gap), s + 10);
+  const a = hc.globalAlpha;
   slots.forEach((sl, i) => {
     const x = x0 + i * (s + gap), cx = x + s / 2, cy = y + s / 2;
-    ctx.save();
-    if (sl.glow) { ctx.shadowColor = '#f39a1d'; ctx.shadowBlur = 16; }
-    panel(x, y, s, s, 12); ctx.restore();
     const mods = sl.art ? artElements(sl.art) : [], ac = sl.art ? artColor(sl.art) : null;
-    if (sl.glow || ac) { // ready = orange outer ring; element colour = inner ring, so both read
-      ctx.beginPath(); ctx.roundRect(x, y, s, s, 12); ctx.strokeStyle = sl.glow ? '#f39a1d' : ac; ctx.lineWidth = 2; ctx.stroke();
-      if (sl.glow && ac) { ctx.beginPath(); ctx.roundRect(x + 3, y + 3, s - 6, s - 6, 9); ctx.strokeStyle = ac; ctx.lineWidth = 2; ctx.stroke(); }
+    pane(x, y, s, s, ac);
+    if (sl.ready) { ring(x, y, s, s, '#ff963c'); ring(x - 1, y - 1, s + 2, s + 2, 'rgba(255,150,60,.45)'); }
+    if (sl.potion) flask(cx - 7, cy - 7, P.potions > 0);
+    else slotSword(cx, cy + 1, ICON[sl.icon][0]);
+    hc.globalAlpha = a;
+    if (sl.cd > 0) { // the cooldown drains top-down in whole pixels
+      const ch = Math.ceil((s - 2) * sl.cd);
+      hc.fillStyle = 'rgba(8,9,13,.72)'; hc.fillRect(x + 1, y + 1 + (s - 2 - ch), s - 2, ch);
+      if (sl.secs > 0.05) text(sl.secs.toFixed(1), cx, cy + 5, { size: 15, weight: 800, align: 'center' });
     }
-    if (sl.potion) drawFlask(cx, cy + 4, P.potions > 0);
-    else {
-      const [rot, glow] = ICON[sl.icon];
-      ctx.save(); ctx.translate(cx, cy + 2); ctx.rotate(rot);
-      if (glow) { ctx.shadowColor = glow; ctx.shadowBlur = 10; }
-      ctx.translate(0, -12); sword(30); ctx.restore();
-    }
-    if (sl.cd > 0) { // radial cooldown sweep
-      ctx.save(); ctx.beginPath(); ctx.roundRect(x, y, s, s, 12); ctx.clip();
-      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, s, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * sl.cd); ctx.closePath();
-      ctx.fillStyle = 'rgba(0,0,0,.75)'; ctx.fill(); ctx.restore();
-      if (sl.secs > 0.05) {
-        ctx.textAlign = 'center'; ctx.font = `800 18px ${FN}`; ctx.lineJoin = 'round';
-        ctx.strokeStyle = 'rgba(0,0,0,.9)'; ctx.lineWidth = 4; ctx.strokeText(sl.secs.toFixed(1), cx, cy + 7);
-        ctx.fillStyle = '#fff'; ctx.fillText(sl.secs.toFixed(1), cx, cy + 7);
-      }
-    }
-    ctx.font = `800 11px ${FN}`;
-    const kw = Math.max(18, ctx.measureText(sl.key).width + 8); // wider badge for long names like Shift
-    ctx.beginPath(); ctx.roundRect(x + 4, y + 4, kw, 16, 4); ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.fill();
-    ctx.textAlign = 'center'; ctx.font = `800 11px ${FN}`; ctx.fillStyle = '#2b313b'; ctx.fillText(sl.key, x + 4 + kw / 2, y + 16);
+    // key badge, top-left
+    const kw = Math.max(9, Math.ceil(sl.key.length * 3.6) + 4);
+    hc.fillStyle = LEAD; hc.fillRect(x + 1, y + 1, kw + 2, 10);
+    hc.fillStyle = INK; hc.fillRect(x + 2, y + 2, kw, 8);
+    text(sl.key, x + 2 + kw / 2, y + 9, { size: 11, weight: 800, color: LEAD, align: 'center', outline: null });
     if (sl.art) {
       for (let k = 0; k < 2; k++) { // two mod pips along the bottom edge
-        ctx.beginPath(); ctx.roundRect(cx - 11 + k * 12, y + s - 8, 10, 4, 2);
-        if (mods[k]) { ctx.fillStyle = ELEMENTS[mods[k]].color; ctx.fill(); } else { ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 1; ctx.stroke(); }
+        const px = cx - 6 + k * 7;
+        hc.fillStyle = LEAD; hc.fillRect(px, y + s - 4, 5, 3);
+        hc.fillStyle = mods[k] ? ELEMENTS[mods[k]].color : '#3a3c4a'; hc.fillRect(px + 1, y + s - 3, 3, 1);
       }
-      if (P.evolved.includes(sl.art)) { // evolved mark, top-right diamond
-        ctx.beginPath(); ctx.moveTo(x + s - 8, y + 3); ctx.lineTo(x + s - 4, y + 7); ctx.lineTo(x + s - 8, y + 11); ctx.lineTo(x + s - 12, y + 7); ctx.closePath();
-        ctx.fillStyle = '#ffd35a'; ctx.fill(); ctx.strokeStyle = '#2b313b'; ctx.lineWidth = 1; ctx.stroke();
-        if (sl.art === 'sonicLeap') { ctx.textAlign = 'left'; label(`×${P.galeCharges}`, x + 5, y + s - 12, '#ffd35a', `800 12px ${FN}`); }
+      if (P.evolved.includes(sl.art)) { // evolved mark, top-right
+        gem(x + s - 9, y + 2, '#ffd35a', true);
+        if (sl.art === 'sonicLeap') text(`×${P.galeCharges}`, x + 3, y + s - 6, { size: 12, weight: 800, color: '#ffd35a' });
       }
     }
-    ctx.textAlign = 'center'; label(sl.label, cx, y + s + 14, '#fff', `600 12px ${FT}`);
+    text(sl.label, cx, y + s + 8, { size: 12, weight: 600, font: FT, align: 'center' });
   });
+  hc.globalAlpha = 1;
 }
 
-// Minimap: static terrain is pre-rendered per floor, dots are drawn live
-const mm = document.createElement('canvas'), MM = 0.1;
+// Minimap: static terrain is pre-rendered per floor at 1 HUD px = 20 world px, dots are drawn live
+const mm = document.createElement('canvas'), MM = 0.05;
 function paintMinimap() {
-  const L = G.L; mm.width = L.w * MM; mm.height = L.h * MM;
+  const L = G.L; mm.width = Math.round(L.w * MM); mm.height = Math.round(L.h * MM);
   const g = mm.getContext('2d');
   g.fillStyle = L.kind === 'town' ? '#c9a56e' : ['#7fa846', '#4f8f3d', '#3c5b47', '#3f7f9a'][actOf(G.floorIdx)]; g.fillRect(0, 0, mm.width, mm.height);
-  if (L.kind === 'boss') { g.fillStyle = '#4a3a44'; g.fillRect(L.roomX * MM, 0, (L.w - L.roomX) * MM, mm.height); }
-  g.fillStyle = '#1f2a22'; for (const w of G.WALLS) g.fillRect(w.x * MM, w.y * MM, Math.max(2, w.w * MM), Math.max(2, w.h * MM));
-  g.fillStyle = '#3d8fd0'; for (const p of G.ponds) g.fillRect(p.x * MM, p.y * MM, p.w * MM, p.h * MM);
+  if (L.kind === 'boss') { g.fillStyle = '#4a3a44'; g.fillRect(Math.round(L.roomX * MM), 0, mm.width, mm.height); }
+  const r = (o, c) => { g.fillStyle = c; g.fillRect(Math.round(o.x * MM), Math.round(o.y * MM), Math.max(1, Math.round(o.w * MM)), Math.max(1, Math.round(o.h * MM))); };
+  for (const w of G.WALLS) r(w, '#1f2a22');
+  for (const p of G.ponds) r(p, '#3d8fd0');
 }
 on('floorLoaded', paintMinimap);
 function drawMinimap() {
-  const { P, boss, portal, F } = G, w = mm.width, h = mm.height, x = W - w - 16, y = 16;
-  panel(x - 6, y - 6, w + 12, h + 30, 10);
-  ctx.save(); ctx.beginPath(); ctx.roundRect(x, y, w, h, 6); ctx.clip();
-  ctx.globalAlpha = 0.9; ctx.drawImage(mm, x, y); ctx.globalAlpha = 1;
+  const { P, boss, portal } = G, w = mm.width, h = mm.height, x = HW - w - 8, y = 8;
+  veil(x, y, w, h);
+  pane(x - 3, y - 3, w + 6, h + 6, torchHex());
+  hc.save(); hc.beginPath(); hc.rect(x, y, w, h); hc.clip();
+  hc.drawImage(mm, x, y);
+  const at = (wx, wy) => [Math.round(x + wx * MM), Math.round(y + wy * MM)];
+  // what the screen shows right now
+  const [vx, vy] = at(G.cam.x, G.cam.y);
+  hc.fillStyle = 'rgba(255,255,255,.5)';
+  const vw = Math.round(W * MM), vh = Math.round(H * MM);
+  hc.fillRect(vx, vy, vw, 1); hc.fillRect(vx, vy + vh - 1, vw, 1); hc.fillRect(vx, vy, 1, vh); hc.fillRect(vx + vw - 1, vy, 1, vh);
   const DOOR = G.L.door;
-  if (G.doorClosed && DOOR) { ctx.fillStyle = '#ff4a3a'; ctx.fillRect(x + DOOR.x * MM, y + DOOR.y * MM, DOOR.w * MM, DOOR.h * MM); }
-  ctx.fillStyle = '#f4ecd8'; for (const d of G.doors) ctx.fillRect(x + d.x * MM, y + d.y * MM, 4, d.h * MM);
-  ctx.fillStyle = '#ff5a4a'; for (const m of G.mobs) if (m.hp > 0 && !m.sprout) ctx.fillRect(x + m.x * MM - 1.5, y + m.y * MM - 1.5, 3, 3);
-  if (boss.hp > 0) {
-    const r = 4 + (boss.awake ? Math.sin(G.time * 6) : 0);
-    ctx.beginPath(); ctx.arc(x + boss.x * MM, y + boss.y * MM, r, 0, 7); ctx.fillStyle = '#ff2d2d'; ctx.fill();
-    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.stroke();
+  if (G.doorClosed && DOOR) { const [dx, dy] = at(DOOR.x, DOOR.y); hc.fillStyle = '#ff4a3a'; hc.fillRect(dx, dy, 2, Math.round(DOOR.h * MM)); }
+  for (const d of G.doors) { const [dx, dy] = at(d.x, d.y); hc.fillStyle = doorLook(d)[0]; hc.fillRect(dx, dy, 3, Math.round(d.h * MM)); }
+  hc.fillStyle = '#ff3a2a'; for (const m of G.mobs) if (m.hp > 0 && !m.sprout) { const [mx, my] = at(m.x, m.y); hc.fillRect(mx, my, 1, 1); }
+  if (portal) { const [px, py] = at(portal.x, portal.y); hc.fillStyle = '#5fc3ff'; hc.fillRect(px - 1, py - 1, 3, 3); }
+  if (boss.hp > 0 && (!boss.awake || Math.sin(G.time * 8) > -0.3)) {
+    const [bx, by] = at(boss.x, boss.y); hc.fillStyle = LEAD; hc.fillRect(bx - 2, by - 2, 5, 5); hc.fillStyle = '#ff2d2d'; hc.fillRect(bx - 1, by - 1, 3, 3);
   }
-  if (portal) { ctx.beginPath(); ctx.arc(x + portal.x * MM, y + portal.y * MM, 4, 0, 7); ctx.fillStyle = '#5fc3ff'; ctx.fill(); }
-  ctx.save(); ctx.translate(x + P.x * MM, y + P.y * MM); ctx.rotate(P.ang);
-  ctx.beginPath(); ctx.moveTo(6, 0); ctx.lineTo(-4, -4); ctx.lineTo(-2, 0); ctx.lineTo(-4, 4); ctx.closePath();
-  ctx.fillStyle = '#fff'; ctx.fill(); ctx.restore();
-  ctx.restore();
-  ctx.textAlign = 'left'; ctx.font = `600 11px ${FT}`; ctx.fillStyle = '#e8eef7'; ctx.fillText(`${floorLabel(G.floorIdx)} · ${F.town}`, x, y + h + 16);
+  const [px, py] = at(P.x, P.y); hc.fillStyle = LEAD; hc.fillRect(px - 2, py - 2, 5, 5); hc.fillStyle = '#fff'; hc.fillRect(px - 1, py - 1, 3, 3);
+  hc.restore();
+  hc.globalAlpha = 1;
 }
 
 // Challenge room: seconds left and hits taken, top centre (red once the hit budget is gone)
@@ -195,9 +186,11 @@ function drawChallenge() {
   const C = G.room?.challenge;
   if (!C || G.room.cleared) return;
   const over = C.hits > ROOM_RULES.challengeHits, s = `${Math.max(0, C.left).toFixed(1)} · ` + tr(`โดน ${C.hits}/${ROOM_RULES.challengeHits}`, `Hits ${C.hits}/${ROOM_RULES.challengeHits}`);
-  ctx.textAlign = 'center'; label(s, W / 2, 30, over ? '#ff6b5f' : '#ffd35a', `800 18px ${FN}`);
+  text(s, HW / 2, 16, { size: 18, weight: 800, color: over ? '#ff6b5f' : '#ffd35a', align: 'center' });
 }
 export function drawHud() {
   if (G.run.over) return; // the death/clear screen takes over; a stale HP bar behind it only confuses
-  drawPlayerPanel(); drawBossBar(); drawSkillSlots(); drawMinimap(); drawChallenge();
+  beginPixels();
+  drawPlayerPane(); drawBossBar(); drawSkillSlots(); drawMinimap(); drawChallenge();
+  endPixels();
 }

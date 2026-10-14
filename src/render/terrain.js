@@ -6,6 +6,7 @@ import { IMG } from '../core/assets.ts';
 import { on } from '../core/events.ts';
 import { rand, pick, overlaps } from '../core/math.ts';
 import { bakeLow } from './props.js';
+import { drawText } from './pixel.js';
 import { actOf } from '../data/run.ts';
 
 export const bg = document.createElement('canvas'); // sized per floor in paintFloor
@@ -70,7 +71,6 @@ function paintFloor() {
     g.fillStyle = 'rgba(0,0,0,.3)'; g.beginPath(); g.ellipse(x + img.width / 2, y + img.height - 8, img.width * 0.4, 12, 0, 0, 7); g.fill();
     g.drawImage(img, x, y);
   }
-  g.font = 'bold 22px system-ui'; g.textAlign = 'center'; g.fillStyle = 'rgba(255,255,255,.3)';
-  if (L.kind === 'boss') g.fillText('Boss Room', (L.roomX + L.w) / 2 + 20, 160);
+  if (L.kind === 'boss') { g.globalAlpha = 0.3; drawText(g, 'Boss Room', (L.roomX + L.w) / 2 + 20, 160, { size: 22, weight: 800, color: '#fff', align: 'center', outline: null }); g.globalAlpha = 1; }
 }
 on('floorLoaded', paintFloor);

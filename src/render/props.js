@@ -5,6 +5,7 @@ import { G } from '../world/state.ts';
 import { actOf } from '../data/run.ts';
 import { on } from '../core/events.ts';
 import { ctx, FT } from './canvas.js';
+import { drawText } from './pixel.js';
 import { REDUCED } from './anim.js';
 
 const GLASS = ['#ff963c', '#a688ff', '#78ff96', '#5ac8ff']; // --firstlight --hornfield --mistwell --canalis
@@ -154,7 +155,7 @@ function banner(g, cx, A) {
   g.strokeStyle = INK; g.lineWidth = 3; g.beginPath(); g.moveTo(x, y - 4); g.lineTo(x + w, y - 4); g.stroke();
   g.fillStyle = A.dd; g.beginPath(); g.moveTo(x + 4, y - 2); g.lineTo(x + w - 4, y - 2); g.lineTo(x + w - 4, y + 28); g.lineTo(cx, y + 36); g.lineTo(x + 4, y + 28); g.fill();
   g.strokeStyle = A.g; g.lineWidth = 2; g.strokeRect(x + 6, y, w - 12, 26);
-  g.fillStyle = A.l; g.fillText(G.F.town, cx, y + 20);
+  drawText(g, G.F.town, cx, y + 20, { size: 18, weight: 700, font: FT, color: A.l, align: 'center', outline: null });
 }
 
 // ---- tall props: one small canvas each, built when the floor loads ----

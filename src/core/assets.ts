@@ -22,7 +22,10 @@ const SPRITES = ['player', 'merchant', 'slinger', 'taurus', 'javelin', 'guardian
 const SCENERY = ['ground-1', 'ground-2', 'ground-3', 'ground-4', 'road', 'town', 'bossroom', 'wall', 'water',
   'tree-big', 'tree-dark', 'tree-small', 'fountain', 'patches-1', 'patches-2', 'patches-3', ...Array.from({ length: 8 }, (_, i) => `deco-${i + 1}`)];
 const loadImg = (n: string) => { const i = new Image(); i.src = `assets/${n}.png`; return i.decode().then(() => i); };
-export const ready = Promise.all([...SPRITES, ...SCENERY, 'sword', 'fog'].map(n => loadImg(n).then(img => {
+// art the game can do without (ChatGPT drafts in progress): a missing file just leaves IMG[name] unset
+const OPTIONAL = ['door', 'door-boss'];
+const optional = Promise.all(OPTIONAL.map(n => loadImg(n).then(img => { IMG[n] = img; }, () => {})));
+export const ready = Promise.all([optional, ...[...SPRITES, ...SCENERY, 'sword', 'fog'].map(n => loadImg(n).then(img => {
   IMG[n] = img; IMG[n + 'White'] = tinted(img, 'source-in', '#fff');
   for (const [k, col] of Object.entries(TINTS[n] || {})) IMG[k] = tinted(img, 'multiply', col);
-})));
+}))]);

@@ -9,6 +9,12 @@
   --firstlight:#ff963c; --hornfield:#a688ff; --mistwell:#78ff96; --canalis:#5ac8ff; --blood:#ff5a4e;
   --glass:var(--firstlight); --focus:#fff;
   --scrim:rgba(4,5,8,.62);
+  /* pixel frames (same look as the canvas HUD): one --px unit of lead with notched corners, one bevel row inside */
+  --px:3px;
+  --frame:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='3' height='3' shape-rendering='crispEdges'%3E%3Cpath fill='%230c0d12' d='M1 0h1v1H1zM0 1h1v1H0zM2 1h1v1H2zM1 2h1v1H1z'/%3E%3C/svg%3E");
+  --bevel:inset var(--px) var(--px) 0 rgba(255,255,255,.1),inset calc(var(--px) * -1) calc(var(--px) * -1) 0 rgba(0,0,0,.35);
+  --bevel-lit:inset var(--px) var(--px) 0 rgba(255,255,255,.5),inset calc(var(--px) * -1) calc(var(--px) * -1) 0 rgba(0,0,0,.22);
+  --drop:calc(var(--px) * 2) calc(var(--px) * 2) 0 rgba(0,0,0,.5);
   --font:'Kanit','Exo 2',system-ui,sans-serif; --font-num:'Exo 2','Kanit',system-ui,sans-serif;
   /* where the canvas sits inside the window (it is letterboxed at 3:2) */
   --canvas-h:min(100vh,66.667vw); --canvas-w:calc(var(--canvas-h) * 1.5); --canvas-top:calc((100vh - var(--canvas-h)) / 2);
@@ -30,32 +36,30 @@ canvas{display:block;width:min(100vw,150vh);height:auto;cursor:crosshair;image-r
 .screen{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:16px;background:var(--scrim)}
 .screen.on{display:flex;animation:fade .16s ease-out}
 .win{position:relative;width:min(440px,100%);max-height:calc(100vh - 32px);display:flex;flex-direction:column;
-  background:var(--win-bg);color:var(--ink);border:3px solid var(--lead);border-radius:0;
-  box-shadow:inset 0 0 0 2px var(--glass),0 18px 50px rgba(0,0,0,.6);
+  background:var(--win-bg);color:var(--ink);border-radius:0;
+  box-shadow:inset 0 0 0 var(--px) var(--glass),var(--drop);
   overflow:hidden;animation:settle .22s steps(3,end)}
 .win::after{content:'';position:absolute;inset:2px;background:var(--rivets);pointer-events:none;z-index:1}
 .win.wide{width:min(700px,100%)}
 /* the header is a strip of lit glass in the window's floor color, crossed by one lead came */
 .win header{display:flex;align-items:center;gap:12px;padding:11px 20px;flex:none;
-  background:linear-gradient(104deg,transparent 71%,var(--lead) 71% calc(71% + 2px),transparent calc(71% + 2px)),
-    linear-gradient(180deg,color-mix(in srgb,var(--glass) 70%,#fff),var(--glass));
-  border-bottom:3px solid var(--lead);font:800 17px var(--font-num);letter-spacing:.02em;color:var(--lead)}
+  background:var(--glass);box-shadow:inset 0 var(--px) 0 rgba(255,255,255,.45),inset 0 calc(var(--px) * -1) 0 rgba(0,0,0,.2);
+  border-bottom:var(--px) solid var(--lead);font:800 17px var(--font-num);letter-spacing:.02em;color:var(--lead)}
 .win .body{padding:16px 18px;display:grid;gap:10px;overflow-y:auto;scroll-padding-bottom:16px}
-.win-foot{flex:none;padding:8px 14px;border-top:3px solid var(--lead);background:var(--win-raise)}
+.win-foot{flex:none;padding:8px 14px;border-top:var(--px) solid var(--lead);background:var(--win-raise)}
 
 /* ---------- buttons: small dark panes that light up in their window's glass ---------- */
 .btn{font:600 16px var(--font);display:flex;align-items:center;gap:12px;width:100%;padding:10px 14px;border-radius:0;cursor:pointer;
-  border:2px solid var(--lead);background:var(--win-raise);color:var(--ink);text-align:left;
-  box-shadow:inset 0 0 0 1px var(--line)}
-.btn:hover,.btn:focus-visible{background:var(--glass);color:var(--lead);box-shadow:inset 0 0 0 1px rgba(255,255,255,.35);animation:light .18s steps(2,end)}
+  background:var(--win-raise);color:var(--ink);text-align:left;box-shadow:var(--bevel)}
+.btn:hover,.btn:focus-visible{background:var(--glass);color:var(--lead);box-shadow:var(--bevel-lit);animation:light .18s steps(2,end)}
 .btn .ic{width:28px;height:28px;display:grid;place-items:center;background:var(--lead);color:var(--glass);flex:none}
 .btn:hover .ic,.btn:focus-visible .ic{color:var(--ink)}
-.btn.primary{background:var(--glass);color:var(--lead);box-shadow:inset 0 0 0 1px rgba(255,255,255,.35)}
+.btn.primary{background:var(--glass);color:var(--lead);box-shadow:var(--bevel-lit)}
 .btn.primary .ic{color:var(--ink)}
 .btn.primary:hover{background:color-mix(in srgb,var(--glass) 80%,#fff)}
 .btn.ghost{background:transparent;border-color:transparent;box-shadow:none;color:var(--ink-2);font-weight:400;padding:6px 10px;width:auto}
 .btn.ghost .ic{background:transparent;color:inherit;width:22px}
-.btn.ghost:hover,.btn.ghost:focus-visible{background:var(--win-raise);color:var(--ink);border-color:var(--lead);box-shadow:inset 0 0 0 1px var(--line);animation:none}
+.btn.ghost:hover,.btn.ghost:focus-visible{background:var(--win-raise);color:var(--ink);box-shadow:var(--bevel);animation:none}
 .btn.danger{--glass:var(--blood);background:var(--blood);color:var(--lead)}
 .btn .lbl{display:grid;gap:1px}
 .btn small{display:block;font:400 13px var(--font);color:inherit}
@@ -70,34 +74,31 @@ canvas{display:block;width:min(100vw,150vh);height:auto;cursor:crosshair;image-r
   width:min(calc(var(--canvas-w) * .86),calc(100% - 32px));display:flex;align-items:flex-end;justify-content:center;gap:calc(var(--canvas-h) * .016)}
 .pane{--glass:var(--firstlight);position:relative;display:grid;align-content:center;gap:2px;flex:1 1 0;min-width:0;
   min-height:calc(var(--canvas-h) * .1);padding:10px 14px;border-radius:0;cursor:pointer;text-align:left;
-  border:3px solid var(--lead);color:var(--ink);
-  background:var(--rivets),linear-gradient(118deg,transparent 58%,rgba(12,13,18,.55) 58% 60%,transparent 60%),
-    linear-gradient(180deg,color-mix(in srgb,var(--glass) 26%,#12131b),#0e0f15);
-  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--glass) 60%,transparent),0 10px 22px rgba(0,0,0,.55)}
+  color:var(--ink);
+  background:var(--rivets),linear-gradient(180deg,color-mix(in srgb,var(--glass) 30%,#12131b) 0 34%,color-mix(in srgb,var(--glass) 18%,#101118) 34% 68%,#0e0f15 68%);
+  box-shadow:inset 0 var(--px) 0 color-mix(in srgb,var(--glass) 70%,transparent),var(--bevel),var(--drop)}
 .pane-title{font:800 clamp(15px,calc(var(--canvas-h) * .03),21px)/1.1 var(--font-num);letter-spacing:.02em;white-space:nowrap}
 .pane small{font:400 clamp(11px,calc(var(--canvas-h) * .02),14px)/1.3 var(--font);color:var(--ink-2)}
-.pane:hover,.pane:focus-visible{background:var(--rivets),linear-gradient(118deg,transparent 58%,rgba(12,13,18,.45) 58% 60%,transparent 60%),
-    linear-gradient(180deg,color-mix(in srgb,var(--glass) 80%,#fff),var(--glass));color:var(--lead);
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.5),0 0 28px color-mix(in srgb,var(--glass) 55%,transparent),0 10px 22px rgba(0,0,0,.55);
+.pane:hover,.pane:focus-visible{background:var(--rivets),linear-gradient(180deg,color-mix(in srgb,var(--glass) 70%,#fff) 0 34%,color-mix(in srgb,var(--glass) 88%,#fff) 34% 68%,var(--glass) 68%);color:var(--lead);
+  box-shadow:var(--bevel-lit),var(--drop);
   animation:light .2s steps(2,end)}
 .pane:hover small,.pane:focus-visible small{color:var(--lead)}
 /* the likely next step (Dive In, or Continue when a run is saved) is lit, wider, and breaks past the sill */
 .pane.lit{flex-grow:1.7;transform:translateY(calc(var(--canvas-h) * -.03));min-height:calc(var(--canvas-h) * .13);color:var(--lead);
-  background:var(--rivets),linear-gradient(118deg,transparent 58%,rgba(12,13,18,.35) 58% 60%,transparent 60%),
-    linear-gradient(180deg,#fff6e2,var(--firstlight));
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.6),0 0 40px rgba(255,150,60,.45),0 12px 26px rgba(0,0,0,.6)}
+  background:var(--rivets),linear-gradient(180deg,#ffe2bd 0 34%,#ffb871 34% 68%,var(--firstlight) 68%);
+  box-shadow:var(--bevel-lit),var(--drop)}
 .pane.lit .pane-title{font-size:clamp(18px,calc(var(--canvas-h) * .042),30px)}
 .pane.lit small{color:#3a1d05}
-.pane.lit:hover,.pane.lit:focus-visible{background:var(--rivets),linear-gradient(118deg,transparent 58%,rgba(12,13,18,.3) 58% 60%,transparent 60%),linear-gradient(180deg,#fff,#ffb36b)}
+.pane.lit:hover,.pane.lit:focus-visible{background:var(--rivets),linear-gradient(180deg,#fff 0 34%,#ffd5a3 34% 68%,#ffb36b 68%)}
 .record{position:absolute;left:0;right:0;top:calc(var(--canvas-top) + var(--canvas-h) * .955);margin:0;text-align:center;
   font:400 clamp(11px,calc(var(--canvas-h) * .022),14px) var(--font);color:var(--ink-2)}
 .record.note{top:calc(var(--canvas-top) + var(--canvas-h) * .915)}
-.tab-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:2px solid var(--lead);border-radius:0;
-  background:rgba(16,17,24,.85);color:var(--ink-2);font:600 13px var(--font-num);cursor:pointer;box-shadow:inset 0 0 0 1px var(--line)}
+.tab-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:0;
+  background:rgba(16,17,24,.85);color:var(--ink-2);font:600 13px var(--font-num);cursor:pointer;box-shadow:var(--bevel)}
 .tab-btn:hover{color:var(--ink);background:var(--win-raise)}
-.tab-btn[aria-pressed=true]{background:var(--firstlight);color:var(--lead);box-shadow:inset 0 0 0 1px rgba(255,255,255,.4)}
+.tab-btn[aria-pressed=true]{background:var(--firstlight);color:var(--lead);box-shadow:var(--bevel-lit)}
 .lang{position:absolute;top:calc(var(--canvas-top) + 12px);left:calc(50% - var(--canvas-w) / 2 + 12px);display:flex}
-.lang .tab-btn+.tab-btn{border-left:0}
+.lang .tab-btn+.tab-btn{margin-left:calc(var(--px) * -1)}
 .corner{position:absolute;top:calc(var(--canvas-top) + 12px);right:calc(50% - var(--canvas-w) / 2 + 12px)}
 /* portrait phones: the canvas sits at the top, and the menu moves under it as a two-column grid */
 @media (max-aspect-ratio:1/1){
@@ -118,35 +119,35 @@ canvas{display:block;width:min(100vw,150vh);height:auto;cursor:crosshair;image-r
 .row label{color:var(--ink);min-width:110px;margin-right:auto}
 .row output{font-family:var(--font-num);color:var(--ink-2);min-width:36px;text-align:right;font-variant-numeric:tabular-nums}
 input[type=range]{flex:1;max-width:320px;accent-color:var(--glass)}
-.switch{appearance:none;width:44px;height:24px;border-radius:0;background:var(--line);border:2px solid var(--lead);position:relative;cursor:pointer;flex:none;margin:0}
-.switch::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;background:var(--ink-2);transition:left .12s steps(2,end)}
+.switch{appearance:none;width:44px;height:24px;border-radius:0;background:var(--line);border:var(--px) solid var(--lead);position:relative;cursor:pointer;flex:none;margin:0}
+.switch::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;box-shadow:inset -2px -2px 0 rgba(0,0,0,.3);background:var(--ink-2);transition:left .12s steps(2,end)}
 .switch:checked{background:var(--glass)} .switch:checked::after{left:22px;background:var(--lead)}
 .state{font-size:14px;color:var(--ink-2);min-width:2.5em;text-align:right}
 .hint{font-size:14px;color:var(--ink-2);margin:-2px 0 4px;line-height:1.55}
 .status{font-size:14px;color:var(--ink);min-height:1.5em;margin:0}
 .shop-line{font-size:14px;font-style:italic;color:var(--ink-2);min-height:1.5em;margin:0}
 .status.warn{color:var(--blood)}
-.rule{margin:0;padding:10px 12px;background:color-mix(in srgb,var(--blood) 14%,var(--win-bg));border:1px solid color-mix(in srgb,var(--blood) 45%,transparent);
+.rule{margin:0;padding:10px 12px;background:color-mix(in srgb,var(--blood) 14%,var(--win-bg));border:var(--px) solid color-mix(in srgb,var(--blood) 45%,transparent);
   color:var(--ink);font-size:14px;line-height:1.6}
 .rule strong{color:var(--blood);font-weight:600}
 .keys{display:grid;grid-template-columns:auto 1fr;gap:8px 12px;align-items:center;font-size:15px}
-kbd{font:700 12px var(--font-num);min-width:28px;padding:3px 7px;border-radius:0;background:var(--win-raise);border:2px solid var(--lead);
-  border-bottom-width:4px;color:var(--ink);text-align:center;display:inline-block;box-shadow:inset 0 0 0 1px var(--line)}
-.btn.primary kbd,.btn:not(.ghost):hover kbd,.btn:not(.ghost):focus-visible kbd{background:rgba(12,13,18,.18);color:var(--lead);box-shadow:none}
-.tips{margin:4px 0 0;padding:12px 14px 12px 30px;background:var(--win-raise);border:1px solid var(--line);color:var(--ink);font-size:14px;line-height:1.65}
+kbd{font:700 12px var(--font-num);min-width:28px;padding:3px 7px 5px;border-radius:0;background:var(--win-raise);
+  color:var(--ink);text-align:center;display:inline-block;box-shadow:inset 0 calc(var(--px) * -1) 0 var(--lead),inset var(--px) var(--px) 0 rgba(255,255,255,.12)}
+.btn.primary kbd,.btn:not(.ghost):hover kbd,.btn:not(.ghost):focus-visible kbd{background:rgba(12,13,18,.18);color:var(--lead);box-shadow:inset 0 calc(var(--px) * -1) 0 rgba(12,13,18,.45)}
+.tips{margin:4px 0 0;padding:12px 14px 12px 30px;background:var(--win-raise);box-shadow:var(--bevel);color:var(--ink);font-size:14px;line-height:1.65}
 .tips li::marker{color:var(--glass)}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.stat{padding:10px 12px;background:var(--win-raise);border:2px solid var(--lead);box-shadow:inset 0 0 0 1px var(--line)}
+.stat{padding:10px 12px;background:var(--win-raise);box-shadow:var(--bevel)}
 .stat span{display:block;font-size:13px;color:var(--ink-2)}
 .stat b{font:800 22px var(--font-num);color:var(--ink);font-variant-numeric:tabular-nums}
 .pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-select{font:400 15px var(--font);padding:7px 10px;border-radius:0;border:2px solid var(--lead);background:var(--win-raise);color:var(--ink);cursor:pointer;
-  box-shadow:inset 0 0 0 1px var(--line);max-width:100%}
+select{font:400 15px var(--font);padding:7px 10px;border-radius:0;background:var(--win-raise);color:var(--ink);cursor:pointer;
+  box-shadow:var(--bevel);max-width:100%}
 a{color:var(--glass);text-underline-offset:3px}
 
 /* ---------- settings: tabs + grouped key bindings ---------- */
-.tabs{display:flex;gap:2px;padding:8px 12px 0;border-bottom:3px solid var(--lead);flex:none;overflow-x:auto;background:var(--win-raise)}
-[role=tab]{font:600 15px var(--font);padding:8px 14px;border:0;border-bottom:3px solid transparent;margin-bottom:-3px;background:none;color:var(--ink-2);
+.tabs{display:flex;gap:2px;padding:8px 12px 0;border-bottom:var(--px) solid var(--lead);flex:none;overflow-x:auto;background:var(--win-raise)}
+[role=tab]{font:600 15px var(--font);padding:8px 14px;border:0;border-bottom:var(--px) solid transparent;margin-bottom:calc(var(--px) * -1);background:none;color:var(--ink-2);
   cursor:pointer;white-space:nowrap;border-radius:0}
 [role=tab]:hover{color:var(--ink)}
 [role=tab][aria-selected=true]{color:var(--ink);border-bottom-color:var(--glass);background:var(--win-bg)}
@@ -154,11 +155,11 @@ a{color:var(--glass);text-underline-offset:3px}
 .bind-groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
 .bind-group h3{margin:0 0 6px;font:600 14px var(--font);color:var(--glass)}
 .bind-group .rows{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center;font-size:15px}
-.bind{font:700 13px var(--font-num);min-width:76px;padding:6px 10px;border-radius:0;border:2px solid var(--lead);border-bottom-width:4px;
-  background:var(--win-raise);color:var(--ink);cursor:pointer;font-variant-numeric:tabular-nums;box-shadow:inset 0 0 0 1px var(--line)}
+.bind{font:700 13px var(--font-num);min-width:76px;padding:6px 10px 8px;border-radius:0;
+  background:var(--win-raise);color:var(--ink);cursor:pointer;font-variant-numeric:tabular-nums;box-shadow:inset 0 calc(var(--px) * -1) 0 var(--lead),var(--bevel)}
 .bind:hover{background:var(--glass);color:var(--lead)}
 .bind.listening{background:var(--glass);color:var(--lead)}
-.bind.unset{color:var(--blood);box-shadow:inset 0 0 0 1px var(--blood)}
+.bind.unset{color:var(--blood);box-shadow:inset 0 0 0 var(--px) var(--blood)}
 
 /* ---------- result: a clear lights amber, a death bleeds red ---------- */
 .result-title{font:800 30px var(--font-num);letter-spacing:.06em;text-align:center;margin:2px 0;color:var(--glass)}
@@ -175,6 +176,12 @@ dialog.dialog:not([open]){display:none} /* .win sets display:flex, which would o
 dialog.dialog::backdrop{background:rgba(4,5,8,.7)}
 dialog.dialog p{margin:0;font-size:15px;line-height:1.6}
 dialog.dialog .btn{justify-content:center}
+#name-dialog{--glass:var(--firstlight)}
+#name-dialog .body{display:flex;flex-direction:column;gap:12px}
+.name-input{font:800 22px var(--font-num);letter-spacing:.04em;padding:10px 12px;border-radius:0;
+  background:#0b0c11;color:var(--ink);box-shadow:inset var(--px) var(--px) 0 rgba(0,0,0,.5)}
+.name-input::placeholder{color:var(--ink-2);opacity:.6}
+.name-input:focus-visible{outline:3px solid var(--glass);outline-offset:2px}
 
 /* ---------- toast: centred on the canvas, below the HUD's top panels ---------- */
 #toast{position:fixed;left:50%;top:calc(var(--canvas-top) + var(--canvas-h) * .16);transform:translateX(-50%);pointer-events:none;display:none;width:min(400px,calc(100% - 32px))}
@@ -211,17 +218,17 @@ dialog.dialog .btn{justify-content:center}
 /* ---------- picker cards (level-up, shop, Blade Arts) ---------- */
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
 .card{position:relative;display:grid;gap:6px;align-content:start;text-align:left;padding:14px;border-radius:0;
-  background:var(--rivets),linear-gradient(180deg,color-mix(in srgb,var(--glass) 14%,var(--win-raise)),var(--win-raise));
-  border:3px solid var(--lead);box-shadow:inset 0 0 0 1px var(--line);color:var(--ink);font:400 14px/1.5 var(--font);cursor:pointer}
-.card:hover,.card:focus-visible{background:var(--rivets),linear-gradient(180deg,color-mix(in srgb,var(--glass) 80%,#fff),var(--glass));color:var(--lead);
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.4);animation:light .18s steps(2,end)}
-.card canvas{width:100%;height:auto;aspect-ratio:16/9;image-rendering:pixelated;border:2px solid var(--glass,var(--lead));display:block}
+  background:var(--rivets),var(--win-raise);
+  box-shadow:inset 0 var(--px) 0 color-mix(in srgb,var(--glass) 60%,transparent),var(--bevel);color:var(--ink);font:400 14px/1.5 var(--font);cursor:pointer}
+.card:hover,.card:focus-visible{background:var(--rivets),var(--glass);color:var(--lead);
+  box-shadow:var(--bevel-lit);animation:light .18s steps(2,end)}
+.card canvas{width:100%;height:auto;aspect-ratio:16/9;image-rendering:pixelated;border:var(--px) solid var(--lead);outline:var(--px) solid var(--glass);outline-offset:calc(var(--px) * -2);display:block}
 .card kbd{justify-self:start}
 .card b{font:600 17px var(--font)}
 .card span{color:var(--ink-2)}
 .card:hover span,.card:focus-visible span{color:var(--lead)}
 .card .pips{display:flex;gap:4px;margin-top:2px}
-.pips i{width:14px;height:6px;background:var(--line);outline:1px solid var(--lead)}
+.pips i{width:14px;height:6px;background:var(--line);outline:2px solid var(--lead)}
 .pips i.got{background:var(--glass)}
 .pips i.next{background:var(--glass);opacity:.45;animation:pulse 1s steps(2,end) infinite alternate}
 .card:hover .pips i.got,.card:focus-visible .pips i.got{background:var(--lead)}
@@ -232,7 +239,7 @@ dialog.dialog .btn{justify-content:center}
 .card[aria-disabled=true]:hover span{color:var(--ink-2)}
 .card .price{font:800 15px var(--font-num);color:var(--glass)}
 .card:hover .price,.card:focus-visible .price{color:var(--lead)}
-.card.on{box-shadow:inset 0 0 0 2px var(--glass)}
+.card.on{box-shadow:inset 0 0 0 var(--px) var(--glass),var(--bevel)}
 .card.on[aria-disabled=true]{opacity:1;cursor:default}
 #upgrade .win{--glass:var(--firstlight)} #shop .win{--glass:var(--firstlight)}
 
@@ -253,14 +260,27 @@ body:has(.screen.on) :is(#boss-card,#moment){visibility:hidden;animation-play-st
 /* Pause menu Build panel */
 .build h3{margin:0 0 6px;font-size:13px;color:var(--ink-2);font-weight:600}
 .build .arts{list-style:none;margin:0 0 8px;padding:0;display:grid;gap:6px}
-.build .arts li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 8px;padding:6px 10px;background:var(--win-raise);border:2px solid var(--lead);box-shadow:inset 0 0 0 1px var(--line);font-size:14px;min-width:0}
+.build .arts li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 8px;padding:6px 10px;background:var(--win-raise);box-shadow:var(--bevel);font-size:14px;min-width:0}
 .build .arts b{font-weight:600;overflow-wrap:anywhere}
 .build .arts i{font-size:13px;color:var(--ink-2);font-style:normal}
 .build .chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{padding:2px 8px;font-size:13px;color:var(--ink);background:var(--win-raise);border:2px solid var(--lead);border-left:6px solid var(--el);box-shadow:inset 0 0 0 1px var(--line)}
+.chip{padding:2px 8px 2px 14px;font-size:13px;color:var(--ink);background:var(--win-raise);box-shadow:inset 6px 0 0 var(--el),var(--bevel)}
 .chip.set{opacity:.6}
 .chip.set.on{opacity:1;background:var(--el);color:var(--lead);font-weight:700}
 .build .hint{margin:8px 0 0}
 .build .fx{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:2px;font-size:13px;color:var(--ink-2);line-height:1.5}
 .build .fx li{overflow-wrap:anywhere}
 .build .fx li.on{color:var(--ink)}
+
+/* ---------- pixel frames: every pane, window and control gets the same notched lead outline as the HUD ---------- */
+:is(.win,.btn:not(.ghost),.btn.ghost:hover,.btn.ghost:focus-visible,.pane,.card,.stat,.bind,select,.name-input,.tab-btn,kbd,.tips,.build .arts li,.chip,.newrec){
+  border:var(--px) solid transparent;border-image:var(--frame) 1 / var(--px) stretch;background-clip:padding-box}
+.btn.ghost{border:var(--px) solid transparent}
+/* range sliders: a lead-cased track and a square glass thumb (Firefox also fills the played part) */
+input[type=range]{appearance:none;-webkit-appearance:none;height:20px;background:none;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:9px;background:var(--line);box-shadow:inset 0 0 0 var(--px) var(--lead)}
+input[type=range]::-moz-range-track{height:9px;background:var(--line);box-shadow:inset 0 0 0 var(--px) var(--lead)}
+input[type=range]::-moz-range-progress{height:9px;background:var(--glass);box-shadow:inset 0 0 0 var(--px) var(--lead)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:18px;margin-top:-4.5px;border-radius:0;background:var(--glass);
+  border:var(--px) solid var(--lead);box-shadow:inset 2px 2px 0 rgba(255,255,255,.45)}
+input[type=range]::-moz-range-thumb{width:6px;height:12px;border-radius:0;background:var(--glass);border:var(--px) solid var(--lead)}
