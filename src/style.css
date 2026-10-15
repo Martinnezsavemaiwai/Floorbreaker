@@ -218,6 +218,7 @@ dialog.dialog .btn{justify-content:center}
 #moment b{font:700 20px/1.3 var(--font-title);letter-spacing:.03em;color:var(--paper-ink)}
 #moment span{font-size:13px;color:var(--paper-ink-2);line-height:1.4}
 #boss-card-hint{margin-top:2px;color:var(--paper-ink)}
+:is(#toast,#boss-card,#moment) span:empty{display:none} /* tips off leaves some sub-lines blank */
 /* someone is behind the strip (render/hud.js veilNotices): the notes go see-through in one step, as the HUD panes do */
 .notices-veiled :is(#toast,#boss-card,#moment) .win{opacity:.3}
 #boss-card.down b{text-decoration:line-through;color:var(--paper-ink-2)}

@@ -1,6 +1,6 @@
 // DOM overlay screens (title, how-to, pause, result) and the toast queue. Reads game state, never owns it.
 import { G } from '../world/state.ts';
-import { meta, saveMeta, loadSuspend, takeLegacyNotice } from '../core/save.ts';
+import { meta, saveMeta, loadSuspend, takeLegacyNotice, settings } from '../core/save.ts';
 import { on, emit } from '../core/events.ts';
 import { keyLabel } from '../core/input.ts';
 import { FLOOR_COUNT, SHRINE, SHRINE_IDS, ROOM_RULES } from '../data/run.ts';
@@ -43,9 +43,16 @@ export const inSubScreen = () => current === 'howto' || current === 'settings' |
 const queue = [];
 let showing = null, timer = 0;
 function clearToasts() { emit('toastsCleared'); queue.length = 0; clearTimeout(timer); showing = null; $('toast').classList.remove('on'); $('moment').classList.remove('on'); }
-export function toast(title, sub, sec = 3.2, floor = false) {
-  queue[floor ? 'unshift' : 'push']({ title, sub, sec, floor }); emit('toast', sec); // floor news can't wait behind hints
+export function toast(title, sub, sec = 3.2, floor = false, tip = false) {
+  queue[floor ? 'unshift' : 'push']({ title, sub, sec, floor, tip }); emit('toast', sec); // floor news can't wait behind hints
   if (!showing) nextToast();
+}
+// Tips turned off in settings: queued tutorial hints go, and one on screen now is cut short
+export function dropTips() {
+  let sec = 0;
+  for (let i = queue.length - 1; i >= 0; i--) if (queue[i].tip) sec += queue.splice(i, 1)[0].sec;
+  if (showing?.tip) { clearTimeout(timer); sec += showing.sec; $('toast').classList.remove('on'); nextToast(); }
+  emit('toast', -sec); // hand the time back, as dropFloorToasts does
 }
 function dropFloorToasts() {
   let sec = 0;
@@ -261,7 +268,7 @@ const bossCard = (down) => {
   const c = $('boss-card'), b = G.F.boss;
   $('boss-card-name').textContent = b.name;
   $('boss-card-sub').textContent = down ? tr('ล้มแล้ว', 'Defeated') : t(b.epithet);
-  $('boss-card-hint').textContent = down ? '' : t(b.hint);
+  $('boss-card-hint').textContent = down || !settings.hints ? '' : t(b.hint);
   c.classList.remove('on', 'down'); void c.offsetWidth; c.classList.add('on'); if (down) c.classList.add('down');
 };
 $('boss-card').addEventListener('animationend', e => { if (e.target === e.currentTarget) e.currentTarget.classList.remove('on', 'down'); });
@@ -269,7 +276,7 @@ on('bossWake', () => bossCard(false));
 on('bossDeath', () => bossCard(true));
 on('floorLoaded', i => {
   $('boss-card').classList.remove('on', 'down'); $('moment').classList.remove('on');
-  const k = G.L.kind, type = G.room?.type, sub = k === 'boss' ? tr('บอส: ', 'Boss: ') + G.F.boss.name
+  let k = G.L.kind, type = G.room?.type, sub = k === 'boss' ? tr('บอส: ', 'Boss: ') + G.F.boss.name
     : k === 'town' ? tr('ฟื้น HP เต็มแล้ว พ่อค้าอยู่ที่แผงร้าน', 'Fully healed. The merchant is at the market stall.')
     : type === 'spring' ? tr('เดินไปที่น้ำพุเพื่อฟื้น HP ครึ่งหลอด', 'Walk to the fountain to heal half your HP.')
     : type === 'challenge' ? tr(`รอด ${ROOM_RULES.challengeTime} วินาที โดนตีไม่เกิน ${ROOM_RULES.challengeHits} ครั้ง ได้รางวัลสองเท่า`, `Survive ${ROOM_RULES.challengeTime} s and take ${ROOM_RULES.challengeHits} hits or fewer for a double reward.`)
@@ -278,10 +285,11 @@ on('floorLoaded', i => {
     : type === 'elite' ? tr('ล้ม Elite แล้วเลือกท่าใหม่', 'Beat the Elite to pick a new Blade Art.')
     : tr('เคลียร์ห้องเพื่อเปิดประตู', 'Clear the room to open the doors.');
   dropFloorToasts();
+  if (!settings.hints && k !== 'boss') sub = ''; // tips off: the banner keeps the floor name only
   toast(`${floorLabel(i)} · ${G.F.town}`, sub, 3.2, true);
 });
 on('challengeOver', ok => toast(ok ? tr('ผ่านการท้าทาย', 'Challenge passed') : tr('ไม่ผ่านการท้าทาย', 'Challenge failed'), ok ? tr('ได้รางวัลสองเท่า', 'Double reward.') : tr(`โดนตีเกิน ${ROOM_RULES.challengeHits} ครั้ง ไม่ได้รางวัล`, `More than ${ROOM_RULES.challengeHits} hits. No reward.`), 3.2, true));
-on('portalOpen', () => toast(tr(`ผ่าน ${floorLabel(G.floorIdx)} แล้ว`, `${floorLabel(G.floorIdx)} Cleared`), tr('เดินเข้าประตูสีฟ้าเพื่อขึ้นชั้นต่อไป', 'Step into the blue portal to go up.'), 4.5, true));
+on('portalOpen', () => toast(tr(`ผ่าน ${floorLabel(G.floorIdx)} แล้ว`, `${floorLabel(G.floorIdx)} Cleared`), settings.hints ? tr('เดินเข้าประตูสีฟ้าเพื่อขึ้นชั้นต่อไป', 'Step into the blue portal to go up.') : '', 4.5, true));
 // The evolve banner shares the boss card's row in the notice strip and pauses under an open picker, so it shows once the picker closes
 on('artEvolved', art => {
   $('boss-card').classList.remove('on', 'down'); // a boss kill can offer an evolve pick; don't stack the two banners
@@ -290,7 +298,7 @@ on('artEvolved', art => {
 });
 $('moment').addEventListener('animationend', e => { if (e.target === e.currentTarget) e.currentTarget.classList.remove('on'); });
 on('setBonus', el => { SFX.setBonus(); toast(tr(`ชุด ${ELEMENTS[el].name} ติดแล้ว`, `${ELEMENTS[el].name} set active`), t(ELEMENTS[el].set)); });
-on('hint', ({ title, sub }) => toast(title, sub, 4.5));
+on('hint', ({ title, sub }) => toast(title, sub, 4.5, false, true));
 
 // Buttons carry data-act="name"; main.js supplies what each name does
 export function bindActions(actions) {

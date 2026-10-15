@@ -3,7 +3,7 @@ import { settings, saveSettings, exportSave, importSave } from '../core/save.ts'
 import { codesFor, codeLabel, rebind, resetBindings } from '../core/input.ts';
 import { clock } from '../core/app.ts';
 import { applyAudio } from '../audio/audio.js';
-import { $, confirmDialog } from './screens.js';
+import { $, confirmDialog, dropTips } from './screens.js';
 import { t, tr, setLang } from '../core/i18n.ts';
 import { on } from '../core/events.ts';
 
@@ -21,7 +21,7 @@ for (const k of ['music', 'sfx']) {
 }
 for (const k of ['shake', 'flash', 'hints']) {
   const el = $('s-' + k); el.checked = settings[k];
-  el.onchange = () => { settings[k] = el.checked; saveSettings(); };
+  el.onchange = () => { settings[k] = el.checked; saveSettings(); if (k === 'hints' && !el.checked) dropTips(); };
 }
 
 // Assist mode: less damage taken and/or a slower game clock
