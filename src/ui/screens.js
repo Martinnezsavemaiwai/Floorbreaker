@@ -282,7 +282,7 @@ on('floorLoaded', i => {
 });
 on('challengeOver', ok => toast(ok ? tr('ผ่านการท้าทาย', 'Challenge passed') : tr('ไม่ผ่านการท้าทาย', 'Challenge failed'), ok ? tr('ได้รางวัลสองเท่า', 'Double reward.') : tr(`โดนตีเกิน ${ROOM_RULES.challengeHits} ครั้ง ไม่ได้รางวัล`, `More than ${ROOM_RULES.challengeHits} hits. No reward.`), 3.2, true));
 on('portalOpen', () => toast(tr(`ผ่าน ${floorLabel(G.floorIdx)} แล้ว`, `${floorLabel(G.floorIdx)} Cleared`), tr('เดินเข้าประตูสีฟ้าเพื่อขึ้นชั้นต่อไป', 'Step into the blue portal to go up.'), 4.5, true));
-// The evolve banner sits mid-screen and pauses under an open picker, so it shows once the picker closes
+// The evolve banner shares the boss card's row in the notice strip and pauses under an open picker, so it shows once the picker closes
 on('artEvolved', art => {
   $('boss-card').classList.remove('on', 'down'); // a boss kill can offer an evolve pick; don't stack the two banners
   $('moment-name').textContent = evoName(art); $('moment-sub').textContent = tr('ท่าวิวัฒน์แล้ว', 'Art evolved');

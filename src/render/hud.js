@@ -176,8 +176,20 @@ function drawChallenge() {
   const over = C.hits > ROOM_RULES.challengeHits, s = `${Math.max(0, C.left).toFixed(1)} · ` + tr(`โดน ${C.hits}/${ROOM_RULES.challengeHits}`, `Hits ${C.hits}/${ROOM_RULES.challengeHits}`);
   text(s, HW / 2, 16, { size: 18, weight: 800, color: over ? '#ff6b5f' : '#ffd35a', align: 'center' });
 }
+// The DOM notices (toast, boss card, evolve banner) sit in the strip at the top right (style.css: x 39.5-81.5% of the
+// canvas, the two rows end by 25% of its height). Like veil() for the HUD, they turn see-through while the player,
+// the boss or a live mob is behind them, so a leap or a chase up the screen is never hidden.
+let noticeVeiled = false;
+function veilNotices() {
+  const { P, boss, cam } = G;
+  const behind = e => { const sx = (e.x - cam.x) / W, sy = (e.y - cam.y) / H; return sx > 0.37 && sx < 0.84 && sy > -0.05 && sy < 0.3; };
+  const on = behind(P) || (boss.hp > 0 && boss.awake && behind(boss)) || G.mobs.some(m => m.hp > 0 && behind(m));
+  if (on !== noticeVeiled) { noticeVeiled = on; document.body.classList.toggle('notices-veiled', on); }
+}
+
 export function drawHud() {
   if (G.run.over) return; // the death/clear screen takes over; a stale HP bar behind it only confuses
+  veilNotices();
   beginPixels();
   drawPlayerPane(); drawBossBar(); drawSkillSlots(); drawGuides(); drawChallenge();
   endPixels();
